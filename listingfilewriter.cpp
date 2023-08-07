@@ -89,7 +89,7 @@ void ListingFileWriter::AppendError(const std::string& Message, const AssemblyEr
         {
             ListStream.open(ListFileName, std::ofstream::out | std::ofstream::trunc);
         }
-        fmt::print(ListStream, "*******************************************{severity:*>10}:  {message}\n",
+        fmt::print(ListStream, "**************************************{severity:*>15}:  {message}\n",
                    fmt::arg("severity", " "+AssemblyError::SeverityName.at(Severity)),
                    fmt::arg("message", Message));
     }

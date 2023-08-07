@@ -265,8 +265,13 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
                                 std::vector<std::string>Operands;
                                 ExpandTokens(Line, Label, OpCode, Operands);
 
+                                std::vector<std::uint8_t> Data;
+
+                                Data.push_back(0xf8);
+                                Data.push_back(0x01);
+
                                 if (Pass == 2)
-                                    ListingFile.Append(0x1f3, {1,2,3});
+                                    ListingFile.Append(0x1f3, Data);
                             }
                             catch (AssemblyError Ex)
                             {

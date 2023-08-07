@@ -8,6 +8,7 @@
 #include "codeblock.h"
 #include "definemap.h"
 #include "exceptions.h"
+#include <iomanip>
 #include "listingfilewriter.h"
 #include "sourcecodereader.h"
 #include "utils.h"
@@ -20,6 +21,7 @@ void Error(const std::string& FileName, const int LineNumber, const std::string&
 
 int main(int argc, char **argv)
 {
+
     option longopts[] = {
         { "define", required_argument, 0, 'D' },
         { "undefine", required_argument, 0, 'U' },
@@ -155,6 +157,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
 
                         if (PreProcessorDirective(Line, Directive, Expression)) // Pre-Processor Directive
                         {
+                            if (Pass == 2)
+                                ListingFile.Append();
                             switch (Directive)
                             {
                             case PP_define:
@@ -249,8 +253,6 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
                                     throw AssemblyError("#list must specify 'on' or 'off'", SEVERITY_Warning);
                             }
                             }
-                            if (Pass == 2)
-                               ListingFile.Append();
                         }
                         else // Assembly Source line
                         {
@@ -264,7 +266,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
                                 ExpandTokens(Line, Label, OpCode, Operands);
 
                                 if (Pass == 2)
-                                    ListingFile.Append();
+                                    ListingFile.Append(0x1f3, {1,2,3});
                             }
                             catch (AssemblyError Ex)
                             {

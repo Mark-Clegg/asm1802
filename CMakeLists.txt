@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
+find_package(fmt)
+
 add_executable(asm1802 main.cpp
     sourcecodereader.cpp sourcecodereader.h
     exceptions.h exceptions.cpp
@@ -20,3 +22,5 @@ install(TARGETS asm1802
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+target_link_libraries(asm1802 fmt::fmt)

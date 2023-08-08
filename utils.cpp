@@ -78,7 +78,7 @@ std::string trim(const std::string& in)
 //!
 //! Check if line is a pre-processor directive, parse and return
 //!
-bool PreProcessorDirective(std::string& Line, PreProcessorDirectiveEnum& Directive, std::string& Expression)
+bool IsPreProcessorDirective(std::string& Line, PreProcessorDirectiveEnum& Directive, std::string& Expression)
 {
     std::smatch MatchResult;
     if(regex_match(Line, MatchResult, std::regex(R"(^#(\w+)(\s+(.*))?$)")))
@@ -112,7 +112,7 @@ PreProcessorDirectiveEnum SkipLines(SourceCodeReader& Source, std::string& Termi
     while (Source.getLine(OriginalLine))
     {
         std::string Line = trim(OriginalLine);
-        if (Line.size() > 0 && PreProcessorDirective(Line, Directive, Expression))
+        if (Line.size() > 0 && IsPreProcessorDirective(Line, Directive, Expression))
         {
             switch (Directive)
             {
@@ -225,7 +225,7 @@ void ExpandDefines(std::string& Line, DefineMap& Defines)
 void ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCode, std::vector<std::string>& OperandList)
 {
     std::smatch MatchResult;
-    if(regex_match(Line, MatchResult, std::regex(R"(^(((\w+):\s*)|\s+)((\w+)(\s+(.*))?)?$)"))) // Label: OpCode Operands
+    if(regex_match(Line, MatchResult, std::regex(R"(^(((\.?\w+):\s*)|\s+)((\w+)(\s+(.*))?)?$)"))) // Label: OpCode Operands
     {
         // Extract Label, OpCode and Operands
         std::string Operands;

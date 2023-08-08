@@ -1,11 +1,13 @@
 #include <cstring>
+#include <filesystem>
+#include <fmt/core.h>
+#include <fmt/ostream.h>
 #include <iomanip>
 #include <iostream>
 #include <map>
 #include <regex>
 #include <string>
 #include <getopt.h>
-#include "codeblock.h"
 #include "definemap.h"
 #include "exceptions.h"
 #include <iomanip>
@@ -13,11 +15,13 @@
 #include "sourcecodereader.h"
 #include "utils.h"
 
+namespace fs = std::filesystem;
+
 DefineMap GlobalDefines;   // global #defines persist for all files following on the command line
 
 bool assemble(const std::string&, bool ListingEnabled);
 
-void Error(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, const AssemblyErrorSeverity Severity);
+void Error(SourceCodeReader& Source, const std::string& Message, const AssemblyErrorSeverity Severity);
 
 int main(int argc, char **argv)
 {
@@ -50,7 +54,7 @@ int main(int argc, char **argv)
             }
             catch (AssemblyError Error)
             {
-                std::cerr << "** Error: Unable to open/read file: " << Error.Message << std::endl;
+                fmt::print("** Error: Unable to open/read file: {message}\n", fmt::arg("message", Error.Message));
             }
             break;
 
@@ -71,7 +75,7 @@ int main(int argc, char **argv)
                 value = "";
             }
             if(GlobalDefines.contains(key))
-                std::cerr << "** Warning: Macro redeclared: " << key << std::endl;
+                fmt::print("** Warning: Macro redeclared: {key}\n", fmt::arg("key", key));
             GlobalDefines[key] = value;
             break;
         }
@@ -86,7 +90,7 @@ int main(int argc, char **argv)
 
         default:
             return 1;
-            std::cout << "Error" << std::endl;
+            fmt::print("Error\n");
         }
     }
 
@@ -100,12 +104,12 @@ int main(int argc, char **argv)
         }
         catch (AssemblyError Error)
         {
-            std::cerr << "** Error opening/reading file: " << Error.Message << std::endl;
+            fmt::print("** Error opening/reading file: {message}\n", fmt::arg("message", Error.Message));
         }
     }
 
-    std::cout << std::setw(4) << FileCount << " Files Assembled" << std::endl;
-    std::cout << std::setw(4) << FileCount - FilesAssembled << " Files Failed" << std::endl;
+    fmt::print("{count:4} Files Assembled\n", fmt::arg("count", FileCount));
+    fmt::print("{count:4} Files Failed\n",    fmt::arg("count", FileCount - FilesAssembled));
 
     if(FileCount == FilesAssembled)
         return 0;
@@ -122,17 +126,17 @@ int main(int argc, char **argv)
 //!
 bool assemble(const std::string& FileName, bool ListingEnabled)
 {
-    std::cout << "Assembling: " << FileName << std::endl;
+    fmt::print("Assembling: {filename}\n", fmt::arg("filename", FileName));
 
     for(int Pass = 1; Pass < 3; Pass++)
     {
         AssemblyError::ResetErrorCounters();
+        SourceCodeReader Source;
         try
         {
-            std::cout << "Pass " << Pass << std::endl;
+            fmt::print("Pass {pass}\n", fmt::arg("pass", Pass));
 
             // Setup Source File stack
-            SourceCodeReader Source;
             Source.IncludeFile(FileName);
 
             ListingFileWriter ListingFile(Source, ListingEnabled);
@@ -155,7 +159,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
                         PreProcessorDirectiveEnum Directive;
                         std::string Expression;
 
-                        if (PreProcessorDirective(Line, Directive, Expression)) // Pre-Processor Directive
+                        if (IsPreProcessorDirective(Line, Directive, Expression)) // Pre-Processor Directive
                         {
                             if (Pass == 2)
                                 ListingFile.Append();
@@ -275,7 +279,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
                             }
                             catch (AssemblyError Ex)
                             {
-                                Error(Source.getFileName(), Source.getLineNumber(), OriginalLine, Ex.Message, Ex.Severity);
+                                Error(Source, Ex.Message, Ex.Severity);
                                 if (Pass == 2) {
                                     ListingFile.Append();
                                     ListingFile.AppendError(Ex.Message, Ex.Severity);
@@ -290,7 +294,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
                 }
                 catch (AssemblyError Ex)
                 {
-                    Error(Source.getFileName(), Source.getLineNumber(), OriginalLine, Ex.Message, Ex.Severity);
+                    Error(Source, Ex.Message, Ex.Severity);
                     if(Pass == 2)
                     {
                         ListingFile.Append();
@@ -303,16 +307,16 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
         }
         catch (AssemblyError Ex)
         {
-            Error("", 0, "", Ex.Message, Ex.Severity);
+            Error(Source, Ex.Message, Ex.Severity);
             //if(Pass == 2)
             //    ListingFile.AppendError(Ex.Message, Ex.Severity);
         }
     }
 
-    std::cout << std::setw(4) << AssemblyError::WarningCount << " Warnings" << std::endl;
-    std::cout << std::setw(4) << AssemblyError::ErrorCount << " Errors" << std::endl;
-    std::cout << std::setw(4) << AssemblyError::FatalCount << " Fatal Errors" << std::endl;
-    std::cout << std::endl;
+    fmt::print("{count:4} Warnings\n",     fmt::arg("count", AssemblyError::WarningCount));
+    fmt::print("{count:4} Errors\n",       fmt::arg("count", AssemblyError::ErrorCount));
+    fmt::print("{count:4} Fatal Errors\n", fmt::arg("count", AssemblyError::FatalCount));
+    fmt::print("\n");
 
     return AssemblyError::ErrorCount == 0 && AssemblyError::FatalCount == 0;
 }
@@ -326,7 +330,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
 //! \param Severity
 //!
 //! Write the current line and error message to stderr
-void Error(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, const AssemblyErrorSeverity Severity)
+void Error(SourceCodeReader &Source, const std::string& Message, const AssemblyErrorSeverity Severity)
 {
     switch(Severity)
     {
@@ -335,6 +339,26 @@ void Error(const std::string& FileName, const int LineNumber, const std::string&
     case SEVERITY_Fatal:    AssemblyError::FatalCount++;   break;
     }
 
-    std::cout << std::left << std::setw(10) << FileName << std::right << std::setw(5) << LineNumber << ": " << Line << std::endl;
-    std::cout << "***************: " << AssemblyError::SeverityName.at(Severity) << ": " << Message << std::endl;
+    try
+    {
+        std::string FileName = fs::path(Source.getFileName()).filename();
+        if(FileName.length() > 20)
+            FileName = FileName.substr(0, 17) + "...";
+
+
+        fmt::print("[{filename:22}({linenumber:5})] {line}\n",
+                   fmt::arg("filename", FileName),
+                   fmt::arg("linenumber", Source.getLineNumber()),
+                   fmt::arg("line", Source.getLastLine())
+                   );
+        fmt::print("**************************************{severity:*>15}:  {message}\n",
+                   fmt::arg("severity", " "+AssemblyError::SeverityName.at(Severity)),
+                   fmt::arg("message", Message));
+    }
+    catch(...)
+    {
+        fmt::print("**************************************{severity:*>15}:  {message}\n",
+                   fmt::arg("severity", " "+AssemblyError::SeverityName.at(Severity)),
+                   fmt::arg("message", Message));
+    }
 }

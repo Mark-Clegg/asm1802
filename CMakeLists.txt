@@ -14,7 +14,7 @@ add_executable(asm1802 main.cpp
     exceptions.h exceptions.cpp
     definemap.h definemap.cpp
     utils.h utils.cpp
-    codeblock.h codeblock.cpp
+
     listingfilewriter.h listingfilewriter.cpp
 )
 

@@ -10,8 +10,8 @@
 #include <getopt.h>
 #include "definemap.h"
 #include "exceptions.h"
-#include <iomanip>
 #include "listingfilewriter.h"
+#include "opcode.h"
 #include "sourcecodereader.h"
 #include "utils.h"
 
@@ -265,9 +265,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
                                 ExpandDefines(Line, Defines);
 
                                 std::string Label;
-                                std::string OpCode;
+                                std::string Mnemonic;
                                 std::vector<std::string>Operands;
-                                ExpandTokens(Line, Label, OpCode, Operands);
+                                OPCODE MachineWord = ExpandTokens(Line, Label, Mnemonic, Operands);
 
                                 std::vector<std::uint8_t> Data;
 
@@ -339,7 +339,7 @@ void Error(SourceCodeReader &Source, const std::string& Message, const AssemblyE
     case SEVERITY_Fatal:    AssemblyError::FatalCount++;   break;
     }
 
-    try
+    try // Source may not contain anything...
     {
         std::string FileName = fs::path(Source.getFileName()).filename();
         if(FileName.length() > 20)
@@ -351,13 +351,13 @@ void Error(SourceCodeReader &Source, const std::string& Message, const AssemblyE
                    fmt::arg("linenumber", Source.getLineNumber()),
                    fmt::arg("line", Source.getLastLine())
                    );
-        fmt::print("**************************************{severity:*>15}:  {message}\n",
+        fmt::print("***************{severity:*>15}: {message}\n",
                    fmt::arg("severity", " "+AssemblyError::SeverityName.at(Severity)),
                    fmt::arg("message", Message));
     }
     catch(...)
     {
-        fmt::print("**************************************{severity:*>15}:  {message}\n",
+        fmt::print("***************{severity:*>15}: {message}\n",
                    fmt::arg("severity", " "+AssemblyError::SeverityName.at(Severity)),
                    fmt::arg("message", Message));
     }

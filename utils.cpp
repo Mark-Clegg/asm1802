@@ -1,4 +1,5 @@
 #include "exceptions.h"
+#include "opcode.h"
 #include "sourcecodereader.h"
 #include "utils.h"
 
@@ -222,7 +223,7 @@ void ExpandDefines(std::string& Line, DefineMap& Defines)
 //! \param Operands
 //!
 //! Expand the source line into Label, OpCode, Operands
-void ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCode, std::vector<std::string>& OperandList)
+OPCODE ExpandTokens(const std::string& Line, std::string& Label, std::string& Mnemonic, std::vector<std::string>& OperandList)
 {
     std::smatch MatchResult;
     if(regex_match(Line, MatchResult, std::regex(R"(^(((\.?\w+):\s*)|\s+)((\w+)(\s+(.*))?)?$)"))) // Label: OpCode Operands
@@ -230,9 +231,13 @@ void ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCo
         // Extract Label, OpCode and Operands
         std::string Operands;
         Label = MatchResult[3];
-        OpCode = MatchResult[5];
-        std::transform(OpCode.begin(), OpCode.end(), OpCode.begin(), ::tolower);
+        Mnemonic = MatchResult[5];
+        std::transform(Mnemonic.begin(), Mnemonic.end(), Mnemonic.begin(), ::tolower);
         Operands = MatchResult[7];
+
+        // Convert Mnemonic to uppercoase.
+        for(char& c : Mnemonic)
+            c = std::toupper(c);
 
         // Split the Operands into a vector
         bool inQuote = false;
@@ -270,6 +275,17 @@ void ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCo
         }
         if(out.size() > 0)
             OperandList.push_back(regex_replace(out, std::regex(R"(\s+$)"), ""));
+
+        OPCODE MachineWord;
+        try
+        {
+            MachineWord = OpCode::Lookup.at(Mnemonic);
+        }
+        catch (std::out_of_range Ex)
+        {
+            MachineWord = NOTFOUND;
+        }
+        return MachineWord;
     }
     else
         throw AssemblyError("Unable to parse line", SEVERITY_Error);

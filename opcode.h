@@ -115,9 +115,7 @@ enum OPCODE
     SRET= 0x6890,
     RSXD= 0x68A0,
     RNX = 0x68B0,
-    RLDI= 0x68C0,
-
-    NOTFOUND = 0xFFFF
+    RLDI= 0x68C0
 };
 
 class OpCode

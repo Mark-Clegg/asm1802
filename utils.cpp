@@ -223,7 +223,7 @@ void ExpandDefines(std::string& Line, DefineMap& Defines)
 //! \param Operands
 //!
 //! Expand the source line into Label, OpCode, Operands
-OPCODE ExpandTokens(const std::string& Line, std::string& Label, std::string& Mnemonic, std::vector<std::string>& OperandList)
+std::optional<OPCODE> ExpandTokens(const std::string& Line, std::string& Label, std::string& Mnemonic, std::vector<std::string>& OperandList)
 {
     std::smatch MatchResult;
     if(regex_match(Line, MatchResult, std::regex(R"(^(((\.?\w+):\s*)|\s+)((\w+)(\s+(.*))?)?$)"))) // Label: OpCode Operands
@@ -232,6 +232,10 @@ OPCODE ExpandTokens(const std::string& Line, std::string& Label, std::string& Mn
         std::string Operands;
         Label = MatchResult[3];
         Mnemonic = MatchResult[5];
+
+        if(Mnemonic.length() == 0)
+            return {};
+
         std::transform(Mnemonic.begin(), Mnemonic.end(), Mnemonic.begin(), ::tolower);
         Operands = MatchResult[7];
 
@@ -283,7 +287,7 @@ OPCODE ExpandTokens(const std::string& Line, std::string& Label, std::string& Mn
         }
         catch (std::out_of_range Ex)
         {
-            MachineWord = NOTFOUND;
+            throw AssemblyError("Unrecognised Mnemonic", SEVERITY_Error);
         }
         return MachineWord;
     }

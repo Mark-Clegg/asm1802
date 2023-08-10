@@ -267,7 +267,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
                                 std::string Label;
                                 std::string Mnemonic;
                                 std::vector<std::string>Operands;
-                                OPCODE MachineWord = ExpandTokens(Line, Label, Mnemonic, Operands);
+                                std::optional<OPCODE> MachineWord = ExpandTokens(Line, Label, Mnemonic, Operands);
 
                                 std::vector<std::uint8_t> Data;
 

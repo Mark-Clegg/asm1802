@@ -1,5 +1,5 @@
 #include "exceptions.h"
-#include "opcode.h"
+#include "opcodetable.h"
 #include "sourcecodereader.h"
 #include "utils.h"
 
@@ -223,10 +223,10 @@ void ExpandDefines(std::string& Line, DefineMap& Defines)
 //! \param Operands
 //!
 //! Expand the source line into Label, OpCode, Operands
-std::optional<OPCODE> ExpandTokens(const std::string& Line, std::string& Label, std::string& Mnemonic, std::vector<std::string>& OperandList)
+const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& Mnemonic, std::vector<std::string>& OperandList)
 {
     std::smatch MatchResult;
-    if(regex_match(Line, MatchResult, std::regex(R"(^(((\.?\w+):\s*)|\s+)((\w+)(\s+(.*))?)?$)"))) // Label: OpCode Operands
+    if(regex_match(Line, MatchResult, std::regex(R"(^(((\w+):\s*)|\s+)((\w+)(\s+(.*))?)?$)"))) // Label: OpCode Operands
     {
         // Extract Label, OpCode and Operands
         std::string Operands;
@@ -236,12 +236,8 @@ std::optional<OPCODE> ExpandTokens(const std::string& Line, std::string& Label, 
         if(Mnemonic.length() == 0)
             return {};
 
-        std::transform(Mnemonic.begin(), Mnemonic.end(), Mnemonic.begin(), ::tolower);
+        std::transform(Mnemonic.begin(), Mnemonic.end(), Mnemonic.begin(), ::toupper);
         Operands = MatchResult[7];
-
-        // Convert Mnemonic to uppercoase.
-        for(char& c : Mnemonic)
-            c = std::toupper(c);
 
         // Split the Operands into a vector
         bool inQuote = false;
@@ -280,10 +276,10 @@ std::optional<OPCODE> ExpandTokens(const std::string& Line, std::string& Label, 
         if(out.size() > 0)
             OperandList.push_back(regex_replace(out, std::regex(R"(\s+$)"), ""));
 
-        OPCODE MachineWord;
+        OpCodeSpec MachineWord;
         try
         {
-            MachineWord = OpCode::Lookup.at(Mnemonic);
+            MachineWord = OpCodeTable::OpCode.at(Mnemonic);
         }
         catch (std::out_of_range Ex)
         {

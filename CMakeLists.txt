@@ -16,7 +16,7 @@ add_executable(asm1802 main.cpp
     utils.h utils.cpp
 
     listingfilewriter.h listingfilewriter.cpp
-    opcode.h opcode.cpp
+    opcodetable.h opcodetable.cpp
 )
 
 install(TARGETS asm1802

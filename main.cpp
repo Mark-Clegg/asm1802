@@ -11,7 +11,7 @@
 #include "definemap.h"
 #include "exceptions.h"
 #include "listingfilewriter.h"
-#include "opcode.h"
+#include "opcodetable.h"
 #include "sourcecodereader.h"
 #include "utils.h"
 
@@ -267,15 +267,26 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
                                 std::string Label;
                                 std::string Mnemonic;
                                 std::vector<std::string>Operands;
-                                std::optional<OPCODE> MachineWord = ExpandTokens(Line, Label, Mnemonic, Operands);
+                                std::optional<OpCodeSpec> MachineWord = ExpandTokens(Line, Label, Mnemonic, Operands);
 
-                                std::vector<std::uint8_t> Data;
+                                switch(Pass)
+                                {
+                                    case 1:
+                                    {
+                                        break;
+                                    }
+                                    case 2:
+                                    {
+                                        std::vector<std::uint8_t> Data;
 
-                                Data.push_back(0xf8);
-                                Data.push_back(0x01);
+                                        Data.push_back(0xf8);
+                                        Data.push_back(0x01);
 
-                                if (Pass == 2)
-                                    ListingFile.Append(0x1f3, Data);
+                                        ListingFile.Append(0x1f3, Data);
+                                        break;
+                                    }
+                                }
+
                             }
                             catch (AssemblyError Ex)
                             {

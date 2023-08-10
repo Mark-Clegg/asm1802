@@ -6,7 +6,7 @@
 #include <regex>
 #include <string>
 #include "definemap.h"
-#include "opcode.h"
+#include "opcodetable.h"
 #include "sourcecodereader.h"
 
 enum PreProcessorDirectiveEnum
@@ -26,6 +26,6 @@ std::string trim(const std::string &);
 bool IsPreProcessorDirective(std::string& Line, PreProcessorDirectiveEnum& Directive, std::string& Expression);
 PreProcessorDirectiveEnum SkipLines(SourceCodeReader& Source, std::string& TerminatingLine);
 void ExpandDefines(std::string& Line, DefineMap& Defines);
-std::optional<OPCODE> ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCode, std::vector<std::string>& Operands);
+const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCode, std::vector<std::string>& Operands);
 std::string basename(const std::string FileName);
 #endif // UTILS_H

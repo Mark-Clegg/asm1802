@@ -17,8 +17,7 @@ const std::map<std::string, PreProcessorDirectiveEnum> PreProcessorDirectives = 
     { "endif",       PP_endif   },
     { "include",     PP_include },
     { "list",        PP_list    },
-    { "extern",      PP_extern  },
-    { "public",      PP_public  }
+    { "symbols",     PP_symbols }
 };
 
 //!

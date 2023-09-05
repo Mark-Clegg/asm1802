@@ -20,8 +20,7 @@ enum PreProcessorDirectiveEnum
     PP_endif,
     PP_include,
     PP_list,
-    PP_public,
-    PP_extern
+    PP_symbols
 };
 
 std::string trim(const std::string &);

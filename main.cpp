@@ -21,7 +21,7 @@ namespace fs = std::filesystem;
 
 DefineMap GlobalDefines;   // global #defines persist for all files following on the command line
 
-bool assemble(const std::string&, bool ListingEnabled);
+bool assemble(const std::string&, bool ListingEnabled, bool DumpSymbols);
 
 void PrintError(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity);
 
@@ -32,15 +32,17 @@ int main(int argc, char **argv)
         { "define", required_argument, 0, 'D' },
         { "undefine", required_argument, 0, 'U' },
         { "list", no_argument, 0, 'L' },
+        { "symbols", no_argument, 0 , 'S' },
         { 0,0,0,0 }
     };
 
     bool Listing = false;
+    bool Symbols = false;
     int FileCount = 0;
     int FilesAssembled = 0;
     while (1) {
 
-        const int opt = getopt_long(argc, argv, "-D:U:L", longopts, 0);
+        const int opt = getopt_long(argc, argv, "-D:U:LS", longopts, 0);
 
         if (opt == -1) {
             break;
@@ -50,7 +52,7 @@ int main(int argc, char **argv)
         case 1:
             try
             {
-                if(assemble(optarg, Listing))
+                if(assemble(optarg, Listing, Symbols))
                     FilesAssembled++;
                 FileCount++;
             }
@@ -90,6 +92,10 @@ int main(int argc, char **argv)
             Listing = true;
             break;
 
+        case 'S':
+            Symbols = true;
+            break;
+
         default:
             return 1;
             fmt::print("Error\n");
@@ -100,7 +106,7 @@ int main(int argc, char **argv)
     {
         try
         {
-            if(assemble(argv[optind++], Listing))
+            if(assemble(argv[optind++], Listing, Symbols))
                 FilesAssembled++;
             FileCount++;
         }
@@ -126,7 +132,7 @@ int main(int argc, char **argv)
 //!
 //! Main Assembler
 //!
-bool assemble(const std::string& FileName, bool ListingEnabled)
+bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols)
 {
     fmt::print("Assembling: {filename}\n", fmt::arg("filename", FileName));
 
@@ -261,6 +267,17 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
                                     ListingFile.Enabled = false;
                                 else
                                     throw AssemblyException("#list must specify 'on' or 'off'", SEVERITY_Warning);
+                                break;
+                            }
+                            case PP_symbols:
+                            {
+                                if(Expression == "on")
+                                    DumpSymbols = true;
+                                else if(Expression == "off")
+                                    DumpSymbols = false;
+                                else
+                                    throw AssemblyException("#symbols must specify 'on' or 'off'", SEVERITY_Warning);
+                                break;
                             }
                             }
                         }
@@ -287,9 +304,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
                                             {
                                                 auto Symbol = CurrentScope->Table[Label];
                                                 if(Symbol.Extern)
-                                                    throw AssemblyException("Label is already defined as extern", SEVERITY_Error);
+                                                    throw AssemblyException(fmt::format("Cannot declare label '{Label}' here as it was previously declared as extern", fmt::arg("Label", Label)), SEVERITY_Error);
                                                 if(Symbol.Address.has_value())
-                                                    throw AssemblyException("Label is already defined", SEVERITY_Error);
+                                                    throw AssemblyException(fmt::format("Label '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
                                                 Symbol.Address = ProgramCounter;
                                             }
                                         }
@@ -314,10 +331,10 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
                                                         if(CurrentScope->Table.find(Operands[0]) == CurrentScope->Table.end())
                                                             CurrentScope->Table[Operands[0]].Extern = true;
                                                         else
-                                                            throw AssemblyException("Label is already defined", SEVERITY_Error);
+                                                            throw AssemblyException(fmt::format("Label '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
                                                     }
                                                     else
-                                                        throw AssemblyException("'extern' can only be used in top level scope", SEVERITY_Error);
+                                                        throw AssemblyException("'extern' can only be used at top level scope", SEVERITY_Error);
                                                 }
                                                 else
                                                     throw AssemblyException("Too many operands", SEVERITY_Error);
@@ -332,7 +349,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
                                                     if(CurrentScope == &MasterSymbolTable)
                                                         CurrentScope->Table[Operands[0]].Public = true;
                                                     else
-                                                        throw AssemblyException("'public' can only be used in top level scope", SEVERITY_Error);
+                                                        throw AssemblyException("'public' can only be used at top level scope", SEVERITY_Error);
                                                 }
                                                 else
                                                     throw AssemblyException("Too many operands", SEVERITY_Error);
@@ -398,9 +415,16 @@ bool assemble(const std::string& FileName, bool ListingEnabled)
         }
     }
 
+    if(DumpSymbols)
+    {
+        fmt::print("\n");
+        fmt::print("Symbol Tables\n");
+    }
+
     int TotalWarnings = Errors.count(SEVERITY_Warning);
     int TotalErrors = Errors.count(SEVERITY_Error);
 
+    fmt::print("\n");
     fmt::print("{count:4} Warnings\n",     fmt::arg("count", TotalWarnings));
     fmt::print("{count:4} Errors\n",       fmt::arg("count", TotalErrors));
     fmt::print("\n");

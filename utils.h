@@ -19,7 +19,9 @@ enum PreProcessorDirectiveEnum
     PP_else,
     PP_endif,
     PP_include,
-    PP_list
+    PP_list,
+    PP_public,
+    PP_extern
 };
 
 std::string trim(const std::string &);

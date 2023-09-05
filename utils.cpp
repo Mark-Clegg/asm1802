@@ -1,4 +1,4 @@
-#include "exceptions.h"
+#include "assemblyexception.h"
 #include "opcodetable.h"
 #include "sourcecodereader.h"
 #include "utils.h"
@@ -16,7 +16,9 @@ const std::map<std::string, PreProcessorDirectiveEnum> PreProcessorDirectives = 
     { "else",        PP_else    },
     { "endif",       PP_endif   },
     { "include",     PP_include },
-    { "list",        PP_list    }
+    { "list",        PP_list    },
+    { "extern",      PP_extern  },
+    { "public",      PP_public  }
 };
 
 //!
@@ -92,7 +94,7 @@ bool IsPreProcessorDirective(std::string& Line, PreProcessorDirectiveEnum& Direc
             Directive = PreProcessorDirectives.at(FirstToken);
             return true;
         }
-        throw AssemblyError("Unrecognised PreProcessor directive", SEVERITY_Warning);
+        throw AssemblyException("Unrecognised PreProcessor directive", SEVERITY_Warning);
     }
     return false;
 }
@@ -144,7 +146,7 @@ PreProcessorDirectiveEnum SkipLines(SourceCodeReader& Source, std::string& Termi
             }
         }
     }
-    throw AssemblyError("Unterminated #if/#ifdef/#ifndef", SEVERITY_Warning);
+    throw AssemblyException("Unterminated #if/#ifdef/#ifndef", SEVERITY_Warning);
 }
 
 //!
@@ -283,10 +285,10 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
         }
         catch (std::out_of_range Ex)
         {
-            throw AssemblyError("Unrecognised Mnemonic", SEVERITY_Error);
+            throw AssemblyException("Unrecognised Mnemonic", SEVERITY_Error);
         }
         return MachineWord;
     }
     else
-        throw AssemblyError("Unable to parse line", SEVERITY_Error);
+        throw AssemblyException("Unable to parse line", SEVERITY_Error);
 }

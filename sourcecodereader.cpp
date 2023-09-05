@@ -1,4 +1,4 @@
-#include "exceptions.h"
+#include "assemblyexception.h"
 #include "sourcecodereader.h"
 
 SourceCodeReader::SourceEntry::SourceEntry(SourceType Type, const std::string& Name) :
@@ -11,7 +11,7 @@ SourceCodeReader::SourceEntry::SourceEntry(SourceType Type, const std::string& N
     case SOURCE_FILE:
         Stream = new std::ifstream(Name);
         if(Stream->fail())
-            throw AssemblyError("Unable to open " + Name, SEVERITY_Fatal);
+            throw AssemblyException("Unable to open " + Name, SEVERITY_Error);
         break;
     case SOURCE_LITERAL:
         Stream = new std::istringstream(Name);
@@ -72,8 +72,12 @@ const std::string& SourceCodeReader::getFileName() const
 
 void SourceCodeReader::IncludeFile(const std::string& FileName)
 {
-    SourceEntry Entry(SOURCE_FILE, FileName);
-    SourceStreams.push(Entry);
+    try {
+        SourceEntry Entry(SOURCE_FILE, FileName);
+        SourceStreams.push(Entry);
+    } catch (...) {
+        throw AssemblyException("Unable to open " + FileName, SEVERITY_Error);
+    }
 }
 
 void SourceCodeReader::IncludeLiteral(const std::string& Data)

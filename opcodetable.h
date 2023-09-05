@@ -130,7 +130,12 @@ enum OpCodeEnum
     DADD = 0x68F4,
     DSM  = 0x68F7,
     DADI = 0x68FC,
-    DSMI = 0x68FF
+    DSMI = 0x68FF,
+
+    // Pseudo OpCodes
+
+    PUBLIC = 0xFF00,
+    EXTERN = 0xFF01
 };
 
 enum OpCodeTypeEnum
@@ -139,13 +144,14 @@ enum OpCodeTypeEnum
     REGISTER,                       // OPCODE Rn (n=0-F)
     IMMEDIATE,                      // OPCODE 0xnn
     SHORT_BRANCH,                   // OPCODE 0xnn (must be in same page)
-    IMMEDIATE16,                    // OPCODE 0xnnnn
+    LONG_BRANCH,                    // OPCODE 0xnnnn
     INPUT_OUTPUT,                   // OPCODE Pn (n=1-7)
     EXTENDED,                       // OPCODE
     EXTENDED_REGISTER,              // OPCODE Rn (n=0-F)
     EXTENDED_IMMEDIATE,             // OPCODE 0xnn
     EXTENDED_SHORT_BRANCH,          // OPCODE 0xnn (must be in same page)
-    EXTENDED_REGISTER_IMMEDIATE16   // OPCODE Rn, 0xnnnn
+    EXTENDED_REGISTER_IMMEDIATE16,  // OPCODE Rn, 0xnnnn
+    PSEUDO_OP                       // Pseudo Operation
 };
 
 enum CPUTypeEnum
@@ -167,6 +173,7 @@ class OpCodeTable
 {
 public:
     static const std::map<std::string, OpCodeSpec> OpCode;
+    static const std::map<OpCodeTypeEnum, int> OpCodeBytes;
 };
 
 #endif // OPCODE_H

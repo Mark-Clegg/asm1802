@@ -10,14 +10,15 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 find_package(fmt)
 
 add_executable(asm1802 main.cpp
-    sourcecodereader.cpp sourcecodereader.h
-    exceptions.h exceptions.cpp
+    sourcecodereader.h sourcecodereader.cpp
+    assemblyexception.h assemblyexception.cpp
     definemap.h definemap.cpp
     utils.h utils.cpp
-
     listingfilewriter.h listingfilewriter.cpp
     opcodetable.h opcodetable.cpp
-)
+    symbol.h symbol.cpp
+    errortable.h errortable.cpp
+    )
 
 install(TARGETS asm1802
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

@@ -53,19 +53,19 @@ const std::map<std::string, OpCodeSpec> OpCodeTable::OpCode = {
     { "GHI",  { GHI,  REGISTER,                      CPU_1802  }},
     { "PLO",  { PLO,  REGISTER,                      CPU_1802  }},
     { "PHI",  { PHI,  REGISTER,                      CPU_1802  }},
-    { "LBR",  { LBR,  IMMEDIATE16,                   CPU_1802  }},
-    { "LBQ",  { LBQ,  IMMEDIATE16,                   CPU_1802  }},
-    { "LBZ",  { LBZ,  IMMEDIATE16,                   CPU_1802  }},
-    { "LBDF", { LBDF, IMMEDIATE16,                   CPU_1802  }},
+    { "LBR",  { LBR,  LONG_BRANCH,                   CPU_1802  }},
+    { "LBQ",  { LBQ,  LONG_BRANCH,                   CPU_1802  }},
+    { "LBZ",  { LBZ,  LONG_BRANCH,                   CPU_1802  }},
+    { "LBDF", { LBDF, LONG_BRANCH,                   CPU_1802  }},
     { "NOP",  { NOP,  BASIC,                         CPU_1802  }},
     { "LSNQ", { LSNQ, BASIC,                         CPU_1802  }},
     { "LSNZ", { LSNZ, BASIC,                         CPU_1802  }},
     { "LSNF", { LSNF, BASIC,                         CPU_1802  }},
     { "LSKP", { LSKP, BASIC,                         CPU_1802  }},
     { "NLBR", { NLBR, BASIC,                         CPU_1802  }},
-    { "LBNQ", { LBNQ, IMMEDIATE16,                   CPU_1802  }},
-    { "LBNZ", { LBNZ, IMMEDIATE16,                   CPU_1802  }},
-    { "LBNF", { LBNF, IMMEDIATE16,                   CPU_1802  }},
+    { "LBNQ", { LBNQ, LONG_BRANCH,                   CPU_1802  }},
+    { "LBNZ", { LBNZ, LONG_BRANCH,                   CPU_1802  }},
+    { "LBNF", { LBNF, LONG_BRANCH,                   CPU_1802  }},
     { "LSIE", { LSIE, BASIC,                         CPU_1802  }},
     { "LSQ",  { LSQ,  BASIC,                         CPU_1802  }},
     { "LSZ",  { LSZ,  BASIC,                         CPU_1802  }},
@@ -125,5 +125,24 @@ const std::map<std::string, OpCodeSpec> OpCodeTable::OpCode = {
     { "DADD", { DADD, EXTENDED,                      CPU_1806A }},
     { "DSM",  { DSM,  EXTENDED,                      CPU_1806A }},
     { "DADI", { DADI, EXTENDED_IMMEDIATE,            CPU_1806A }},
-    { "DSMI", { DSMI, EXTENDED_IMMEDIATE,            CPU_1806A }}
+    { "DSMI", { DSMI, EXTENDED_IMMEDIATE,            CPU_1806A }},
+
+    // Pseudo Operations
+
+    { "PUBLIC", { PUBLIC, PSEUDO_OP,                 CPU_1802  }},
+    { "EXTERN", { EXTERN, PSEUDO_OP,                 CPU_1802  }}
+};
+
+const std::map<OpCodeTypeEnum, int> OpCodeTable::OpCodeBytes = {
+    { BASIC,                          1 },
+    { REGISTER,                       1 },
+    { IMMEDIATE,                      2 },
+    { SHORT_BRANCH,                   2 },
+    { LONG_BRANCH,                    3 },
+    { INPUT_OUTPUT,                   1 },
+    { EXTENDED,                       2 },
+    { EXTENDED_REGISTER,              2 },
+    { EXTENDED_IMMEDIATE,             3 },
+    { EXTENDED_SHORT_BRANCH,          3 },
+    { EXTENDED_REGISTER_IMMEDIATE16,  4 }
 };

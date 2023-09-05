@@ -8,11 +8,12 @@
 
 namespace fs = std::filesystem;
 
-ListingFileWriter::ListingFileWriter(const SourceCodeReader& Src, bool Enabled) :
+ListingFileWriter::ListingFileWriter(const SourceCodeReader& Src, const std::string& FileName, ErrorTable& Errors, bool Enabled) :
     Source { Src },
+    Errors { Errors },
     Enabled { Enabled }
 {
-    auto p = fs::path(Source.getFileName());
+    auto p = fs::path(FileName);
     p.replace_extension("lst");
     ListFileName = p;
 }
@@ -40,6 +41,8 @@ void ListingFileWriter::Append()
                    fmt::arg("linenumber", Source.getLineNumber()),
                    fmt::arg("line", Source.getLastLine())
                    );
+
+        PrintError(FileName, Source.getLineNumber());
     }
 }
 
@@ -78,19 +81,24 @@ void ListingFileWriter::Append(const std::uint16_t Address, const std::vector<st
                 );
             ListStream << std::endl;
         }
+
+        PrintError(FileName, Source.getLineNumber());
     }
 }
 
-void ListingFileWriter::AppendError(const std::string& Message, const AssemblyErrorSeverity Severity)
+void ListingFileWriter::PrintError(const std::string& FileName, int LineNumber)
 {
-    if(Enabled)
+    if(Errors.count(FileName) != 0)
     {
-        if(!ListStream.is_open())
+        auto range = Errors[FileName].equal_range(LineNumber);
+        for(auto it = range.first; it != range.second; it++)
         {
-            ListStream.open(ListFileName, std::ofstream::out | std::ofstream::trunc);
+            auto MsgSevPair = it->second;
+            std::string Message = MsgSevPair.first;
+            AssemblyErrorSeverity Severity = MsgSevPair.second;
+            fmt::print(ListStream, "**************************************{severity:*>15}:  {message}\n",
+                       fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
+                       fmt::arg("message", Message));
         }
-        fmt::print(ListStream, "**************************************{severity:*>15}:  {message}\n",
-                   fmt::arg("severity", " "+AssemblyError::SeverityName.at(Severity)),
-                   fmt::arg("message", Message));
     }
 }

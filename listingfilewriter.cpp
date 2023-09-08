@@ -102,3 +102,39 @@ void ListingFileWriter::PrintError(const std::string& FileName, int LineNumber)
         }
     }
 }
+
+void ListingFileWriter::AppendSymbols(const std::string& Name, const symbolTable& Symbols)
+{
+    if(Enabled)
+    {
+        fmt::print(ListStream, "\n");
+        std::string Title;
+        if(Symbols.Relocatable)
+            Title = Name + " (Relocatable)";
+        else
+            Title = Name;
+        fmt::print(ListStream, "{Title:-^108}\n", fmt::arg("Title", Title));
+
+        int c = 0;
+        for(auto& Symbol : Symbols)
+        {
+            fmt::print(ListStream, "{Name:15} ", fmt::arg("Name", Symbol.first));
+            if(Symbol.second.Extern)
+                fmt::print(ListStream, "External");
+            else
+            {
+                if(Symbol.second.Address.has_value())
+                    fmt::print(ListStream, "{Address:04X} {Public:3}",
+                               fmt::arg("Address", Symbol.second.Address.value()),
+                               fmt::arg("Public", Symbol.second.Public ? "Pub" : "   "));
+                else
+                    fmt::print(ListStream, "---- {Public:3}", fmt::arg("Public", Symbol.second.Public ? "Pub" : "   "));
+            }
+            if(++c % 4 == 0)
+                fmt::print(ListStream, "\n");
+            else
+                fmt::print(ListStream, "    ");
+        }
+        fmt::print(ListStream, "\n");
+    }
+}

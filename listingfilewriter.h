@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <map>
 #include <vector>
-#include "assemblyexception.h"
 #include "errortable.h"
 #include "sourcecodereader.h"
+#include "symbol.h"
 
 class ListingFileWriter
 {
@@ -25,7 +25,7 @@ public:
 
     void Append();
     void Append(const std::uint16_t Address, const std::vector<std::uint8_t>& Data);
-//    void PushError(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity);
+    void AppendSymbols(const std::string& Name, const symbolTable& Symbols);
     ErrorTable& Errors;
 };
 

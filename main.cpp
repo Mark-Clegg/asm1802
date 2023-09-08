@@ -24,6 +24,7 @@ DefineMap GlobalDefines;   // global #defines persist for all files following on
 bool assemble(const std::string&, bool ListingEnabled, bool DumpSymbols);
 
 void PrintError(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity);
+void PrintSymbols(const std::string & Name, const symbolTable& Table);
 
 int main(int argc, char **argv)
 {
@@ -136,8 +137,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 {
     fmt::print("Assembling: {filename}\n", fmt::arg("filename", FileName));
 
-    symbolTable MasterSymbolTable(false);
-    symbolTable* CurrentScope = &MasterSymbolTable;
+    symbolTable MasterSymbolTable;
+    std::map<std::string, symbolTable> LocalSymbolTable;
 
     SourceCodeReader Source;
     ErrorTable Errors;
@@ -145,6 +146,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
     for(int Pass = 1; Pass < 3; Pass++)
     {
+        symbolTable* CurrentScope = &MasterSymbolTable;
         uint16_t ProgramCounter = 0;
         try
         {
@@ -165,6 +167,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
             {
                 try
                 {
+                    symbolTable& Symbols = *CurrentScope;
                     std::string Line = trim(OriginalLine);
                     if (Line.size() > 0)
                     {
@@ -298,11 +301,11 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                     {
                                         if(!Label.empty())
                                         {
-                                            if(CurrentScope->Table.find(Label) == CurrentScope->Table.end())
-                                                CurrentScope->Table[Label].Address = ProgramCounter;
+                                        if(Symbols.find(Label) == Symbols.end())
+                                            Symbols[Label].Address = ProgramCounter;
                                             else
                                             {
-                                                auto Symbol = CurrentScope->Table[Label];
+                                            auto& Symbol = Symbols[Label];
                                                 if(Symbol.Extern)
                                                     throw AssemblyException(fmt::format("Cannot declare label '{Label}' here as it was previously declared as extern", fmt::arg("Label", Label)), SEVERITY_Error);
                                                 if(Symbol.Address.has_value())
@@ -326,10 +329,10 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                 // else error
                                                 if(Operands.size() == 1)
                                                 {
-                                                    if(CurrentScope == &MasterSymbolTable)
+                                                    if(Symbols.Master)
                                                     {
-                                                        if(CurrentScope->Table.find(Operands[0]) == CurrentScope->Table.end())
-                                                            CurrentScope->Table[Operands[0]].Extern = true;
+                                                        if(Symbols.find(Operands[0]) == Symbols.end())
+                                                            Symbols[Operands[0]].Extern = true;
                                                         else
                                                             throw AssemblyException(fmt::format("Label '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
                                                     }
@@ -346,13 +349,50 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                 // if not in symbol table, add and set public flag
                                                 if(Operands.size() == 1)
                                                 {
-                                                    if(CurrentScope == &MasterSymbolTable)
-                                                        CurrentScope->Table[Operands[0]].Public = true;
+                                                    if(Symbols.Master)
+                                                        Symbols[Operands[0]].Public = true;
                                                     else
                                                         throw AssemblyException("'public' can only be used at top level scope", SEVERITY_Error);
                                                 }
                                                 else
                                                     throw AssemblyException("Too many operands", SEVERITY_Error);
+                                                break;
+                                            }
+                                            case SUB:
+                                            {
+                                                if(!Label.empty())
+                                                {
+                                                    if(LocalSymbolTable.find(Operands[0]) == LocalSymbolTable.end())
+                                                    {
+                                                        if(Operands.empty())
+                                                        {
+                                                            Symbols[Label].Public = true;
+                                                            LocalSymbolTable.insert(std::pair<std::string, symbolTable>(Label, symbolTable(false)));
+                                                            CurrentScope = &LocalSymbolTable[Label];
+                                                        }
+                                                        else
+                                                        {
+                                                            std::transform(Operands[0].begin(), Operands[0].end(), Operands[0].begin(), ::toupper);
+                                                            if(Operands[0] == "RELOCATABLE")
+                                                            {
+                                                                Symbols[Label].Public = true;
+                                                                LocalSymbolTable.insert(std::pair<std::string, symbolTable>(Label, symbolTable(true)));
+                                                                CurrentScope = &LocalSymbolTable[Label];
+                                                            }
+                                                            else
+                                                                throw AssemblyException(fmt::format("Unrecognised operand '{Operand}'", fmt::arg("Operand", Operands[0])), SEVERITY_Error);
+                                                        }
+                                                    }
+                                                    else
+                                                        throw AssemblyException(fmt::format("Subroutine '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
+                                                }
+                                                else
+                                                    throw AssemblyException("SUBROUTINE requires a Label", SEVERITY_Error);
+                                                break;
+                                            }
+                                            case ENDSUB:
+                                            {
+                                                CurrentScope = &MasterSymbolTable;
                                                 break;
                                             }
                                             default: // All Native Opcodes handled here.
@@ -418,7 +458,14 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     if(DumpSymbols)
     {
         fmt::print("\n");
-        fmt::print("Symbol Tables\n");
+
+        PrintSymbols("Global Symbols", MasterSymbolTable);
+        ListingFile.AppendSymbols("Global Symbols", MasterSymbolTable);
+        for(auto& Table : LocalSymbolTable)
+        {
+            PrintSymbols(Table.first, Table.second);
+            ListingFile.AppendSymbols(Table.first, Table.second);
+        }
     }
 
     int TotalWarnings = Errors.count(SEVERITY_Warning);
@@ -431,8 +478,6 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
     return TotalErrors == 0 && TotalWarnings == 0;
 }
-
-
 
 //!
 //! \brief PrintError
@@ -468,4 +513,43 @@ void PrintError(const std::string& SourceFileName, const int LineNumber, const s
                    fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
                    fmt::arg("message", Message));
     }
+}
+
+//!
+//! \brief PrintSymbols
+//! \param Name
+//! \param Symbols
+//!
+//! Print the given Symbol Table
+//!
+void PrintSymbols(const std::string& Name, const symbolTable& Symbols)
+{
+    std::string Title;
+    if(Symbols.Relocatable)
+        Title = Name + " (Relocatable)";
+    else
+        Title = Name;
+    fmt::print("{Title:-^108}\n", fmt::arg("Title", Title));
+
+    int c = 0;
+    for(auto& Symbol : Symbols)
+    {
+        fmt::print("{Name:15} ", fmt::arg("Name", Symbol.first));
+        if(Symbol.second.Extern)
+            fmt::print("External");
+        else
+        {
+        if(Symbol.second.Address.has_value())
+            fmt::print("{Address:04X} {Public:3}",
+                       fmt::arg("Address", Symbol.second.Address.value()),
+                       fmt::arg("Public", Symbol.second.Public ? "Pub" : "   "));
+        else
+            fmt::print("---- {Public:3}", fmt::arg("Public", Symbol.second.Public ? "Pub" : "   "));
+        }
+        if(++c % 4 == 0)
+            fmt::print("\n");
+        else
+            fmt::print("    ");
+    }
+    fmt::print("\n");
 }

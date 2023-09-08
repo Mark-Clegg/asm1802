@@ -16,12 +16,13 @@ public:
     bool Extern = false;
 };
 
-class symbolTable
+class symbolTable : public std::map<std::string,symbolDefinition>
 {
 public:
+    symbolTable();
     symbolTable(bool Relocatable);
-    std::map<std::string,symbolDefinition> Table;
 
+    const bool Master;
     const bool Relocatable;
 };
 

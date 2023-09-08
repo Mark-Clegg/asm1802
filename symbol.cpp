@@ -2,10 +2,12 @@
 
 symbolDefinition::symbolDefinition()
 {
-
 }
 
-symbolTable::symbolTable(bool Relocatable) : Relocatable(Relocatable)
+symbolTable::symbolTable() : Master(true), Relocatable(false)
 {
+}
 
+symbolTable::symbolTable(bool Relocatable) : Master(false), Relocatable(Relocatable)
+{
 }

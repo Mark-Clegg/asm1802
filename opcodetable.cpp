@@ -129,8 +129,11 @@ const std::map<std::string, OpCodeSpec> OpCodeTable::OpCode = {
 
     // Pseudo Operations
 
-    { "PUBLIC", { PUBLIC, PSEUDO_OP,                 CPU_1802  }},
-    { "EXTERN", { EXTERN, PSEUDO_OP,                 CPU_1802  }}
+    { "PUBLIC",     { PUBLIC, PSEUDO_OP,             CPU_1802  }},
+    { "EXTERN",     { EXTERN, PSEUDO_OP,             CPU_1802  }},
+    { "SUB",        { SUB,    PSEUDO_OP,             CPU_1802  }},
+    { "SUBROUTINE", { SUB,    PSEUDO_OP,             CPU_1802  }},
+    { "ENDSUB",     { ENDSUB, PSEUDO_OP,             CPU_1802  }}
 };
 
 const std::map<OpCodeTypeEnum, int> OpCodeTable::OpCodeBytes = {

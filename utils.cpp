@@ -237,7 +237,7 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
         if(Mnemonic.length() == 0)
             return {};
 
-        std::transform(Mnemonic.begin(), Mnemonic.end(), Mnemonic.begin(), ::toupper);
+        ToUpper(Mnemonic);
         Operands = MatchResult[7];
 
         // Split the Operands into a vector

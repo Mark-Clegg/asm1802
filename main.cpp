@@ -372,7 +372,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         }
                                                         else
                                                         {
-                                                            std::transform(Operands[0].begin(), Operands[0].end(), Operands[0].begin(), ::toupper);
+                                                            ToUpper(Operands[0]);
                                                             if(Operands[0] == "RELOCATABLE")
                                                             {
                                                                 Symbols[Label].Public = true;

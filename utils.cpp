@@ -291,3 +291,8 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
     else
         throw AssemblyException("Unable to parse line", SEVERITY_Error);
 }
+
+int Evaluate(std::string Expression)
+{
+    return 0x8000;
+}

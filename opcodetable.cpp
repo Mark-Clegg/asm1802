@@ -133,7 +133,8 @@ const std::map<std::string, OpCodeSpec> OpCodeTable::OpCode = {
     { "EXTERN",     { EXTERN, PSEUDO_OP,             CPU_1802  }},
     { "SUB",        { SUB,    PSEUDO_OP,             CPU_1802  }},
     { "SUBROUTINE", { SUB,    PSEUDO_OP,             CPU_1802  }},
-    { "ENDSUB",     { ENDSUB, PSEUDO_OP,             CPU_1802  }}
+    { "ENDSUB",     { ENDSUB, PSEUDO_OP,             CPU_1802  }},
+    { "ORG",        { ORG,    PSEUDO_OP,             CPU_1802  }}
 };
 
 const std::map<OpCodeTypeEnum, int> OpCodeTable::OpCodeBytes = {

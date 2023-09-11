@@ -139,6 +139,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
     symbolTable MasterSymbolTable;
     std::map<std::string, symbolTable> LocalSymbolTable;
+    std::stack<uint16_t> ProgramCounterStack;
 
     SourceCodeReader Source;
     ErrorTable Errors;
@@ -362,7 +363,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             {
                                                 if(!Label.empty())
                                                 {
-                                                    if(LocalSymbolTable.find(Operands[0]) == LocalSymbolTable.end())
+                                                    if(LocalSymbolTable.find(Label) == LocalSymbolTable.end())
                                                     {
                                                         if(Operands.empty())
                                                         {
@@ -378,6 +379,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                                 Symbols[Label].Public = true;
                                                                 LocalSymbolTable.insert(std::pair<std::string, symbolTable>(Label, symbolTable(true)));
                                                                 CurrentScope = &LocalSymbolTable[Label];
+                                                                ProgramCounterStack.push(ProgramCounter);
+                                                                ProgramCounter = 0;
                                                             }
                                                             else
                                                                 throw AssemblyException(fmt::format("Unrecognised operand '{Operand}'", fmt::arg("Operand", Operands[0])), SEVERITY_Error);
@@ -392,12 +395,32 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             }
                                             case ENDSUB:
                                             {
+                                                if(Symbols.Relocatable)
+                                                {
+                                                    if(ProgramCounterStack.empty())
+                                                        throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
+                                                    ProgramCounter = ProgramCounterStack.top();
+                                                    ProgramCounterStack.pop();
+                                                }
                                                 CurrentScope = &MasterSymbolTable;
+                                                break;
+                                            }
+                                            case ORG:
+                                            {
+                                                if(Operands.size() == 1)
+                                                {
+                                                    ProgramCounter = Evaluate(Operands[0]);
+                                                    if(!Label.empty())
+                                                        Symbols[Label].Address = ProgramCounter;
+                                                }
+                                                else
+                                                    throw AssemblyException("ORG Requires a single argument <address>", SEVERITY_Error);
                                                 break;
                                             }
                                             default: // All Native Opcodes handled here.
                                             {
-                                                ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
+                                                 if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
+                                                    ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
                                                 break;
                                             }
                                             }
@@ -408,19 +431,65 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                     {
                                         std::vector<std::uint8_t> Data;
 
-                                        if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
+                                        if(OpCode)
                                         {
-                                            for(int i=0; i<OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType); i++)
-                                                if(i==0)
-                                                    Data.push_back(OpCode->OpCode); // TODO Merge Register/Port arguments if reqd
+                                            switch(OpCode.value().OpCode)
+                                            {
+                                            case SUB:
+                                            {
+                                                if(!Label.empty())
+                                                {
+                                                    if(LocalSymbolTable.find(Label) != LocalSymbolTable.end())
+                                                    {
+                                                        if(LocalSymbolTable[Label].Relocatable)
+                                                        {
+                                                            ProgramCounterStack.push(ProgramCounter);
+                                                            ProgramCounter = 0;
+                                                        }
+                                                        CurrentScope = &LocalSymbolTable[Label];
+                                                    }
+                                                }
+                                                ListingFile.Append();
+                                                break;
+                                            }
+                                            case ENDSUB:
+                                            {
+                                                if(Symbols.Relocatable)
+                                                {
+                                                    if(ProgramCounterStack.empty())
+                                                        throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
+                                                    ProgramCounter = ProgramCounterStack.top();
+                                                    ProgramCounterStack.pop();
+                                                }
+                                                CurrentScope = &MasterSymbolTable;
+                                                ListingFile.Append();
+                                                break;
+                                            }
+                                            case ORG:
+                                            {
+                                                if(Operands.size() == 1)
+                                                    ProgramCounter = Evaluate(Operands[0]);
+                                                ListingFile.Append();
+                                                break;
+                                            }
+                                            default:
+                                            {
+                                                if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
+                                                {
+                                                    for(int i=0; i<OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType); i++)
+                                                        if(i==0)
+                                                            Data.push_back(OpCode->OpCode); // TODO Merge Register/Port arguments if reqd
+                                                        else
+                                                            Data.push_back(0); // TODO push arguments
+                                                    ListingFile.Append(ProgramCounter, Data);
+                                                    ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
+                                                }
                                                 else
-                                                    Data.push_back(0); // TODO push arguments
-                                            ListingFile.Append(ProgramCounter, Data);
-                                            ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
+                                                    ListingFile.Append();
+                                                break;
+                                                }
+                                            }
                                         }
-                                        else
-                                            ListingFile.Append();
-                                        break;
                                     }
                                 }
                             }

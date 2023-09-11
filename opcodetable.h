@@ -137,7 +137,8 @@ enum OpCodeEnum
     PUBLIC = 0xFF00,
     EXTERN = 0xFF01,
     SUB    = 0xFF02,
-    ENDSUB = 0xFF03
+    ENDSUB = 0xFF03,
+    ORG    = 0xFF04
 };
 
 enum OpCodeTypeEnum

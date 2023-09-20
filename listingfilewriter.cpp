@@ -103,20 +103,20 @@ void ListingFileWriter::PrintError(const std::string& FileName, int LineNumber)
     }
 }
 
-void ListingFileWriter::AppendSymbols(const std::string& Name, const symbolTable& Symbols)
+void ListingFileWriter::AppendSymbols(const std::string& Name, const blob& Blob)
 {
     if(Enabled)
     {
         fmt::print(ListStream, "\n");
         std::string Title;
-        if(Symbols.Relocatable)
+        if(Blob.Relocatable)
             Title = Name + " (Relocatable)";
         else
             Title = Name;
         fmt::print(ListStream, "{Title:-^108}\n", fmt::arg("Title", Title));
 
         int c = 0;
-        for(auto& Symbol : Symbols)
+        for(auto& Symbol : Blob.Symbols)
         {
             fmt::print(ListStream, "{Name:15} ", fmt::arg("Name", Symbol.first));
             if(Symbol.second.Extern)

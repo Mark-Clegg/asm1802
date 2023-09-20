@@ -294,5 +294,5 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
 
 int Evaluate(std::string Expression)
 {
-    return 0x8000;
+    return 0x8004;
 }

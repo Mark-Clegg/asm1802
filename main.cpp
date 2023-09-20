@@ -14,7 +14,7 @@
 #include "listingfilewriter.h"
 #include "opcodetable.h"
 #include "sourcecodereader.h"
-#include "symbol.h"
+#include "blob.h"
 #include "utils.h"
 
 namespace fs = std::filesystem;
@@ -24,7 +24,11 @@ DefineMap GlobalDefines;   // global #defines persist for all files following on
 bool assemble(const std::string&, bool ListingEnabled, bool DumpSymbols);
 
 void PrintError(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity);
-void PrintSymbols(const std::string & Name, const symbolTable& Table);
+void PrintSymbols(const std::string & Name, const blob& Table);
+
+#if DEBUG
+void DumpCode(const blob &Blob);
+#endif
 
 int main(int argc, char **argv)
 {
@@ -136,18 +140,18 @@ int main(int argc, char **argv)
 bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols)
 {
     fmt::print("Assembling: {filename}\n", fmt::arg("filename", FileName));
-
-    symbolTable MasterSymbolTable;
-    std::map<std::string, symbolTable> LocalSymbolTable;
+    
+    blob MainBlob;
+    std::map<std::string, blob> SecondaryBlob;
     std::stack<uint16_t> ProgramCounterStack;
 
     SourceCodeReader Source;
     ErrorTable Errors;
     ListingFileWriter ListingFile(Source, FileName, Errors, ListingEnabled);
 
-    for(int Pass = 1; Pass < 3; Pass++)
+    for(int Pass = 1; Pass <= 2 && Errors.count(SEVERITY_Error) == 0; Pass++)
     {
-        symbolTable* CurrentScope = &MasterSymbolTable;
+        blob* CurrentBlob = &MainBlob;
         uint16_t ProgramCounter = 0;
         try
         {
@@ -168,7 +172,6 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
             {
                 try
                 {
-                    symbolTable& Symbols = *CurrentScope;
                     std::string Line = trim(OriginalLine);
                     if (Line.size() > 0)
                     {
@@ -302,11 +305,11 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                     {
                                         if(!Label.empty())
                                         {
-                                        if(Symbols.find(Label) == Symbols.end())
-                                            Symbols[Label].Address = ProgramCounter;
+                                        if(CurrentBlob->Symbols.find(Label) == CurrentBlob->Symbols.end())
+                                            CurrentBlob->Symbols[Label].Address = ProgramCounter;
                                             else
                                             {
-                                            auto& Symbol = Symbols[Label];
+                                            auto& Symbol = CurrentBlob->Symbols[Label];
                                                 if(Symbol.Extern)
                                                     throw AssemblyException(fmt::format("Cannot declare label '{Label}' here as it was previously declared as extern", fmt::arg("Label", Label)), SEVERITY_Error);
                                                 if(Symbol.Address.has_value())
@@ -330,10 +333,10 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                 // else error
                                                 if(Operands.size() == 1)
                                                 {
-                                                    if(Symbols.Master)
+                                                    if(CurrentBlob->Master)
                                                     {
-                                                        if(Symbols.find(Operands[0]) == Symbols.end())
-                                                            Symbols[Operands[0]].Extern = true;
+                                                        if(CurrentBlob->Symbols.find(Operands[0]) == CurrentBlob->Symbols.end())
+                                                            CurrentBlob->Symbols[Operands[0]].Extern = true;
                                                         else
                                                             throw AssemblyException(fmt::format("Label '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
                                                     }
@@ -350,8 +353,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                 // if not in symbol table, add and set public flag
                                                 if(Operands.size() == 1)
                                                 {
-                                                    if(Symbols.Master)
-                                                        Symbols[Operands[0]].Public = true;
+                                                    if(CurrentBlob->Master)
+                                                        CurrentBlob->Symbols[Operands[0]].Public = true;
                                                     else
                                                         throw AssemblyException("'public' can only be used at top level scope", SEVERITY_Error);
                                                 }
@@ -361,60 +364,61 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             }
                                             case SUB:
                                             {
-                                                if(!Label.empty())
+                                                if(Label.empty())
+                                                    throw AssemblyException("SUBROUTINE requires a Label", SEVERITY_Error);
+
+                                                if(SecondaryBlob.find(Label) != SecondaryBlob.end())
+                                                    throw AssemblyException(fmt::format("Subroutine '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
+
+                                                if(!CurrentBlob->Master)
+                                                    throw AssemblyException("SUBROUTINEs cannot be nested", SEVERITY_Error);
+
+                                                if(Operands.empty())
                                                 {
-                                                    if(LocalSymbolTable.find(Label) == LocalSymbolTable.end())
-                                                    {
-                                                        if(Operands.empty())
-                                                        {
-                                                            Symbols[Label].Public = true;
-                                                            LocalSymbolTable.insert(std::pair<std::string, symbolTable>(Label, symbolTable(false)));
-                                                            CurrentScope = &LocalSymbolTable[Label];
-                                                        }
-                                                        else
-                                                        {
-                                                            ToUpper(Operands[0]);
-                                                            if(Operands[0] == "RELOCATABLE")
-                                                            {
-                                                                Symbols[Label].Public = true;
-                                                                LocalSymbolTable.insert(std::pair<std::string, symbolTable>(Label, symbolTable(true)));
-                                                                CurrentScope = &LocalSymbolTable[Label];
-                                                                ProgramCounterStack.push(ProgramCounter);
-                                                                ProgramCounter = 0;
-                                                            }
-                                                            else
-                                                                throw AssemblyException(fmt::format("Unrecognised operand '{Operand}'", fmt::arg("Operand", Operands[0])), SEVERITY_Error);
-                                                        }
-                                                    }
-                                                    else
-                                                        throw AssemblyException(fmt::format("Subroutine '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
+                                                    CurrentBlob->Symbols[Label].Public = true;
+                                                    SecondaryBlob.insert(std::pair<std::string, blob>(Label, blob(false, ProgramCounter)));
+                                                    CurrentBlob = &SecondaryBlob[Label];
                                                 }
                                                 else
-                                                    throw AssemblyException("SUBROUTINE requires a Label", SEVERITY_Error);
+                                                {
+                                                    ToUpper(Operands[0]);
+                                                    if(Operands[0] == "RELOCATABLE")
+                                                    {
+                                                        CurrentBlob->Symbols[Label].Public = true;
+                                                        SecondaryBlob.insert(std::pair<std::string, blob>(Label, blob(true)));
+                                                        CurrentBlob = &SecondaryBlob[Label];
+                                                        ProgramCounterStack.push(ProgramCounter);
+                                                        ProgramCounter = 0;
+                                                    }
+                                                    else
+                                                        throw AssemblyException(fmt::format("Unrecognised operand '{Operand}'", fmt::arg("Operand", Operands[0])), SEVERITY_Error);
+                                                }
                                                 break;
                                             }
                                             case ENDSUB:
                                             {
-                                                if(Symbols.Relocatable)
+                                                if(CurrentBlob->Relocatable)
                                                 {
                                                     if(ProgramCounterStack.empty())
                                                         throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
                                                     ProgramCounter = ProgramCounterStack.top();
                                                     ProgramCounterStack.pop();
                                                 }
-                                                CurrentScope = &MasterSymbolTable;
+                                                CurrentBlob = &MainBlob;
                                                 break;
                                             }
                                             case ORG:
                                             {
-                                                if(Operands.size() == 1)
-                                                {
-                                                    ProgramCounter = Evaluate(Operands[0]);
-                                                    if(!Label.empty())
-                                                        Symbols[Label].Address = ProgramCounter;
-                                                }
-                                                else
+                                                if(!CurrentBlob->Master)
+                                                    throw AssemblyException("ORG Cannot be used in a SUBROUTINE", SEVERITY_Error);
+
+                                                if(Operands.size() != 1)
                                                     throw AssemblyException("ORG Requires a single argument <address>", SEVERITY_Error);
+
+                                                ProgramCounter = Evaluate(Operands[0]);
+                                                if(!Label.empty())
+                                                    CurrentBlob->Symbols[Label].Address = ProgramCounter;
+
                                                 break;
                                             }
                                             default: // All Native Opcodes handled here.
@@ -437,38 +441,35 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             {
                                             case SUB:
                                             {
-                                                if(!Label.empty())
+                                                if(SecondaryBlob[Label].Relocatable)
                                                 {
-                                                    if(LocalSymbolTable.find(Label) != LocalSymbolTable.end())
-                                                    {
-                                                        if(LocalSymbolTable[Label].Relocatable)
-                                                        {
-                                                            ProgramCounterStack.push(ProgramCounter);
-                                                            ProgramCounter = 0;
-                                                        }
-                                                        CurrentScope = &LocalSymbolTable[Label];
-                                                    }
+                                                    ProgramCounterStack.push(ProgramCounter);
+                                                    ProgramCounter = 0;
                                                 }
+                                                CurrentBlob = &SecondaryBlob[Label];
                                                 ListingFile.Append();
                                                 break;
                                             }
                                             case ENDSUB:
                                             {
-                                                if(Symbols.Relocatable)
+                                                if(CurrentBlob->Relocatable)
                                                 {
                                                     if(ProgramCounterStack.empty())
                                                         throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
                                                     ProgramCounter = ProgramCounterStack.top();
                                                     ProgramCounterStack.pop();
                                                 }
-                                                CurrentScope = &MasterSymbolTable;
+                                                CurrentBlob = &MainBlob;
                                                 ListingFile.Append();
                                                 break;
                                             }
                                             case ORG:
                                             {
-                                                if(Operands.size() == 1)
-                                                    ProgramCounter = Evaluate(Operands[0]);
+                                                ProgramCounter = Evaluate(Operands[0]);
+
+                                                auto InsertResult = CurrentBlob->Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {}));
+                                                CurrentBlob->CurrentCode = InsertResult.first;
+
                                                 ListingFile.Append();
                                                 break;
                                             }
@@ -481,6 +482,12 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             Data.push_back(OpCode->OpCode); // TODO Merge Register/Port arguments if reqd
                                                         else
                                                             Data.push_back(0); // TODO push arguments
+
+                                                    if(CurrentBlob->Relocatable)
+                                                        CurrentBlob->CurrentCode->second.insert(CurrentBlob->CurrentCode->second.end(), Data.begin(), Data.end());
+                                                    else
+                                                        MainBlob.CurrentCode->second.insert(MainBlob.CurrentCode->second.end(), Data.begin(), Data.end());
+
                                                     ListingFile.Append(ProgramCounter, Data);
                                                     ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
                                                 }
@@ -524,13 +531,14 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
         }
     }
 
+
     if(DumpSymbols)
     {
         fmt::print("\n");
 
-        PrintSymbols("Global Symbols", MasterSymbolTable);
-        ListingFile.AppendSymbols("Global Symbols", MasterSymbolTable);
-        for(auto& Table : LocalSymbolTable)
+        PrintSymbols("Global Symbols", MainBlob);
+        ListingFile.AppendSymbols("Global Symbols", MainBlob);
+        for(auto& Table : SecondaryBlob)
         {
             PrintSymbols(Table.first, Table.second);
             ListingFile.AppendSymbols(Table.first, Table.second);
@@ -545,8 +553,52 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     fmt::print("{count:4} Errors\n",       fmt::arg("count", TotalErrors));
     fmt::print("\n");
 
+#if DEBUG
+    fmt::print("Static Code\n");
+    DumpCode(MainBlob);
+
+    for(const auto &NamedBlob : SecondaryBlob)
+    {
+        int Bytes = 0;
+        for(const auto &Blob : NamedBlob.second.Code)
+            Bytes += Blob.second.size();
+
+        if (Bytes > 0)
+        {
+            fmt::print("\nRelocatable Code ({Name})\n", fmt::arg("Name", NamedBlob.first));
+            DumpCode(NamedBlob.second);
+        }
+    }
+    fmt::print("\n");
+#endif
+
     return TotalErrors == 0 && TotalWarnings == 0;
 }
+
+#if DEBUG
+void DumpCode(const blob& Blob)
+{
+    for(auto &Segment : Blob.Code)
+    {
+        if(Segment.second.size() > 0)
+        {
+            uint16_t StartAddress = Segment.first & 0xFFF0;
+            int skip = Segment.first & 0x000F;
+            for(int i = 0; i < Segment.second.size() + skip; i++)
+            {
+                if(i % 16 == 0)
+                    fmt::print("\n{Addr:04X}  ", fmt::arg("Addr", StartAddress + i));
+                if(i < skip)
+                    fmt::print("   ");
+                else
+                    fmt::print("{Data:02X} ", fmt::arg("Data", Segment.second.at(i - skip)));
+            }
+        }
+        fmt::print("\n");
+    }
+}
+#endif
+
 
 //!
 //! \brief PrintError
@@ -591,17 +643,17 @@ void PrintError(const std::string& SourceFileName, const int LineNumber, const s
 //!
 //! Print the given Symbol Table
 //!
-void PrintSymbols(const std::string& Name, const symbolTable& Symbols)
+void PrintSymbols(const std::string& Name, const blob& Blob)
 {
     std::string Title;
-    if(Symbols.Relocatable)
+    if(Blob.Relocatable)
         Title = Name + " (Relocatable)";
     else
         Title = Name;
     fmt::print("{Title:-^108}\n", fmt::arg("Title", Title));
 
     int c = 0;
-    for(auto& Symbol : Symbols)
+    for(auto& Symbol : Blob.Symbols)
     {
         fmt::print("{Name:15} ", fmt::arg("Name", Symbol.first));
         if(Symbol.second.Extern)

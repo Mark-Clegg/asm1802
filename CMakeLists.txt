@@ -18,6 +18,7 @@ add_executable(asm1802 main.cpp
     opcodetable.h opcodetable.cpp
     symbol.h symbol.cpp
     errortable.h errortable.cpp
+    README.md
     )
 
 install(TARGETS asm1802

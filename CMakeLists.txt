@@ -19,6 +19,7 @@ add_executable(asm1802 main.cpp
     blob.h blob.cpp
     errortable.h errortable.cpp
     README.md
+    expressionevaluator.h expressionevaluator.cpp
     )
 
 install(TARGETS asm1802

@@ -123,9 +123,9 @@ void ListingFileWriter::AppendSymbols(const std::string& Name, const blob& Blob)
                 fmt::print(ListStream, "External");
             else
             {
-                if(Symbol.second.Address.has_value())
+                if(Symbol.second.Value.has_value())
                     fmt::print(ListStream, "{Address:04X} {Public:3}",
-                               fmt::arg("Address", Symbol.second.Address.value()),
+                               fmt::arg("Address", Symbol.second.Value.value()),
                                fmt::arg("Public", Symbol.second.Public ? "Pub" : "   "));
                 else
                     fmt::print(ListStream, "---- {Public:3}", fmt::arg("Public", Symbol.second.Public ? "Pub" : "   "));

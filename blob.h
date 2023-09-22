@@ -12,7 +12,7 @@ class symbolDefinition
 public:
     symbolDefinition();
 
-    std::optional<uint16_t> Address;
+    std::optional<uint16_t> Value;
     bool Public = false;
     bool Extern = false;
 };

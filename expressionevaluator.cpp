@@ -1,3 +1,4 @@
+#include "assemblyexception.h"
 #include "expressionevaluator.h"
 
 ExpressionEvaluator::ExpressionEvaluator(const blob& Global) : Global(&Global)
@@ -13,8 +14,17 @@ void ExpressionEvaluator::AddLocalSymbols(const blob* Local)
 
 uint16_t ExpressionEvaluator::Evaluate(std::string& Expression)
 {
-    std::string test = "FINDRAM"; // TODO Evaluate the expression
-    return SymbolValue(test);
+    TokenStream.Initialize(Expression);
+
+    TokenEnum T;
+    while((T = TokenStream.GetToken()) != TOKEN_END)
+    {
+        auto S = TokenStream.StringValue;
+        auto v = TokenStream.IntegerValue;
+    }
+
+
+    return 1;
 }
 
 uint16_t ExpressionEvaluator::SymbolValue(std::string& Label)

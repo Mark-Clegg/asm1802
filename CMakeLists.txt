@@ -20,6 +20,7 @@ add_executable(asm1802 main.cpp
     errortable.h errortable.cpp
     README.md
     expressionevaluator.h expressionevaluator.cpp
+    expressiontokenizer.h expressiontokenizer.cpp
     )
 
 install(TARGETS asm1802

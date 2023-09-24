@@ -3,7 +3,7 @@
 
 #include <fmt/core.h>
 #include <string>
-#include "assemblyexception.h"
+#include "expressiontokenizer.h"
 #include "blob.h"
 
 class ExpressionEvaluator
@@ -19,6 +19,8 @@ private:
     bool LocalSymbols;      // Denotess if a local blob is available for symbol lookups
 
     uint16_t SymbolValue(std::string& Label);
+
+    ExpressionTokenizer TokenStream;
 };
 
 #endif // EXPRESSIONEVALUATOR_H

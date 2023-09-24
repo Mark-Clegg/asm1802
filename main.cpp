@@ -518,7 +518,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("Short Branch expected single operand", SEVERITY_Error);
                                                         uint16_t Address = E.Evaluate(Operands[0]);
-                                                        if((ProgramCounter + 1) & 0xFF00 != Address & 0xFF00)
+                                                        if(((ProgramCounter + 1) & 0xFF00) != (Address & 0xFF00))
                                                             throw AssemblyException("Short Branch out of range", SEVERITY_Error);
                                                         Data.push_back(OpCode->OpCode);
                                                         Data.push_back(Address & 0xFF);
@@ -580,7 +580,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("Short Branch expected single operand", SEVERITY_Error);
                                                         uint16_t Address = E.Evaluate(Operands[0]);
-                                                        if((ProgramCounter + 2) & 0xFF00 != Address & 0xFF00)
+                                                        if(((ProgramCounter + 2) & 0xFF00) != (Address & 0xFF00))
                                                             throw AssemblyException("Short Branch out of range", SEVERITY_Error);
                                                         Data.push_back(OpCode->OpCode >> 8);
                                                         Data.push_back(OpCode->OpCode & 0xFF);

@@ -6,7 +6,7 @@
 #include <vector>
 #include "errortable.h"
 #include "sourcecodereader.h"
-#include "blob.h"
+#include "symboltable.h"
 
 class ListingFileWriter
 {
@@ -25,7 +25,7 @@ public:
 
     void Append();
     void Append(const std::uint16_t Address, const std::vector<std::uint8_t>& Data);
-    void AppendSymbols(const std::string& Name, const blob& Symbols);
+    void AppendSymbols(const std::string& Name, const SymbolTable& Symbols);
     ErrorTable& Errors;
 };
 

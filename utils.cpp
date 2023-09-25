@@ -291,3 +291,15 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
     else
         throw AssemblyException("Unable to parse line", SEVERITY_Error);
 }
+
+int AlignFromSize(int Size)
+{
+    Size--;
+    int Result = 1;
+    while(Size > 0)
+    {
+        Result <<= 1;
+        Size >>= 1;
+    }
+    return Result;
+}

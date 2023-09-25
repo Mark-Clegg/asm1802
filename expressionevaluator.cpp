@@ -1,12 +1,12 @@
 #include "assemblyexception.h"
 #include "expressionevaluator.h"
 
-ExpressionEvaluator::ExpressionEvaluator(const blob& Global) : Global(&Global)
+ExpressionEvaluator::ExpressionEvaluator(const SymbolTable& Global) : Global(&Global)
 {
     LocalSymbols = false;
 }
 
-void ExpressionEvaluator::AddLocalSymbols(const blob* Local)
+void ExpressionEvaluator::AddLocalSymbols(const SymbolTable* Local)
 {
     this->Local = Local;
     LocalSymbols = true;

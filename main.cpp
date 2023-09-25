@@ -15,7 +15,7 @@
 #include "listingfilewriter.h"
 #include "opcodetable.h"
 #include "sourcecodereader.h"
-#include "blob.h"
+#include "symboltable.h"
 #include "utils.h"
 
 namespace fs = std::filesystem;
@@ -25,10 +25,10 @@ DefineMap GlobalDefines;   // global #defines persist for all files following on
 bool assemble(const std::string&, bool ListingEnabled, bool DumpSymbols);
 
 void PrintError(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity);
-void PrintSymbols(const std::string & Name, const blob& Table);
+void PrintSymbols(const std::string & Name, const SymbolTable& Table);
 
 #if DEBUG
-void DumpCode(const blob &Blob);
+void DumpCode(const std::map<uint16_t, std::vector<uint8_t>>& Code);
 #endif
 
 int main(int argc, char **argv)
@@ -142,9 +142,10 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 {
     fmt::print("Assembling: {filename}\n", fmt::arg("filename", FileName));
     
-    blob MainBlob;
-    std::map<std::string, blob> SecondaryBlob;
-    std::stack<uint16_t> ProgramCounterStack;
+    SymbolTable MainTable;
+    std::map<std::string, SymbolTable> SubTables;
+    std::map<uint16_t, std::vector<uint8_t>> Code = {{ 0, {}}};
+    std::map<uint16_t, std::vector<uint8_t>>::iterator CurrentCode = Code.begin();
 
     SourceCodeReader Source;
     ErrorTable Errors;
@@ -152,8 +153,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
     for(int Pass = 1; Pass <= 3 && Errors.count(SEVERITY_Error) == 0; Pass++)
     {
-        blob* CurrentBlob = &MainBlob;
+        SymbolTable* CurrentTable = &MainTable;
         uint16_t ProgramCounter = 0;
+        bool InSub = false;
         try
         {
             fmt::print("Pass {pass}\n", fmt::arg("pass", Pass));
@@ -302,19 +304,69 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
                                 switch(Pass)
                                 {
-                                case 1:
+                                case 1: // Calculate the size of relocatable subroutines
                                 {
+                                    if(OpCode)
+                                    {
+                                        switch(OpCode.value().OpCode)
+                                        {
+                                        case SUB:
+                                            if(Label.empty())
+                                                throw AssemblyException("SUBROUTINE requires a Label", SEVERITY_Error);
+
+                                            if(SubTables.find(Label) != SubTables.end())
+                                                throw AssemblyException(fmt::format("Subroutine '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
+
+                                            if(!CurrentTable->Master)
+                                                throw AssemblyException("SUBROUTINEs cannot be nested", SEVERITY_Error);
+
+                                            if(Operands.empty())
+                                            {
+                                                SubTables.insert(std::pair<std::string, SymbolTable>(Label, SymbolTable(false, ProgramCounter)));
+                                                CurrentTable = &SubTables[Label];
+                                            }
+                                            else
+                                            {
+                                                ToUpper(Operands[0]);
+                                                if(Operands[0] == "RELOCATABLE")
+                                                {
+                                                    SubTables.insert(std::pair<std::string, SymbolTable>(Label, SymbolTable(true)));
+                                                    CurrentTable = &SubTables[Label];
+                                                    ProgramCounter = 0;
+                                                }
+                                                else
+                                                    throw AssemblyException(fmt::format("Unrecognised operand '{Operand}'", fmt::arg("Operand", Operands[0])), SEVERITY_Error);
+                                            }
+                                            break;
+                                        case ENDSUB:
+                                        {
+                                            if(CurrentTable->Relocatable)
+                                            {
+                                                // throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
+                                                CurrentTable->CodeSize = ProgramCounter;
+                                            }
+                                            CurrentTable = &MainTable;
+                                            break;
+                                        }
+                                        default: // All Native Opcodes handled here.
+                                        {
+                                            if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
+                                                ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
+                                            break;
+                                        }
+                                        }
+                                    }
                                     break;
                                 }
-                                case 2:
+                                case 2: // Generate Symbol Tables
                                 {
                                     if(!Label.empty())
                                     {
-                                    if(CurrentBlob->Symbols.find(Label) == CurrentBlob->Symbols.end())
-                                        CurrentBlob->Symbols[Label] = ProgramCounter;
+                                    if(CurrentTable->Symbols.find(Label) == CurrentTable->Symbols.end())
+                                        CurrentTable->Symbols[Label] = ProgramCounter;
                                         else
                                         {
-                                        auto& Symbol = CurrentBlob->Symbols[Label];
+                                        auto& Symbol = CurrentTable->Symbols[Label];
                                             if(Symbol.has_value())
                                                 throw AssemblyException(fmt::format("Label '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
                                             Symbol = ProgramCounter;
@@ -332,29 +384,18 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         {
                                         case SUB:
                                         {
-                                            if(Label.empty())
-                                                throw AssemblyException("SUBROUTINE requires a Label", SEVERITY_Error);
-
-                                            if(SecondaryBlob.find(Label) != SecondaryBlob.end())
-                                                throw AssemblyException(fmt::format("Subroutine '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
-
-                                            if(!CurrentBlob->Master)
-                                                throw AssemblyException("SUBROUTINEs cannot be nested", SEVERITY_Error);
-
+                                            InSub = true;
                                             if(Operands.empty())
                                             {
-                                                SecondaryBlob.insert(std::pair<std::string, blob>(Label, blob(false, ProgramCounter)));
-                                                CurrentBlob = &SecondaryBlob[Label];
+                                                CurrentTable = &SubTables[Label];
                                             }
                                             else
                                             {
                                                 ToUpper(Operands[0]);
                                                 if(Operands[0] == "RELOCATABLE")
                                                 {
-                                                    SecondaryBlob.insert(std::pair<std::string, blob>(Label, blob(true)));
-                                                    CurrentBlob = &SecondaryBlob[Label];
-                                                    ProgramCounterStack.push(ProgramCounter);
-                                                    ProgramCounter = 0;
+                                                    CurrentTable = &SubTables[Label];
+                                                    ProgramCounter = ProgramCounter + AlignFromSize(CurrentTable->CodeSize) - ProgramCounter % AlignFromSize(CurrentTable->CodeSize);
                                                 }
                                                 else
                                                     throw AssemblyException(fmt::format("Unrecognised operand '{Operand}'", fmt::arg("Operand", Operands[0])), SEVERITY_Error);
@@ -363,29 +404,25 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         }
                                         case ENDSUB:
                                         {
-                                            if(CurrentBlob->Relocatable)
-                                            {
-                                                if(ProgramCounterStack.empty())
-                                                    throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
-                                                ProgramCounter = ProgramCounterStack.top();
-                                                ProgramCounterStack.pop();
-                                            }
-                                            CurrentBlob = &MainBlob;
+                                            if(!InSub)
+                                                throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
+                                            InSub = false;
+                                            CurrentTable = &MainTable;
                                             break;
                                         }
                                         case ORG:
                                         {
-                                            if(!CurrentBlob->Master)
+                                            if(!CurrentTable->Master)
                                                 throw AssemblyException("ORG Cannot be used in a SUBROUTINE", SEVERITY_Error);
 
                                             if(Operands.size() != 1)
                                                 throw AssemblyException("ORG Requires a single argument <address>", SEVERITY_Error);
 
-                                            ExpressionEvaluator E(MainBlob);
+                                            ExpressionEvaluator E(MainTable);
                                             ProgramCounter = E.Evaluate(Operands[0]);
 
                                             if(!Label.empty())
-                                                CurrentBlob->Symbols[Label] = ProgramCounter;
+                                                CurrentTable->Symbols[Label] = ProgramCounter;
 
                                             break;
                                         }
@@ -399,7 +436,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                     }
                                     break;
                                 }
-                                case 3:
+                                case 3: // Generate Code
                                 {
                                     if(OpCode)
                                     {
@@ -407,35 +444,34 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         {
                                         case SUB:
                                         {
-                                            if(SecondaryBlob[Label].Relocatable)
+                                            CurrentTable = &SubTables[Label];
+                                            if(CurrentTable->Relocatable)
                                             {
-                                                ProgramCounterStack.push(ProgramCounter);
-                                                ProgramCounter = 0;
+                                                int Align = AlignFromSize(CurrentTable->CodeSize);
+
+                                                if(ProgramCounter % Align > 0)
+                                                    ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
                                             }
-                                            CurrentBlob = &SecondaryBlob[Label];
+                                            InSub = true;
+                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
                                             ListingFile.Append();
                                             break;
                                         }
                                         case ENDSUB:
                                         {
-                                            if(CurrentBlob->Relocatable)
-                                            {
-                                                if(ProgramCounterStack.empty())
-                                                    throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
-                                                ProgramCounter = ProgramCounterStack.top();
-                                                ProgramCounterStack.pop();
-                                            }
-                                            CurrentBlob = &MainBlob;
+                                            if(!InSub)
+                                                throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
+                                            InSub = false;
+                                            CurrentTable = &MainTable;
                                             ListingFile.Append();
                                             break;
                                         }
                                         case ORG:
                                         {
-                                            ExpressionEvaluator E(MainBlob);
+                                            ExpressionEvaluator E(MainTable);
                                             ProgramCounter = E.Evaluate(Operands[0]);
 
-                                            auto InsertResult = CurrentBlob->Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {}));
-                                            CurrentBlob->CurrentCode = InsertResult.first;
+                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
 
                                             ListingFile.Append();
                                             break;
@@ -445,9 +481,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
                                             {
                                                 std::vector<std::uint8_t> Data;
-                                                ExpressionEvaluator E(MainBlob);
-                                                if(CurrentBlob->Relocatable)
-                                                    E.AddLocalSymbols(CurrentBlob);
+                                                ExpressionEvaluator E(MainTable);
+                                                if(CurrentTable->Relocatable)
+                                                    E.AddLocalSymbols(CurrentTable);
 
                                                 switch(OpCode->OpCodeType)
                                                 {
@@ -570,10 +606,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     break;
                                                 }
 
-                                                if(CurrentBlob->Relocatable)
-                                                    CurrentBlob->CurrentCode->second.insert(CurrentBlob->CurrentCode->second.end(), Data.begin(), Data.end());
-                                                else
-                                                    MainBlob.CurrentCode->second.insert(MainBlob.CurrentCode->second.end(), Data.begin(), Data.end());
+                                                CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
 
                                                 ListingFile.Append(ProgramCounter, Data);
                                                 ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
@@ -623,9 +656,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     {
         fmt::print("\n");
 
-        PrintSymbols("Global Symbols", MainBlob);
-        ListingFile.AppendSymbols("Global Symbols", MainBlob);
-        for(auto& Table : SecondaryBlob)
+        PrintSymbols("Global Symbols", MainTable);
+        ListingFile.AppendSymbols("Global Symbols", MainTable);
+        for(auto& Table : SubTables)
         {
             PrintSymbols(Table.first, Table.second);
             ListingFile.AppendSymbols(Table.first, Table.second);
@@ -641,31 +674,17 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     fmt::print("\n");
 
 #if DEBUG
-    fmt::print("Static Code\n");
-    DumpCode(MainBlob);
-
-    for(const auto &NamedBlob : SecondaryBlob)
-    {
-        int Bytes = 0;
-        for(const auto &Blob : NamedBlob.second.Code)
-            Bytes += Blob.second.size();
-
-        if (Bytes > 0)
-        {
-            fmt::print("\nRelocatable Code ({Name})\n", fmt::arg("Name", NamedBlob.first));
-            DumpCode(NamedBlob.second);
-        }
-    }
-    fmt::print("\n");
+    DumpCode(Code);
 #endif
 
     return TotalErrors == 0 && TotalWarnings == 0;
 }
 
 #if DEBUG
-void DumpCode(const blob& Blob)
+void DumpCode(const std::map<uint16_t, std::vector<uint8_t>>& Code)
 {
-    for(auto &Segment : Blob.Code)
+    fmt::print("Static Code\n");
+    for(auto &Segment : Code)
     {
         if(Segment.second.size() > 0)
         {
@@ -730,7 +749,7 @@ void PrintError(const std::string& SourceFileName, const int LineNumber, const s
 //!
 //! Print the given Symbol Table
 //!
-void PrintSymbols(const std::string& Name, const blob& Blob)
+void PrintSymbols(const std::string& Name, const SymbolTable& Blob)
 {
     std::string Title;
     if(Blob.Relocatable)

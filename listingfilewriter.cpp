@@ -103,7 +103,7 @@ void ListingFileWriter::PrintError(const std::string& FileName, int LineNumber)
     }
 }
 
-void ListingFileWriter::AppendSymbols(const std::string& Name, const blob& Blob)
+void ListingFileWriter::AppendSymbols(const std::string& Name, const SymbolTable& Blob)
 {
     if(Enabled)
     {

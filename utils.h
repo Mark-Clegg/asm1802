@@ -29,7 +29,7 @@ PreProcessorDirectiveEnum SkipLines(SourceCodeReader& Source, std::string& Termi
 void ExpandDefines(std::string& Line, DefineMap& Defines);
 const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCode, std::vector<std::string>& Operands);
 std::string basename(const std::string FileName);
-
+int AlignFromSize(int Size);
 inline void ToUpper(std::string& In) { std::transform(In.begin(), In.end(), In.begin(), ::toupper); }
 
 

@@ -16,7 +16,7 @@ add_executable(asm1802 main.cpp
     utils.h utils.cpp
     listingfilewriter.h listingfilewriter.cpp
     opcodetable.h opcodetable.cpp
-    blob.h blob.cpp
+    symboltable.h symboltable.cpp
     errortable.h errortable.cpp
     README.md
     expressionevaluator.h expressionevaluator.cpp

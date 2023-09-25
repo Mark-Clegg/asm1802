@@ -150,7 +150,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     ErrorTable Errors;
     ListingFileWriter ListingFile(Source, FileName, Errors, ListingEnabled);
 
-    for(int Pass = 1; Pass <= 2 && Errors.count(SEVERITY_Error) == 0; Pass++)
+    for(int Pass = 1; Pass <= 3 && Errors.count(SEVERITY_Error) == 0; Pass++)
     {
         blob* CurrentBlob = &MainBlob;
         uint16_t ProgramCounter = 0;
@@ -181,7 +181,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
                         if (IsPreProcessorDirective(Line, Directive, Expression)) // Pre-Processor Directive
                         {
-                            if (Pass == 2)
+                            if (Pass == 3)
                                 ListingFile.Append();
                             switch (Directive)
                             {
@@ -226,7 +226,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                 {
                                     if(SkipLines(Source, OriginalLine) == PP_endif)
                                     {
-                                        if (Pass == 2) // Add terminating directive from skiplines to listing output
+                                        if (Pass == 3) // Add terminating directive from skiplines to listing output
                                             ListingFile.Append();
                                         IfNestingLevel--;
                                     }
@@ -240,7 +240,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                 {
                                     if(SkipLines(Source, OriginalLine) == PP_endif)
                                     {
-                                        if (Pass == 2) // Add terminating directive from skiplines to listing output
+                                        if (Pass == 3) // Add terminating directive from skiplines to listing output
                                             ListingFile.Append();
                                         IfNestingLevel--;
                                     }
@@ -251,7 +251,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                             {
                                 if(SkipLines(Source, OriginalLine) == PP_endif)
                                 {
-                                    if (Pass == 2) // Add terminating directive from skiplines to listing output
+                                    if (Pass == 3) // Add terminating directive from skiplines to listing output
                                         ListingFile.Append();
                                     IfNestingLevel--;
                                 }
@@ -302,329 +302,296 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
                                 switch(Pass)
                                 {
-                                    case 1:
+                                case 1:
+                                {
+                                    break;
+                                }
+                                case 2:
+                                {
+                                    if(!Label.empty())
                                     {
-                                        if(!Label.empty())
+                                    if(CurrentBlob->Symbols.find(Label) == CurrentBlob->Symbols.end())
+                                        CurrentBlob->Symbols[Label] = ProgramCounter;
+                                        else
                                         {
-                                        if(CurrentBlob->Symbols.find(Label) == CurrentBlob->Symbols.end())
-                                            CurrentBlob->Symbols[Label].Value = ProgramCounter;
+                                        auto& Symbol = CurrentBlob->Symbols[Label];
+                                            if(Symbol.has_value())
+                                                throw AssemblyException(fmt::format("Label '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
+                                            Symbol = ProgramCounter;
+                                        }
+                                    }
+
+                                    // subroutine label
+                                    //    if not in symbol table, add and set value and set public flag
+                                    //    if in symbol table and no value, and not extern - set value and set public
+                                    //    else error
+
+                                    if(OpCode)
+                                    {
+                                        switch(OpCode.value().OpCode)
+                                        {
+                                        case SUB:
+                                        {
+                                            if(Label.empty())
+                                                throw AssemblyException("SUBROUTINE requires a Label", SEVERITY_Error);
+
+                                            if(SecondaryBlob.find(Label) != SecondaryBlob.end())
+                                                throw AssemblyException(fmt::format("Subroutine '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
+
+                                            if(!CurrentBlob->Master)
+                                                throw AssemblyException("SUBROUTINEs cannot be nested", SEVERITY_Error);
+
+                                            if(Operands.empty())
+                                            {
+                                                SecondaryBlob.insert(std::pair<std::string, blob>(Label, blob(false, ProgramCounter)));
+                                                CurrentBlob = &SecondaryBlob[Label];
+                                            }
                                             else
                                             {
-                                            auto& Symbol = CurrentBlob->Symbols[Label];
-                                                if(Symbol.Extern)
-                                                    throw AssemblyException(fmt::format("Cannot declare label '{Label}' here as it was previously declared as extern", fmt::arg("Label", Label)), SEVERITY_Error);
-                                                if(Symbol.Value.has_value())
-                                                    throw AssemblyException(fmt::format("Label '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
-                                                Symbol.Value = ProgramCounter;
-                                            }
-                                        }
-
-                                        // subroutine label
-                                        //    if not in symbol table, add and set value and set public flag
-                                        //    if in symbol table and no value, and not extern - set value and set public
-                                        //    else error
-
-                                        if(OpCode)
-                                        {
-                                            switch(OpCode.value().OpCode)
-                                            {
-                                            case EXTERN:
-                                            {
-                                                // if not in symbol table add and set extern flag
-                                                // else error
-                                                if(Operands.size() == 1)
+                                                ToUpper(Operands[0]);
+                                                if(Operands[0] == "RELOCATABLE")
                                                 {
-                                                    if(CurrentBlob->Master)
-                                                    {
-                                                        if(CurrentBlob->Symbols.find(Operands[0]) == CurrentBlob->Symbols.end())
-                                                            CurrentBlob->Symbols[Operands[0]].Extern = true;
-                                                        else
-                                                            throw AssemblyException(fmt::format("Label '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
-                                                    }
-                                                    else
-                                                        throw AssemblyException("'extern' can only be used at top level scope", SEVERITY_Error);
-                                                }
-                                                else
-                                                    throw AssemblyException("Too many operands", SEVERITY_Error);
-                                                break;
-                                            }
-                                            case PUBLIC:
-                                            {
-                                                // if in symbol table, set public flag
-                                                // if not in symbol table, add and set public flag
-                                                if(Operands.size() == 1)
-                                                {
-                                                    if(CurrentBlob->Master)
-                                                        CurrentBlob->Symbols[Operands[0]].Public = true;
-                                                    else
-                                                        throw AssemblyException("'public' can only be used at top level scope", SEVERITY_Error);
-                                                }
-                                                else
-                                                    throw AssemblyException("Too many operands", SEVERITY_Error);
-                                                break;
-                                            }
-                                            case SUB:
-                                            {
-                                                if(Label.empty())
-                                                    throw AssemblyException("SUBROUTINE requires a Label", SEVERITY_Error);
-
-                                                if(SecondaryBlob.find(Label) != SecondaryBlob.end())
-                                                    throw AssemblyException(fmt::format("Subroutine '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
-
-                                                if(!CurrentBlob->Master)
-                                                    throw AssemblyException("SUBROUTINEs cannot be nested", SEVERITY_Error);
-
-                                                if(Operands.empty())
-                                                {
-                                                    CurrentBlob->Symbols[Label].Public = true;
-                                                    SecondaryBlob.insert(std::pair<std::string, blob>(Label, blob(false, ProgramCounter)));
+                                                    SecondaryBlob.insert(std::pair<std::string, blob>(Label, blob(true)));
                                                     CurrentBlob = &SecondaryBlob[Label];
-                                                }
-                                                else
-                                                {
-                                                    ToUpper(Operands[0]);
-                                                    if(Operands[0] == "RELOCATABLE")
-                                                    {
-                                                        CurrentBlob->Symbols[Label].Public = true;
-                                                        SecondaryBlob.insert(std::pair<std::string, blob>(Label, blob(true)));
-                                                        CurrentBlob = &SecondaryBlob[Label];
-                                                        ProgramCounterStack.push(ProgramCounter);
-                                                        ProgramCounter = 0;
-                                                    }
-                                                    else
-                                                        throw AssemblyException(fmt::format("Unrecognised operand '{Operand}'", fmt::arg("Operand", Operands[0])), SEVERITY_Error);
-                                                }
-                                                break;
-                                            }
-                                            case ENDSUB:
-                                            {
-                                                if(CurrentBlob->Relocatable)
-                                                {
-                                                    if(ProgramCounterStack.empty())
-                                                        throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
-                                                    ProgramCounter = ProgramCounterStack.top();
-                                                    ProgramCounterStack.pop();
-                                                }
-                                                CurrentBlob = &MainBlob;
-                                                break;
-                                            }
-                                            case ORG:
-                                            {
-                                                if(!CurrentBlob->Master)
-                                                    throw AssemblyException("ORG Cannot be used in a SUBROUTINE", SEVERITY_Error);
-
-                                                if(Operands.size() != 1)
-                                                    throw AssemblyException("ORG Requires a single argument <address>", SEVERITY_Error);
-
-                                                ExpressionEvaluator E(MainBlob);
-                                                ProgramCounter = E.Evaluate(Operands[0]);
-
-                                                if(!Label.empty())
-                                                    CurrentBlob->Symbols[Label].Value = ProgramCounter;
-
-                                                break;
-                                            }
-                                            default: // All Native Opcodes handled here.
-                                            {
-                                                 if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
-                                                    ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
-                                                break;
-                                            }
-                                            }
-                                        }
-                                        break;
-                                    }
-                                    case 2:
-                                    {
-                                        if(OpCode)
-                                        {
-                                            switch(OpCode.value().OpCode)
-                                            {
-                                            case SUB:
-                                            {
-                                                if(SecondaryBlob[Label].Relocatable)
-                                                {
                                                     ProgramCounterStack.push(ProgramCounter);
                                                     ProgramCounter = 0;
                                                 }
-                                                CurrentBlob = &SecondaryBlob[Label];
-                                                ListingFile.Append();
-                                                break;
-                                            }
-                                            case ENDSUB:
-                                            {
-                                                if(CurrentBlob->Relocatable)
-                                                {
-                                                    if(ProgramCounterStack.empty())
-                                                        throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
-                                                    ProgramCounter = ProgramCounterStack.top();
-                                                    ProgramCounterStack.pop();
-                                                }
-                                                CurrentBlob = &MainBlob;
-                                                ListingFile.Append();
-                                                break;
-                                            }
-                                            case ORG:
-                                            {
-                                                ExpressionEvaluator E(MainBlob);
-                                                ProgramCounter = E.Evaluate(Operands[0]);
-
-                                                auto InsertResult = CurrentBlob->Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {}));
-                                                CurrentBlob->CurrentCode = InsertResult.first;
-
-                                                ListingFile.Append();
-                                                break;
-                                            }
-                                            default:
-                                            {
-                                                if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
-                                                {
-                                                    std::vector<std::uint8_t> Data;
-                                                    ExpressionEvaluator E(MainBlob);
-                                                    if(CurrentBlob->Relocatable)
-                                                        E.AddLocalSymbols(CurrentBlob);
-
-                                                    switch(OpCode->OpCodeType)
-                                                    {
-                                                    case BASIC:
-                                                    {
-                                                        Data.push_back(OpCode->OpCode);
-                                                        break;
-                                                    }
-                                                    case REGISTER:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Register", SEVERITY_Error);
-
-                                                        uint16_t Register = E.Evaluate(Operands[0]);
-                                                        if(Register > 15)
-                                                            throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode | Register);
-                                                        break;
-                                                    }
-                                                    case IMMEDIATE:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
-                                                        uint16_t Byte = E.Evaluate(Operands[0]);
-                                                        if(Byte > 255)
-                                                            throw AssemblyException("Immediate operand out of range (0-FF)", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode);
-                                                        Data.push_back(Byte);
-                                                        break;
-                                                    }
-                                                    case SHORT_BRANCH:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Short Branch expected single operand", SEVERITY_Error);
-                                                        uint16_t Address = E.Evaluate(Operands[0]);
-                                                        if(((ProgramCounter + 1) & 0xFF00) != (Address & 0xFF00))
-                                                            throw AssemblyException("Short Branch out of range", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode);
-                                                        Data.push_back(Address & 0xFF);
-                                                        break;
-                                                    }
-                                                    case LONG_BRANCH:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Long Branch expected single operand", SEVERITY_Error);
-                                                        uint16_t Address = E.Evaluate(Operands[0]);
-                                                        Data.push_back(OpCode->OpCode);
-                                                        Data.push_back(Address >> 8);
-                                                        Data.push_back(Address & 0xFF);
-                                                        break;
-                                                    }
-                                                    case INPUT_OUTPUT:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Port", SEVERITY_Error);
-
-                                                        uint16_t Port = E.Evaluate(Operands[0]);
-                                                        if(Port == 0 || Port > 7)
-                                                            throw AssemblyException("Port out of range (1-7)", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode | Port);
-                                                        break;
-                                                    }
-                                                    case EXTENDED:
-                                                    {
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF);
-                                                        break;
-                                                    }
-                                                    case EXTENDED_REGISTER:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Register", SEVERITY_Error);
-
-                                                        uint16_t Register = E.Evaluate(Operands[0]);
-                                                        if(Register > 15)
-                                                            throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF | Register);
-                                                        break;
-                                                    }
-                                                    case EXTENDED_IMMEDIATE:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
-                                                        uint16_t Byte = E.Evaluate(Operands[0]);
-                                                        if(Byte > 255)
-                                                            throw AssemblyException("Immediate operand out of range (0-FF)", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF);
-                                                        Data.push_back(Byte);
-                                                        break;
-                                                    }
-                                                    case EXTENDED_SHORT_BRANCH:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Short Branch expected single operand", SEVERITY_Error);
-                                                        uint16_t Address = E.Evaluate(Operands[0]);
-                                                        if(((ProgramCounter + 2) & 0xFF00) != (Address & 0xFF00))
-                                                            throw AssemblyException("Short Branch out of range", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF);
-                                                        Data.push_back(Address & 0xFF);
-                                                        break;
-                                                    }
-                                                    case EXTENDED_REGISTER_IMMEDIATE16:
-                                                    {
-                                                        if(Operands.size() != 2)
-                                                            throw AssemblyException("Expected Register and Immediate operands", SEVERITY_Error);
-                                                        uint16_t Register = E.Evaluate(Operands[0]);
-                                                        uint16_t Word = E.Evaluate(Operands[1]);
-                                                        if(Register > 15)
-                                                            throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF | Register);
-                                                        Data.push_back(Word >> 8);
-                                                        Data.push_back(Word & 0xFF);
-                                                        break;
-                                                    }
-                                                    }
-
-                                                    if(CurrentBlob->Relocatable)
-                                                        CurrentBlob->CurrentCode->second.insert(CurrentBlob->CurrentCode->second.end(), Data.begin(), Data.end());
-                                                    else
-                                                        MainBlob.CurrentCode->second.insert(MainBlob.CurrentCode->second.end(), Data.begin(), Data.end());
-
-                                                    ListingFile.Append(ProgramCounter, Data);
-                                                    ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
-                                                }
                                                 else
-                                                    ListingFile.Append();
-                                                break;
+                                                    throw AssemblyException(fmt::format("Unrecognised operand '{Operand}'", fmt::arg("Operand", Operands[0])), SEVERITY_Error);
+                                            }
+                                            break;
+                                        }
+                                        case ENDSUB:
+                                        {
+                                            if(CurrentBlob->Relocatable)
+                                            {
+                                                if(ProgramCounterStack.empty())
+                                                    throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
+                                                ProgramCounter = ProgramCounterStack.top();
+                                                ProgramCounterStack.pop();
+                                            }
+                                            CurrentBlob = &MainBlob;
+                                            break;
+                                        }
+                                        case ORG:
+                                        {
+                                            if(!CurrentBlob->Master)
+                                                throw AssemblyException("ORG Cannot be used in a SUBROUTINE", SEVERITY_Error);
+
+                                            if(Operands.size() != 1)
+                                                throw AssemblyException("ORG Requires a single argument <address>", SEVERITY_Error);
+
+                                            ExpressionEvaluator E(MainBlob);
+                                            ProgramCounter = E.Evaluate(Operands[0]);
+
+                                            if(!Label.empty())
+                                                CurrentBlob->Symbols[Label] = ProgramCounter;
+
+                                            break;
+                                        }
+                                        default: // All Native Opcodes handled here.
+                                        {
+                                             if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
+                                                ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
+                                            break;
+                                        }
+                                        }
+                                    }
+                                    break;
+                                }
+                                case 3:
+                                {
+                                    if(OpCode)
+                                    {
+                                        switch(OpCode.value().OpCode)
+                                        {
+                                        case SUB:
+                                        {
+                                            if(SecondaryBlob[Label].Relocatable)
+                                            {
+                                                ProgramCounterStack.push(ProgramCounter);
+                                                ProgramCounter = 0;
+                                            }
+                                            CurrentBlob = &SecondaryBlob[Label];
+                                            ListingFile.Append();
+                                            break;
+                                        }
+                                        case ENDSUB:
+                                        {
+                                            if(CurrentBlob->Relocatable)
+                                            {
+                                                if(ProgramCounterStack.empty())
+                                                    throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
+                                                ProgramCounter = ProgramCounterStack.top();
+                                                ProgramCounterStack.pop();
+                                            }
+                                            CurrentBlob = &MainBlob;
+                                            ListingFile.Append();
+                                            break;
+                                        }
+                                        case ORG:
+                                        {
+                                            ExpressionEvaluator E(MainBlob);
+                                            ProgramCounter = E.Evaluate(Operands[0]);
+
+                                            auto InsertResult = CurrentBlob->Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {}));
+                                            CurrentBlob->CurrentCode = InsertResult.first;
+
+                                            ListingFile.Append();
+                                            break;
+                                        }
+                                        default:
+                                        {
+                                            if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
+                                            {
+                                                std::vector<std::uint8_t> Data;
+                                                ExpressionEvaluator E(MainBlob);
+                                                if(CurrentBlob->Relocatable)
+                                                    E.AddLocalSymbols(CurrentBlob);
+
+                                                switch(OpCode->OpCodeType)
+                                                {
+                                                case BASIC:
+                                                {
+                                                    Data.push_back(OpCode->OpCode);
+                                                    break;
                                                 }
+                                                case REGISTER:
+                                                {
+                                                    if(Operands.size() != 1)
+                                                        throw AssemblyException("Expected single operand of type Register", SEVERITY_Error);
+
+                                                    uint16_t Register = E.Evaluate(Operands[0]);
+                                                    if(Register > 15)
+                                                        throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
+                                                    Data.push_back(OpCode->OpCode | Register);
+                                                    break;
+                                                }
+                                                case IMMEDIATE:
+                                                {
+                                                    if(Operands.size() != 1)
+                                                        throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
+                                                    uint16_t Byte = E.Evaluate(Operands[0]);
+                                                    if(Byte > 255)
+                                                        throw AssemblyException("Immediate operand out of range (0-FF)", SEVERITY_Error);
+                                                    Data.push_back(OpCode->OpCode);
+                                                    Data.push_back(Byte);
+                                                    break;
+                                                }
+                                                case SHORT_BRANCH:
+                                                {
+                                                    if(Operands.size() != 1)
+                                                        throw AssemblyException("Short Branch expected single operand", SEVERITY_Error);
+                                                    uint16_t Address = E.Evaluate(Operands[0]);
+                                                    if(((ProgramCounter + 1) & 0xFF00) != (Address & 0xFF00))
+                                                        throw AssemblyException("Short Branch out of range", SEVERITY_Error);
+                                                    Data.push_back(OpCode->OpCode);
+                                                    Data.push_back(Address & 0xFF);
+                                                    break;
+                                                }
+                                                case LONG_BRANCH:
+                                                {
+                                                    if(Operands.size() != 1)
+                                                        throw AssemblyException("Long Branch expected single operand", SEVERITY_Error);
+                                                    uint16_t Address = E.Evaluate(Operands[0]);
+                                                    Data.push_back(OpCode->OpCode);
+                                                    Data.push_back(Address >> 8);
+                                                    Data.push_back(Address & 0xFF);
+                                                    break;
+                                                }
+                                                case INPUT_OUTPUT:
+                                                {
+                                                    if(Operands.size() != 1)
+                                                        throw AssemblyException("Expected single operand of type Port", SEVERITY_Error);
+
+                                                    uint16_t Port = E.Evaluate(Operands[0]);
+                                                    if(Port == 0 || Port > 7)
+                                                        throw AssemblyException("Port out of range (1-7)", SEVERITY_Error);
+                                                    Data.push_back(OpCode->OpCode | Port);
+                                                    break;
+                                                }
+                                                case EXTENDED:
+                                                {
+                                                    Data.push_back(OpCode->OpCode >> 8);
+                                                    Data.push_back(OpCode->OpCode & 0xFF);
+                                                    break;
+                                                }
+                                                case EXTENDED_REGISTER:
+                                                {
+                                                    if(Operands.size() != 1)
+                                                        throw AssemblyException("Expected single operand of type Register", SEVERITY_Error);
+
+                                                    uint16_t Register = E.Evaluate(Operands[0]);
+                                                    if(Register > 15)
+                                                        throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
+                                                    Data.push_back(OpCode->OpCode >> 8);
+                                                    Data.push_back(OpCode->OpCode & 0xFF | Register);
+                                                    break;
+                                                }
+                                                case EXTENDED_IMMEDIATE:
+                                                {
+                                                    if(Operands.size() != 1)
+                                                        throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
+                                                    uint16_t Byte = E.Evaluate(Operands[0]);
+                                                    if(Byte > 255)
+                                                        throw AssemblyException("Immediate operand out of range (0-FF)", SEVERITY_Error);
+                                                    Data.push_back(OpCode->OpCode >> 8);
+                                                    Data.push_back(OpCode->OpCode & 0xFF);
+                                                    Data.push_back(Byte);
+                                                    break;
+                                                }
+                                                case EXTENDED_SHORT_BRANCH:
+                                                {
+                                                    if(Operands.size() != 1)
+                                                        throw AssemblyException("Short Branch expected single operand", SEVERITY_Error);
+                                                    uint16_t Address = E.Evaluate(Operands[0]);
+                                                    if(((ProgramCounter + 2) & 0xFF00) != (Address & 0xFF00))
+                                                        throw AssemblyException("Short Branch out of range", SEVERITY_Error);
+                                                    Data.push_back(OpCode->OpCode >> 8);
+                                                    Data.push_back(OpCode->OpCode & 0xFF);
+                                                    Data.push_back(Address & 0xFF);
+                                                    break;
+                                                }
+                                                case EXTENDED_REGISTER_IMMEDIATE16:
+                                                {
+                                                    if(Operands.size() != 2)
+                                                        throw AssemblyException("Expected Register and Immediate operands", SEVERITY_Error);
+                                                    uint16_t Register = E.Evaluate(Operands[0]);
+                                                    uint16_t Word = E.Evaluate(Operands[1]);
+                                                    if(Register > 15)
+                                                        throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
+                                                    Data.push_back(OpCode->OpCode >> 8);
+                                                    Data.push_back(OpCode->OpCode & 0xFF | Register);
+                                                    Data.push_back(Word >> 8);
+                                                    Data.push_back(Word & 0xFF);
+                                                    break;
+                                                }
+                                                default:
+                                                    break;
+                                                }
+
+                                                if(CurrentBlob->Relocatable)
+                                                    CurrentBlob->CurrentCode->second.insert(CurrentBlob->CurrentCode->second.end(), Data.begin(), Data.end());
+                                                else
+                                                    MainBlob.CurrentCode->second.insert(MainBlob.CurrentCode->second.end(), Data.begin(), Data.end());
+
+                                                ListingFile.Append(ProgramCounter, Data);
+                                                ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
+                                            }
+                                            else
+                                                ListingFile.Append();
+                                            break;
                                             }
                                         }
                                     }
+                                }
                                 }
                             }
                             catch (AssemblyException Ex)
                             {
                                 PrintError(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
                                 Errors.Push(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-                                if (Pass == 2) {
+                                if (Pass == 3) {
                                     ListingFile.Append();
                                 }
                             }
@@ -632,7 +599,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                         }
                     }
                     else // Empty line
-                        if (Pass == 2)
+                        if (Pass == 3)
                             ListingFile.Append();
                 }
                 catch (AssemblyException Ex)
@@ -776,17 +743,8 @@ void PrintSymbols(const std::string& Name, const blob& Blob)
     for(auto& Symbol : Blob.Symbols)
     {
         fmt::print("{Name:15} ", fmt::arg("Name", Symbol.first));
-        if(Symbol.second.Extern)
-            fmt::print("External");
-        else
-        {
-            if(Symbol.second.Value.has_value())
-            fmt::print("{Address:04X} {Public:3}",
-                           fmt::arg("Address", Symbol.second.Value.value()),
-                       fmt::arg("Public", Symbol.second.Public ? "Pub" : "   "));
-        else
-            fmt::print("---- {Public:3}", fmt::arg("Public", Symbol.second.Public ? "Pub" : "   "));
-        }
+        if(Symbol.second.has_value())
+        fmt::print("{Address:04X}", fmt::arg("Address", Symbol.second.value()));
         if(++c % 4 == 0)
             fmt::print("\n");
         else

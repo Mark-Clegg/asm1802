@@ -119,17 +119,10 @@ void ListingFileWriter::AppendSymbols(const std::string& Name, const blob& Blob)
         for(auto& Symbol : Blob.Symbols)
         {
             fmt::print(ListStream, "{Name:15} ", fmt::arg("Name", Symbol.first));
-            if(Symbol.second.Extern)
-                fmt::print(ListStream, "External");
+            if(Symbol.second.has_value())
+                fmt::print(ListStream, "{Address:04X}", fmt::arg("Address", Symbol.second.value()));
             else
-            {
-                if(Symbol.second.Value.has_value())
-                    fmt::print(ListStream, "{Address:04X} {Public:3}",
-                               fmt::arg("Address", Symbol.second.Value.value()),
-                               fmt::arg("Public", Symbol.second.Public ? "Pub" : "   "));
-                else
-                    fmt::print(ListStream, "---- {Public:3}", fmt::arg("Public", Symbol.second.Public ? "Pub" : "   "));
-            }
+                fmt::print(ListStream, "----");
             if(++c % 4 == 0)
                 fmt::print(ListStream, "\n");
             else

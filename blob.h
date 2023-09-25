@@ -7,15 +7,6 @@
 #include <string>
 #include <vector>
 
-class symbolDefinition
-{
-public:
-    symbolDefinition();
-
-    std::optional<uint16_t> Value;
-    bool Public = false;
-    bool Extern = false;
-};
 
 class blob
 {
@@ -26,7 +17,7 @@ public:
 
     const bool Master;
     const bool Relocatable;
-    std::map<std::string,symbolDefinition> Symbols;
+    std::map<std::string, std::optional<uint16_t>> Symbols;
     std::map<uint16_t, std::vector<uint8_t>> Code;
 
     std::map<uint16_t, std::vector<uint8_t>>::iterator CurrentCode;

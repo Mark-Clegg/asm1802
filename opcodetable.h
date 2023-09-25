@@ -134,8 +134,6 @@ enum OpCodeEnum
 
     // Pseudo OpCodes
 
-    PUBLIC = 0xFF00,
-    EXTERN = 0xFF01,
     SUB    = 0xFF02,
     ENDSUB = 0xFF03,
     ORG    = 0xFF04

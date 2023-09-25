@@ -34,8 +34,8 @@ uint16_t ExpressionEvaluator::SymbolValue(std::string& Label)
         auto Symbol = Local->Symbols.find(Label);
         if(Symbol != Local->Symbols.end())
         {
-            if(Symbol->second.Value.has_value())
-                return Symbol->second.Value.value();
+            if(Symbol->second.has_value())
+                return Symbol->second.value();
             else
                 throw AssemblyException(fmt::format("Label '{Label}' is not yet assigned", fmt::arg("Label", Label)), SEVERITY_Error);
         }
@@ -44,8 +44,8 @@ uint16_t ExpressionEvaluator::SymbolValue(std::string& Label)
     auto Symbol = Global->Symbols.find(Label);
     if(Symbol != Global->Symbols.end())
     {
-        if(Symbol->second.Value.has_value())
-            return Symbol->second.Value.value();
+        if(Symbol->second.has_value())
+            return Symbol->second.value();
         else
             throw AssemblyException(fmt::format("Label '{Label}' is not yet assigned", fmt::arg("Label", Label)), SEVERITY_Error);
     }

@@ -129,6 +129,7 @@ const std::map<std::string, OpCodeSpec> OpCodeTable::OpCode = {
 
     // Pseudo Operations
 
+    { "EQU",        { EQU,    PSEUDO_OP,             CPU_1802  }},
     { "SUB",        { SUB,    PSEUDO_OP,             CPU_1802  }},
     { "SUBROUTINE", { SUB,    PSEUDO_OP,             CPU_1802  }},
     { "ENDSUB",     { ENDSUB, PSEUDO_OP,             CPU_1802  }},

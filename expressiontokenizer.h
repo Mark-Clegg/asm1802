@@ -29,8 +29,8 @@ class ExpressionTokenizer
 public:
     ExpressionTokenizer();
     void Initialize(const std::string& Expression);
-    TokenEnum PeekToken();
-    TokenEnum GetToken();
+    TokenEnum Peek();
+    TokenEnum Get();
 
     TokenEnum ID;
     std::string StringValue;

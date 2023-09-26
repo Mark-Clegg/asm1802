@@ -13,27 +13,28 @@ void ExpressionTokenizer::Initialize(const std::string& Expression)
     InputStream.clear();
 }
 
-TokenEnum ExpressionTokenizer::PeekToken()
+TokenEnum ExpressionTokenizer::Peek()
 {
     std::streampos SavedPos = InputStream.tellg();
-    GetToken();
+    Get();
     InputStream.clear();
     InputStream.seekg(SavedPos);
     return ID;
 }
 
-TokenEnum ExpressionTokenizer::GetToken()
+TokenEnum ExpressionTokenizer::Get()
 {
-    while(!InputStream.eof() && isspace(InputStream.peek()))
+    while(!InputStream.eof() && !InputStream.fail() && isspace(InputStream.peek()))
         InputStream.ignore();
 
-    if(InputStream.eof())
+    char FirstChar = InputStream.get();
+    if(InputStream.eof() || InputStream.fail())
     {
         ID = TOKEN_END;
         return ID;
     }
 
-    switch(char FirstChar = InputStream.get())
+    switch(FirstChar)
     {
     case '(':
         ID = TOKEN_OPENBRACE;
@@ -73,7 +74,7 @@ TokenEnum ExpressionTokenizer::GetToken()
         if(isalpha(FirstChar))  // LABEL
         {
             StringValue = FirstChar;
-            while(!InputStream.eof() && isalnum(InputStream.peek()))
+            while(!InputStream.eof() && !InputStream.fail() && isalnum(InputStream.peek()))
                 StringValue.push_back(InputStream.get());
             ID = TOKEN_LABEL;
             break;
@@ -88,7 +89,7 @@ TokenEnum ExpressionTokenizer::GetToken()
             }
             else
             {
-                while(!InputStream.eof() && isxdigit(InputStream.peek()))
+                while(!InputStream.eof() && !InputStream.fail() && isxdigit(InputStream.peek()))
                 {
                     char c = InputStream.get();
                     int v = (c >= 'A') ? (c >= 'a') ? (c - 'a' + 10) : (c - 'A' + 10) : (c - '0');
@@ -103,10 +104,10 @@ TokenEnum ExpressionTokenizer::GetToken()
             IntegerValue = 0;
             if(FirstChar == '0')   // OCTAL OR HEX
             {
-                if(!InputStream.eof() && InputStream.peek() == 'x') // HEX
+                if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == 'x') // HEX
                 {
                     InputStream.ignore();
-                    while(!InputStream.eof() && isxdigit(InputStream.peek()))
+                    while(!InputStream.eof() && !InputStream.fail() && isxdigit(InputStream.peek()))
                     {
                         char c = InputStream.get();
                         int v = (c >= 'A') ? (c >= 'a') ? (c - 'a' + 10) : (c - 'A' + 10) : (c - '0');
@@ -117,7 +118,7 @@ TokenEnum ExpressionTokenizer::GetToken()
                 }
                 else    // OCTAL
                 {
-                    while(!InputStream.eof() && isdigit(InputStream.peek()))
+                    while(!InputStream.eof() && !InputStream.fail() && isdigit(InputStream.peek()))
                     {
                         char c = InputStream.get();
                         int v = c - '0';
@@ -131,7 +132,8 @@ TokenEnum ExpressionTokenizer::GetToken()
             }
             else // DECIMAL
             {
-                while(!InputStream.eof() && isdigit(InputStream.peek()))
+                IntegerValue = FirstChar - '0';
+                while(!InputStream.eof() && !InputStream.fail() && isdigit(InputStream.peek()))
                 {
                     char c = InputStream.get();
                     int v = c - '0';
@@ -143,7 +145,7 @@ TokenEnum ExpressionTokenizer::GetToken()
         }
         if(FirstChar == '<') // SHIFT LEFT
         {
-            if(!InputStream.eof() && InputStream.peek() == '<')
+            if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == '<')
             {
                 InputStream.ignore();
                 ID = TOKEN_SHIFTLEFT;
@@ -152,7 +154,7 @@ TokenEnum ExpressionTokenizer::GetToken()
         }
         if(FirstChar == '>') // SHIFT RIGHT
         {
-            if(!InputStream.eof() && InputStream.peek() == '>')
+            if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == '>')
             {
                 InputStream.ignore();
                 ID = TOKEN_SHIFTRIGHT;
@@ -161,7 +163,7 @@ TokenEnum ExpressionTokenizer::GetToken()
         }
         if(FirstChar == '\'') // CHARACTER CONSTANT
         {
-            if(InputStream.eof())
+            if(InputStream.eof() || InputStream.fail())
                 throw AssemblyException("Unterminated character constant", SEVERITY_Error);
 
             if(InputStream.peek() == '\'')
@@ -170,10 +172,10 @@ TokenEnum ExpressionTokenizer::GetToken()
             if(InputStream.peek() == '\\')
             {
                 InputStream.ignore();
-                if(InputStream.eof())
+                if(InputStream.eof() || InputStream.fail())
                     throw AssemblyException("Unterminated character constant", SEVERITY_Error);
                 int EscapedChar = InputStream.get();
-                if(InputStream.eof())
+                if(InputStream.eof() || InputStream.fail())
                     throw AssemblyException("Unterminated character constant", SEVERITY_Error);
                 if(InputStream.get() != '\'')
                     throw AssemblyException("Character constant too long", SEVERITY_Error);
@@ -197,14 +199,14 @@ TokenEnum ExpressionTokenizer::GetToken()
             }
             else
             {
-                if(InputStream.eof())
+                if(InputStream.eof() || InputStream.fail())
                     throw AssemblyException("Unterminated character constant", SEVERITY_Error);
                 IntegerValue = InputStream.get();
-                if(InputStream.eof())
+                if(InputStream.eof() || InputStream.fail())
                     throw AssemblyException("Unterminated character constant", SEVERITY_Error);
                 if(InputStream.get() != '\'')
                 {
-                    if(InputStream.eof())
+                    if(InputStream.eof() || InputStream.fail())
                         throw AssemblyException("Unterminated character constant", SEVERITY_Error);
                     else
                         throw AssemblyException("Character constant too long", SEVERITY_Error);
@@ -213,7 +215,7 @@ TokenEnum ExpressionTokenizer::GetToken()
             ID = TOKEN_NUMBER;
             break;
         }
-        if(InputStream.eof())
+        if(InputStream.eof() || InputStream.fail())
         {
             ID = TOKEN_END;
             break;

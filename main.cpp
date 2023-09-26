@@ -363,11 +363,11 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                 {
                                     if(!Label.empty())
                                     {
-                                    if(CurrentTable->Symbols.find(Label) == CurrentTable->Symbols.end())
-                                        CurrentTable->Symbols[Label] = ProgramCounter;
+                                        if(CurrentTable->Symbols.find(Label) == CurrentTable->Symbols.end())
+                                            CurrentTable->Symbols[Label] = ProgramCounter;
                                         else
                                         {
-                                        auto& Symbol = CurrentTable->Symbols[Label];
+                                            auto& Symbol = CurrentTable->Symbols[Label];
                                             if(Symbol.has_value())
                                                 throw AssemblyException(fmt::format("Label '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
                                             Symbol = ProgramCounter;
@@ -383,6 +383,18 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                     {
                                         switch(OpCode.value().OpCode)
                                         {
+                                        case EQU:
+                                        {
+                                            if(Label.empty())
+                                                throw AssemblyException("EQU requires a Label", SEVERITY_Error);
+                                            if(Operands.size() != 1)
+                                                throw AssemblyException("EQU Requires a single argument <value>", SEVERITY_Error);
+
+                                            ExpressionEvaluator E(MainTable);
+                                            int Value = E.Evaluate(Operands[0]);
+                                            CurrentTable->Symbols[Label] = Value;
+                                            break;
+                                        }
                                         case SUB:
                                         {
                                             InSub = true;
@@ -652,7 +664,6 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                 for(auto &Code1 : Code)
                 {
                     uint16_t Start1 = Code1.first;
-                    uint16_t End1 = Code1.first + Code1.second.size();
 
                     for(auto &Code2 : Code)
                     {

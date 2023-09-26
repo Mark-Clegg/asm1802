@@ -11,7 +11,7 @@ class ExpressionEvaluator
 public:
     ExpressionEvaluator(const SymbolTable& Global);
     void AddLocalSymbols(const SymbolTable* Local);
-    uint16_t Evaluate(std::string& Expression);
+    int Evaluate(std::string& Expression);
 
 private:
     const SymbolTable* Local;
@@ -21,6 +21,15 @@ private:
     uint16_t SymbolValue(std::string& Label);
 
     ExpressionTokenizer TokenStream;
+
+    int SubExp0();
+    int SubExp1();
+    int SubExp2();
+    int SubExp3();
+    int SubExp4();
+    int SubExp5();
+    int SubExp6();
+    int SubExp7();
 };
 
 #endif // EXPRESSIONEVALUATOR_H

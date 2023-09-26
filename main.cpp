@@ -25,6 +25,7 @@ DefineMap GlobalDefines;   // global #defines persist for all files following on
 bool assemble(const std::string&, bool ListingEnabled, bool DumpSymbols);
 
 void PrintError(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity);
+void PrintError(const std::string& Message, AssemblyErrorSeverity Severity);
 void PrintSymbols(const std::string & Name, const SymbolTable& Table);
 
 #if DEBUG
@@ -642,14 +643,46 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                 }
             }
             if(IfNestingLevel != 0)
-                throw AssemblyException("#if Nesting Error or missing #endif", SEVERITY_Warning);
+                throw AssemblyException("#if Nesting Error or missing #endif", SEVERITY_Warning, false);
+
+            // Check for overlapping code
+            if(Pass == 3)
+            {
+                int Overlap = 0;
+                for(auto &Code1 : Code)
+                {
+                    uint16_t Start1 = Code1.first;
+                    uint16_t End1 = Code1.first + Code1.second.size();
+
+                    for(auto &Code2 : Code)
+                    {
+                        uint16_t Start2 = Code2.first;
+                        uint16_t End2 = Code2.first + Code2.second.size();
+                        if (Start1 >= Start2 && Start1 < End2)
+                            Overlap++;
+                    }
+                }
+                if(Overlap > Code.size())
+                    throw AssemblyException("Code blocks ovelap", SEVERITY_Warning, false);
+            }
+
         }
         catch (AssemblyException Ex)
         {
-            PrintError(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-            Errors.Push(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+            if(Ex.ShowLine)
+            {
+                PrintError(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                //Errors.Push(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+            }
+            else
+            {
+                PrintError(Ex.Message, Ex.Severity);
+                //Errors.Push(Ex.Message, Ex.Severity);
+            }
         }
     }
+
+
 
 
     if(DumpSymbols)
@@ -741,6 +774,28 @@ void PrintError(const std::string& SourceFileName, const int LineNumber, const s
                    fmt::arg("message", Message));
     }
 }
+
+void PrintError(const std::string& Message, AssemblyErrorSeverity Severity)
+{
+    try // Source may not contain anything...
+    {
+        fmt::print("[{filename:22}({linenumber:5})] {line}\n",
+                   fmt::arg("filename", " "),
+                   fmt::arg("linenumber", " "),
+                   fmt::arg("line", " ")
+                   );
+        fmt::print("***************{severity:*>15}: {message}\n",
+                   fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
+                   fmt::arg("message", Message));
+    }
+    catch(...)
+    {
+        fmt::print("***************{severity:*>15}: {message}\n",
+                   fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
+                   fmt::arg("message", Message));
+    }
+}
+
 
 //!
 //! \brief PrintSymbols

@@ -6,8 +6,9 @@ const std::map<AssemblyErrorSeverity, std::string> AssemblyException::SeverityNa
     { SEVERITY_Error,   "Error"       }
 };
 
-AssemblyException::AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity)
+AssemblyException::AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity, bool ShowLine)
 {
     this->Message = Message;
     this->Severity = Severity;
+    this->ShowLine = ShowLine;
 }

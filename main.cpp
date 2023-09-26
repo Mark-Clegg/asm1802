@@ -693,9 +693,6 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
         }
     }
 
-
-
-
     if(DumpSymbols)
     {
         fmt::print("\n");

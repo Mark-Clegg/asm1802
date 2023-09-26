@@ -69,6 +69,9 @@ TokenEnum ExpressionTokenizer::Get()
     case '|':
         ID = TOKEN_OR;
         break;
+    case '~':
+        ID = TOKEN_NOT;
+        break;
     default:
     {
         if(isalpha(FirstChar))  // LABEL

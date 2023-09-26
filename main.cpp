@@ -822,7 +822,7 @@ void PrintSymbols(const std::string& Name, const SymbolTable& Blob)
         Title = Name + " (Relocatable)";
     else
         Title = Name;
-    fmt::print("{Title:-^108}\n", fmt::arg("Title", Title));
+    fmt::print("{Title:-^116}\n", fmt::arg("Title", Title));
 
     int c = 0;
     for(auto& Symbol : Blob.Symbols)
@@ -830,7 +830,7 @@ void PrintSymbols(const std::string& Name, const SymbolTable& Blob)
         fmt::print("{Name:15} ", fmt::arg("Name", Symbol.first));
         if(Symbol.second.has_value())
         fmt::print("{Address:04X}", fmt::arg("Address", Symbol.second.value()));
-        if(++c % 4 == 0)
+        if(++c % 5 == 0)
             fmt::print("\n");
         else
             fmt::print("    ");

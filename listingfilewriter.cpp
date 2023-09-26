@@ -113,7 +113,7 @@ void ListingFileWriter::AppendSymbols(const std::string& Name, const SymbolTable
             Title = Name + " (Relocatable)";
         else
             Title = Name;
-        fmt::print(ListStream, "{Title:-^108}\n", fmt::arg("Title", Title));
+        fmt::print(ListStream, "{Title:-^116}\n", fmt::arg("Title", Title));
 
         int c = 0;
         for(auto& Symbol : Blob.Symbols)
@@ -123,7 +123,7 @@ void ListingFileWriter::AppendSymbols(const std::string& Name, const SymbolTable
                 fmt::print(ListStream, "{Address:04X}", fmt::arg("Address", Symbol.second.value()));
             else
                 fmt::print(ListStream, "----");
-            if(++c % 4 == 0)
+            if(++c % 5 == 0)
                 fmt::print(ListStream, "\n");
             else
                 fmt::print(ListStream, "    ");

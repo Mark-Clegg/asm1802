@@ -28,6 +28,9 @@ void PrintError(const std::string& FileName, const int LineNumber, const std::st
 void PrintError(const std::string& Message, AssemblyErrorSeverity Severity);
 void PrintSymbols(const std::string & Name, const SymbolTable& Table);
 
+bool NoRegisters = false;   // Suppress pre-defined Register equates
+bool NoPorts     = false;   // Suppress pre-defined Port equates
+
 #if DEBUG
 void DumpCode(const std::map<uint16_t, std::vector<uint8_t>>& Code);
 #endif
@@ -36,10 +39,12 @@ int main(int argc, char **argv)
 {
 
     option longopts[] = {
-        { "define", required_argument, 0, 'D' },
-        { "undefine", required_argument, 0, 'U' },
-        { "list", no_argument, 0, 'L' },
-        { "symbols", no_argument, 0 , 'S' },
+        { "define",      required_argument, 0, 'D' },
+        { "undefine",    required_argument, 0, 'U' },
+        { "list",        no_argument,       0, 'L' },
+        { "symbols",     no_argument,       0, 'S' },
+        { "noregisters", no_argument,       0, 'R' },
+        { "noports",     no_argument,       0, 'P' },
         { 0,0,0,0 }
     };
 
@@ -103,6 +108,14 @@ int main(int argc, char **argv)
             Symbols = true;
             break;
 
+        case 'R':
+            NoRegisters = true;
+            break;
+
+        case 'P':
+            NoPorts = true;
+            break;
+
         default:
             return 1;
             fmt::print("Error\n");
@@ -143,10 +156,27 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 {
     fmt::print("Assembling: {filename}\n", fmt::arg("filename", FileName));
     
-    SymbolTable MainTable;
+    SymbolTable MainTable;    
     std::map<std::string, SymbolTable> SubTables;
     std::map<uint16_t, std::vector<uint8_t>> Code = {{ 0, {}}};
     std::map<uint16_t, std::vector<uint8_t>>::iterator CurrentCode = Code.begin();
+
+    if(!NoRegisters)
+        for(int i=0; i<16; i++)
+        {
+            MainTable.Symbols[fmt::format("R{n}",   fmt::arg("n", i))] = { i, true };
+            MainTable.Symbols[fmt::format("r{n}",   fmt::arg("n", i))] = { i, true };
+            MainTable.Symbols[fmt::format("R{n:x}", fmt::arg("n", i))] = { i, true };
+            MainTable.Symbols[fmt::format("R{n:X}", fmt::arg("n", i))] = { i, true };
+            MainTable.Symbols[fmt::format("r{n:x}", fmt::arg("n", i))] = { i, true };
+            MainTable.Symbols[fmt::format("r{n:X}", fmt::arg("n", i))] = { i, true };
+        }
+    if(!NoPorts)
+        for(int i=1; i<8; i++)
+        {
+            MainTable.Symbols[fmt::format("P{n}",   fmt::arg("n", i))] = { i, true };
+            MainTable.Symbols[fmt::format("p{n}",   fmt::arg("n", i))] = { i, true };
+        }
 
     SourceCodeReader Source;
     ErrorTable Errors;
@@ -364,13 +394,13 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                     if(!Label.empty())
                                     {
                                         if(CurrentTable->Symbols.find(Label) == CurrentTable->Symbols.end())
-                                            CurrentTable->Symbols[Label] = ProgramCounter;
+                                            CurrentTable->Symbols[Label].Value = ProgramCounter;
                                         else
                                         {
                                             auto& Symbol = CurrentTable->Symbols[Label];
-                                            if(Symbol.has_value())
+                                            if(Symbol.Value.has_value())
                                                 throw AssemblyException(fmt::format("Label '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
-                                            Symbol = ProgramCounter;
+                                            Symbol.Value = ProgramCounter;
                                         }
                                     }
 
@@ -392,7 +422,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
                                             ExpressionEvaluator E(MainTable, ProgramCounter);
                                             int Value = E.Evaluate(Operands[0]);
-                                            CurrentTable->Symbols[Label] = Value;
+                                            CurrentTable->Symbols[Label].Value = Value;
                                             break;
                                         }
                                         case SUB:
@@ -432,10 +462,14 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                 throw AssemblyException("ORG Requires a single argument <address>", SEVERITY_Error);
 
                                             ExpressionEvaluator E(MainTable, ProgramCounter);
-                                            ProgramCounter = E.Evaluate(Operands[0]);
+                                            int x;
+                                            if((x = E.Evaluate(Operands[0])) < 0x10000)
+                                                ProgramCounter = x;
+                                            else
+                                                throw AssemblyException("Overflow: Address must be in range 0-FFFF", SEVERITY_Error);
 
                                             if(!Label.empty())
-                                                CurrentTable->Symbols[Label] = ProgramCounter;
+                                                CurrentTable->Symbols[Label].Value = ProgramCounter;
 
                                             break;
                                         }
@@ -823,14 +857,15 @@ void PrintSymbols(const std::string& Name, const SymbolTable& Blob)
 
     int c = 0;
     for(auto& Symbol : Blob.Symbols)
-    {
+        if(!Symbol.second.HideFromSymbolTable)
+        {
         fmt::print("{Name:15} ", fmt::arg("Name", Symbol.first));
-        if(Symbol.second.has_value())
-        fmt::print("{Address:04X}", fmt::arg("Address", Symbol.second.value()));
+        if(Symbol.second.Value.has_value())
+        fmt::print("{Address:04X}", fmt::arg("Address", Symbol.second.Value.value()));
         if(++c % 5 == 0)
             fmt::print("\n");
         else
             fmt::print("    ");
-    }
+        }
     fmt::print("\n");
 }

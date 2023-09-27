@@ -243,19 +243,21 @@ int ExpressionEvaluator::SubExp7()
         {
             TokenStream.Get();
             std::vector<int> Arguments = { };
-            if(TokenStream.Peek() != TOKEN_CLOSEBRACE)
-            {
-                Arguments.push_back(SubExp0());
-            }
-            while(TokenStream.Peek() == TOKEN_COMMA)
-            {
-                TokenStream.Get();
-                Arguments.push_back(SubExp0());
-            }
             if(TokenStream.Peek() == TOKEN_CLOSEBRACE)
                 TokenStream.Get();
             else
-                throw AssemblyException("Syntax error in argument list");
+            {
+                Arguments.push_back(SubExp0());            
+                while(TokenStream.Peek() == TOKEN_COMMA)
+                {
+                    TokenStream.Get();
+                    Arguments.push_back(SubExp0());
+                }
+                if(TokenStream.Peek() == TOKEN_CLOSEBRACE)
+                    TokenStream.Get();
+                else
+                    throw AssemblyException("Syntax error in argument list");
+            }
 
             auto FunctionSpec = FunctionTable.find(Label);
             if(FunctionSpec == FunctionTable.end())
@@ -299,8 +301,8 @@ uint16_t ExpressionEvaluator::SymbolValue(std::string& Label)
         auto Symbol = Local->Symbols.find(Label);
         if(Symbol != Local->Symbols.end())
         {
-            if(Symbol->second.has_value())
-                return Symbol->second.value();
+            if(Symbol->second.Value.has_value())
+                return Symbol->second.Value.value();
             else
                 throw AssemblyException(fmt::format("Label '{Label}' is not yet assigned", fmt::arg("Label", Label)), SEVERITY_Error);
         }
@@ -309,8 +311,8 @@ uint16_t ExpressionEvaluator::SymbolValue(std::string& Label)
     auto Symbol = Global->Symbols.find(Label);
     if(Symbol != Global->Symbols.end())
     {
-        if(Symbol->second.has_value())
-            return Symbol->second.value();
+        if(Symbol->second.Value.has_value())
+            return Symbol->second.Value.value();
         else
             throw AssemblyException(fmt::format("Label '{Label}' is not yet assigned", fmt::arg("Label", Label)), SEVERITY_Error);
     }

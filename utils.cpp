@@ -29,37 +29,55 @@ const std::map<std::string, PreProcessorDirectiveEnum> PreProcessorDirectives = 
 //!
 std::string trim(const std::string& in)
 {
-    bool inQuote = false;
+    bool inSingleQuote = false;
+    bool inDoubleQuote = false;
     bool inEscape = false;
 
     std::string out;
 
     for(auto ch : in)
     {
-        if (!inQuote && !inEscape)
+        if (!inSingleQuote && !inDoubleQuote && !inEscape)
         {
             if (ch == ';')
                 break;
 
             switch(ch)
             {
+            case '\'':
+                if(!inDoubleQuote)
+                {
+                    inSingleQuote = true;
+                    out.push_back(ch);
+                    continue;
+                }
+                break;
             case '\"':
-                inQuote = true;
-                out.push_back(ch);
-                continue;
+                if(!inSingleQuote)
+                {
+                    inDoubleQuote = true;
+                    out.push_back(ch);
+                    continue;
+                }
+                break;
             }
         }
 
         out.push_back(ch);
 
-        if (inQuote && ch == '\\')
+        if ((inDoubleQuote || inSingleQuote) && ch == '\\')
         {
             inEscape = true;
             continue;
         }
-        if (inQuote && ch == '\"')
+        if (inSingleQuote && ch == '\'')
         {
-            inQuote = false;
+            inSingleQuote = false;
+            continue;
+        }
+        if (inDoubleQuote && ch == '\"')
+        {
+            inDoubleQuote = false;
             continue;
         }
         if (inEscape)
@@ -241,7 +259,8 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
         Operands = MatchResult[7];
 
         // Split the Operands into a vector
-        bool inQuote = false;
+        bool inSingleQuote = false;
+        bool inDoubleQuote = false;
         bool inBrackets = false;
         bool inEscape = false;
         bool SkipSpaces = false;
@@ -257,7 +276,7 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
                 inEscape = false;
                 continue;
             }
-            if(!inQuote && !inEscape && !inBrackets && ch == ',')
+            if(!inSingleQuote && !inDoubleQuote && !inEscape && !inBrackets && ch == ',')
             {
                 OperandList.push_back(regex_replace(out, std::regex(R"(\s+$)"), ""));
                 out="";
@@ -266,8 +285,13 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
             }
             switch(ch)
             {
+            case '\'':
+                if(!inDoubleQuote)
+                    inSingleQuote = !inSingleQuote;
+                break;
             case '\"':
-                inQuote = !inQuote;
+                if(!inSingleQuote)
+                inDoubleQuote = !inDoubleQuote;
                 break;
             case '(':
                 inBrackets = true;
@@ -303,7 +327,7 @@ int AlignFromSize(int Size)
 {
     Size--;
     int Result = 1;
-    while(Size > 0)
+    while(Size > 0 && Result < 0x100)
     {
         Result <<= 1;
         Size >>= 1;

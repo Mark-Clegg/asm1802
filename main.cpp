@@ -379,6 +379,26 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             CurrentTable = &MainTable;
                                             break;
                                         }
+                                        case DB:
+                                        {
+                                            for(auto& Operand : Operands)
+                                            {
+                                                if(Operand[0] == '\"')
+                                                {
+                                                    std::vector<std::uint8_t> Data;
+                                                    ParseString(Operand, Data);
+                                                    ProgramCounter += Data.size();
+                                                }
+                                                else
+                                                    ProgramCounter++;
+                                            }
+                                            break;
+                                        }
+                                        case DW:
+                                        {
+                                            ProgramCounter += Operands.size() * 2;
+                                            break;
+                                        }
                                         default: // All Native Opcodes handled here.
                                         {
                                             if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
@@ -473,6 +493,26 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
                                             break;
                                         }
+                                        case DB:
+                                        {
+                                            for(auto& Operand : Operands)
+                                            {
+                                                if(Operand[0] == '\"')
+                                                {
+                                                    std::vector<std::uint8_t> Data;
+                                                    ParseString(Operand, Data);
+                                                    ProgramCounter += Data.size();
+                                                }
+                                                else
+                                                    ProgramCounter++;
+                                            }
+                                            break;
+                                        }
+                                        case DW:
+                                        {
+                                            ProgramCounter += Operands.size() * 2;
+                                            break;
+                                        }
                                         default: // All Native Opcodes handled here.
                                         {
                                              if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
@@ -523,6 +563,46 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             ListingFile.Append();
                                             break;
                                         }
+                                        case DB:
+                                        {
+                                            std::vector<std::uint8_t> Data;
+                                            ExpressionEvaluator E(MainTable, ProgramCounter);
+                                            if(CurrentTable->Relocatable)
+                                                E.AddLocalSymbols(CurrentTable);
+                                            for(auto& Operand : Operands)
+                                            {
+                                                if(Operand[0] == '\"')
+                                                    ParseString(Operand, Data);
+                                                else
+                                                {
+                                                int x = E.Evaluate(Operand);
+                                                if(x > 255)
+                                                    throw AssemblyException("Operand out of range (0-FF)", SEVERITY_Error);
+                                                Data.push_back(x & 0xFF);
+                                                }
+                                            }
+                                            CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
+                                            ListingFile.Append(ProgramCounter, Data);
+                                            ProgramCounter += Data.size();
+                                            break;
+                                        }
+                                        case DW:
+                                        {
+                                            std::vector<std::uint8_t> Data;
+                                            ExpressionEvaluator E(MainTable, ProgramCounter);
+                                            if(CurrentTable->Relocatable)
+                                                E.AddLocalSymbols(CurrentTable);
+                                            for(auto& Operand : Operands)
+                                            {
+                                                int x = E.Evaluate(Operand);
+                                                Data.push_back((x >> 8) & 0xFF);
+                                                Data.push_back(x & 0xFF);
+                                            }
+                                            CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
+                                            ListingFile.Append(ProgramCounter, Data);
+                                            ProgramCounter += Data.size();
+                                            break;
+                                        }
                                         default:
                                         {
                                             if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
@@ -556,7 +636,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
                                                     uint16_t Byte = E.Evaluate(Operands[0]);
                                                     if(Byte > 255)
-                                                        throw AssemblyException("Immediate operand out of range (0-FF)", SEVERITY_Error);
+                                                        throw AssemblyException("Operand out of range (0-FF)", SEVERITY_Error);
                                                     Data.push_back(OpCode->OpCode);
                                                     Data.push_back(Byte);
                                                     break;
@@ -664,6 +744,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             }
                                         }
                                     }
+                                    else
+                                        ListingFile.Append();
                                 }
                                 }
                             }
@@ -758,7 +840,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 #if DEBUG
 void DumpCode(const std::map<uint16_t, std::vector<uint8_t>>& Code)
 {
-    fmt::print("Static Code\n");
+    fmt::print("Code Dump\n");
     for(auto &Segment : Code)
     {
         if(Segment.second.size() > 0)

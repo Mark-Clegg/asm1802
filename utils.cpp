@@ -86,6 +86,9 @@ std::string trim(const std::string& in)
             continue;
         }
     }
+    // remove last character if \n or \r (convert MS-DOS line endings)
+    if(out.size() > 0 && (out[out.size()-1] == '\r' || out[out.size()-1] == '\n'))
+        out.pop_back();
     return regex_replace(out, std::regex(R"(\s+$)"), "");
 }
 
@@ -323,6 +326,12 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
         throw AssemblyException("Unable to parse line", SEVERITY_Error);
 }
 
+//!
+//! \brief AlignFromSize
+//! Calculate the lowest power of two greater or equal to the given sixe
+//! \param Size
+//! \return
+//!
 int AlignFromSize(int Size)
 {
     Size--;
@@ -333,4 +342,57 @@ int AlignFromSize(int Size)
         Size >>= 1;
     }
     return Result;
+}
+
+//!
+//! \brief ParseString
+//! Scan the passed quoted string, return a byte array, resolving escaped special characters
+//! Assumes first character is double quote, and skips it.
+//! \param Operand
+//! \param Data
+//!
+void ParseString(const std::string& Operand, std::vector<uint8_t>& Data)
+{
+    int Len = 0;
+    bool QuoteClosed = false;
+    for(int i = 1; i< Operand.size(); i++)
+    {
+        if(Operand[i] == '\"')
+        {
+            if(i != Operand.size() - 1)
+                throw AssemblyException("Error parsing string constant", SEVERITY_Error);
+            else
+                QuoteClosed = true;
+        }
+        if(Operand[i] == '\\')
+        {
+            if(i >= Operand.size() - 2)
+                throw AssemblyException("Incomplete escape sequence at end of string constant", SEVERITY_Error);
+            i++;
+            switch(Operand[i])
+            {
+            case '\'': Data.push_back(0x27); break;
+            case '\"': Data.push_back(0x22); break;
+            case '\?': Data.push_back(0x3F); break;
+            case '\\': Data.push_back(0x5C); break;
+            case 'a':  Data.push_back(0x07); break;
+            case 'b':  Data.push_back(0x08); break;
+            case 'f':  Data.push_back(0x0C); break;
+            case 'n':  Data.push_back(0x0A); break;
+            case 'r':  Data.push_back(0x0D); break;
+            case 't':  Data.push_back(0x09); break;
+            case 'v':  Data.push_back(0x0B); break;
+            default:
+                throw AssemblyException("Unrecognised escape sequence in string constant", SEVERITY_Error);
+                break;
+            }
+        }
+        else
+            Data.push_back(Operand[i]);
+        Len++;
+    }
+    if(Len == 0)
+        throw AssemblyException("String constant is empty", SEVERITY_Error);
+    if(!QuoteClosed)
+        throw AssemblyException("unterminated string constant", SEVERITY_Error);
 }

@@ -1,6 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <cstdint>
 #include <iostream>
 #include <optional>
 #include <regex>
@@ -31,6 +32,6 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
 std::string basename(const std::string FileName);
 int AlignFromSize(int Size);
 inline void ToUpper(std::string& In) { std::transform(In.begin(), In.end(), In.begin(), ::toupper); }
-
+void ParseString(const std::string& Operand, std::vector<uint8_t>& Data);
 
 #endif // UTILS_H

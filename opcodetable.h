@@ -137,7 +137,9 @@ enum OpCodeEnum
     EQU    = 0xFF01,
     SUB    = 0xFF02,
     ENDSUB = 0xFF03,
-    ORG    = 0xFF04
+    ORG    = 0xFF04,
+    DB     = 0xFF05,
+    DW     = 0xFF06
 };
 
 enum OpCodeTypeEnum

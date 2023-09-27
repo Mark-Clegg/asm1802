@@ -25,6 +25,10 @@ bool SourceCodeReader::getLine(std::string &Line)
     {
         if(std::getline(*SourceStreams.top().Stream, Line))
         {
+            // remove last character if \n or \r (convert MS-DOS line endings)
+            if(Line.size() > 0 && (Line[Line.size()-1] == '\r' || Line[Line.size()-1] == '\n'))
+                Line.pop_back();
+
             LastLine = Line;
             SourceStreams.top().LineNumber++;
             return true;

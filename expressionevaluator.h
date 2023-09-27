@@ -6,18 +6,32 @@
 #include "expressiontokenizer.h"
 #include "symboltable.h"
 
+enum FunctionEnum
+{
+    FN_HIGH,
+    FN_LOW
+};
+
+struct FunctionSpec
+{
+    FunctionEnum ID;
+    int Arguments;
+};
+
 class ExpressionEvaluator
 {
 public:
-    ExpressionEvaluator(const SymbolTable& Global);
+    ExpressionEvaluator(const SymbolTable& Global, uint16_t ProgramCounter);
     void AddLocalSymbols(const SymbolTable* Local);
     int Evaluate(std::string& Expression);
 
 private:
+    static const std::map<std::string, FunctionSpec> FunctionTable;
     const SymbolTable* Local;
     const SymbolTable* Global;
     bool LocalSymbols;      // Denotess if a local blob is available for symbol lookups
 
+    const uint16_t ProgramCounter;
     uint16_t SymbolValue(std::string& Label);
 
     ExpressionTokenizer TokenStream;

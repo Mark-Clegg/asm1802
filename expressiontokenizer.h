@@ -22,6 +22,7 @@ enum TokenEnum
     TOKEN_OR,
     TOKEN_XOR,
     TOKEN_NOT,
+    TOKEN_COMMA,
     TOKEN_END
 };
 

@@ -242,6 +242,7 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
 
         // Split the Operands into a vector
         bool inQuote = false;
+        bool inBrackets = false;
         bool inEscape = false;
         bool SkipSpaces = false;
         std::string out;
@@ -256,7 +257,7 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
                 inEscape = false;
                 continue;
             }
-            if(!inQuote && !inEscape && ch == ',')
+            if(!inQuote && !inEscape && !inBrackets && ch == ',')
             {
                 OperandList.push_back(regex_replace(out, std::regex(R"(\s+$)"), ""));
                 out="";
@@ -267,6 +268,12 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
             {
             case '\"':
                 inQuote = !inQuote;
+                break;
+            case '(':
+                inBrackets = true;
+                break;
+            case ')':
+                inBrackets = false;
                 break;
             case '\\':
                 inEscape = true;

@@ -390,7 +390,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             if(Operands.size() != 1)
                                                 throw AssemblyException("EQU Requires a single argument <value>", SEVERITY_Error);
 
-                                            ExpressionEvaluator E(MainTable);
+                                            ExpressionEvaluator E(MainTable, ProgramCounter);
                                             int Value = E.Evaluate(Operands[0]);
                                             CurrentTable->Symbols[Label] = Value;
                                             break;
@@ -431,7 +431,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             if(Operands.size() != 1)
                                                 throw AssemblyException("ORG Requires a single argument <address>", SEVERITY_Error);
 
-                                            ExpressionEvaluator E(MainTable);
+                                            ExpressionEvaluator E(MainTable, ProgramCounter);
                                             ProgramCounter = E.Evaluate(Operands[0]);
 
                                             if(!Label.empty())
@@ -481,7 +481,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         }
                                         case ORG:
                                         {
-                                            ExpressionEvaluator E(MainTable);
+                                            ExpressionEvaluator E(MainTable, ProgramCounter);
                                             ProgramCounter = E.Evaluate(Operands[0]);
 
                                             CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
@@ -494,7 +494,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
                                             {
                                                 std::vector<std::uint8_t> Data;
-                                                ExpressionEvaluator E(MainTable);
+                                                ExpressionEvaluator E(MainTable, ProgramCounter);
                                                 if(CurrentTable->Relocatable)
                                                     E.AddLocalSymbols(CurrentTable);
 

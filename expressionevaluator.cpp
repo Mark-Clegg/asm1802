@@ -1,7 +1,12 @@
 #include "assemblyexception.h"
 #include "expressionevaluator.h"
 
-ExpressionEvaluator::ExpressionEvaluator(const SymbolTable& Global) : Global(&Global)
+const std::map<std::string, FunctionSpec> ExpressionEvaluator::FunctionTable = {
+    { "HIGH", { FN_HIGH, 1 }},
+    { "LOW",  { FN_LOW,  1 }}
+};
+
+ExpressionEvaluator::ExpressionEvaluator(const SymbolTable& Global, uint16_t ProgramCounter) : Global(&Global), ProgramCounter(ProgramCounter)
 {
     LocalSymbols = false;
 }
@@ -219,6 +224,10 @@ int ExpressionEvaluator::SubExp7()
         Result = TokenStream.IntegerValue;
         break;
 
+    case TOKEN_DOT:
+        Result = ProgramCounter;
+        break;
+
     case TOKEN_OPENBRACE: // Bracketed Expression
         Result = SubExp0();
         if (TokenStream.Peek() != TOKEN_CLOSEBRACE)
@@ -233,12 +242,37 @@ int ExpressionEvaluator::SubExp7()
         if(TokenStream.Peek() == TOKEN_OPENBRACE)
         {
             TokenStream.Get();
-            int Argument = SubExp0();
-            if (TokenStream.Peek() != TOKEN_CLOSEBRACE)
-                throw AssemblyException("Expected ')'", SEVERITY_Error);
-            else
+            std::vector<int> Arguments = { };
+            if(TokenStream.Peek() != TOKEN_CLOSEBRACE)
+            {
+                Arguments.push_back(SubExp0());
+            }
+            while(TokenStream.Peek() == TOKEN_COMMA)
+            {
                 TokenStream.Get();
-            //Result = call_function_with(Argument); // TODO Function Evaluation
+                Arguments.push_back(SubExp0());
+            }
+            if(TokenStream.Peek() == TOKEN_CLOSEBRACE)
+                TokenStream.Get();
+            else
+                throw AssemblyException("Syntax error in argument list");
+
+            auto FunctionSpec = FunctionTable.find(Label);
+            if(FunctionSpec == FunctionTable.end())
+                throw AssemblyException("Unknown function call", SEVERITY_Error);
+            if(FunctionSpec->second.Arguments != Arguments.size())
+                throw AssemblyException(fmt::format("Incorrect number of arguments: {Arg} expects {Count} argument(s)", fmt::arg("Arg", Label), fmt::arg("Count", FunctionSpec->second.Arguments)), SEVERITY_Error);
+            switch(FunctionSpec->second.ID)
+            {
+            case FN_LOW:
+                return Arguments[0] & 0xFF;
+                break;
+            case FN_HIGH:
+                return (Arguments[0] >> 8) & 0xFF;
+                break;
+            }
+
+            //Result = call_function_with(Arguments); // TODO Function Evaluation
             Result = 0;
         }
         else

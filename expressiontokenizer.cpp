@@ -110,7 +110,7 @@ TokenEnum ExpressionTokenizer::Get()
             IntegerValue = 0;
             if(FirstChar == '0')   // OCTAL OR HEX
             {
-                if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == 'x') // HEX
+                if(!InputStream.eof() && !InputStream.fail() && (InputStream.peek() == 'x' || InputStream.peek() == 'X')) // HEX
                 {
                     InputStream.ignore();
                     while(!InputStream.eof() && !InputStream.fail() && isxdigit(InputStream.peek()))

@@ -28,7 +28,7 @@ Files and Options are processed cumulatively from left to right. When assembling
 
 | Precedence | Operator | Meaning |
 | :---: | :---: | --- |
-| 1 | + - | Unary +/- |
+| 1 | + - ! | Unary +/-/NOT |
 | 2 | * / % | Multiply, Divide, Remainder |
 | 3 | + - | Addition, Subtraction |
 | 4 | << >> | Shift Left / Right |

@@ -156,7 +156,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 {
     fmt::print("Assembling: {filename}\n", fmt::arg("filename", FileName));
     
-    SymbolTable MainTable;    
+    SymbolTable MainTable;
     std::map<std::string, SymbolTable> SubTables;
     std::map<uint16_t, std::vector<uint8_t>> Code = {{ 0, {}}};
     std::map<uint16_t, std::vector<uint8_t>>::iterator CurrentCode = Code.begin();
@@ -336,47 +336,34 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
                                 switch(Pass)
                                 {
-                                case 1: // Calculate the size of relocatable subroutines
+                                case 1: // Calculate the size of subroutines
                                 {
                                     if(OpCode)
                                     {
                                         switch(OpCode.value().OpCode)
                                         {
                                         case SUB:
+                                            if(InSub)
+                                                throw AssemblyException("SUBROUTINEs cannot be nested", SEVERITY_Error);
+                                            InSub = true;
+
                                             if(Label.empty())
                                                 throw AssemblyException("SUBROUTINE requires a Label", SEVERITY_Error);
 
                                             if(SubTables.find(Label) != SubTables.end())
                                                 throw AssemblyException(fmt::format("Subroutine '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
 
-                                            if(!CurrentTable->Master)
-                                                throw AssemblyException("SUBROUTINEs cannot be nested", SEVERITY_Error);
-
-                                            if(Operands.empty())
-                                            {
-                                                SubTables.insert(std::pair<std::string, SymbolTable>(Label, SymbolTable(false, ProgramCounter)));
-                                                CurrentTable = &SubTables[Label];
-                                            }
-                                            else
-                                            {
-                                                ToUpper(Operands[0]);
-                                                if(Operands[0] == "RELOCATABLE")
-                                                {
-                                                    SubTables.insert(std::pair<std::string, SymbolTable>(Label, SymbolTable(true)));
-                                                    CurrentTable = &SubTables[Label];
-                                                    ProgramCounter = 0;
-                                                }
-                                                else
-                                                    throw AssemblyException(fmt::format("Unrecognised operand '{Operand}'", fmt::arg("Operand", Operands[0])), SEVERITY_Error);
-                                            }
+                                            SubTables.insert(std::pair<std::string, SymbolTable>(Label, SymbolTable()));
+                                            CurrentTable = &SubTables[Label];
+                                            ProgramCounter = 0; // ProgramCounter reflects code size onl during pass 1.
                                             break;
                                         case ENDSUB:
                                         {
-                                            if(CurrentTable->Relocatable)
-                                            {
-                                                // throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
-                                                CurrentTable->CodeSize = ProgramCounter;
-                                            }
+                                            if(!InSub)
+                                                throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
+                                            InSub = false;
+
+                                            CurrentTable->CodeSize = ProgramCounter;
                                             CurrentTable = &MainTable;
                                             break;
                                         }
@@ -387,7 +374,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                 if(Operand[0] == '\"')
                                                 {
                                                     std::vector<std::uint8_t> Data;
-                                                    ParseString(Operand, Data);
+                                                    StringToByteVector(Operand, Data);
                                                     ProgramCounter += Data.size();
                                                 }
                                                 else
@@ -438,11 +425,6 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         }
                                     }
 
-                                    // subroutine label
-                                    //    if not in symbol table, add and set value and set public flag
-                                    //    if in symbol table and no value, and not extern - set value and set public
-                                    //    else error
-
                                     if(OpCode)
                                     {
                                         switch(OpCode.value().OpCode)
@@ -461,35 +443,40 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         }
                                         case SUB:
                                         {
-                                            InSub = true;
-                                            if(Operands.empty())
-                                            {
-                                                CurrentTable = &SubTables[Label];
-                                            }
-                                            else
+                                            CurrentTable = &SubTables[Label];
+                                            if(Operands.size() == 2)
                                             {
                                                 ToUpper(Operands[0]);
-                                                if(Operands[0] == "RELOCATABLE")
+                                                if(Operands[0] == "ALIGN")
                                                 {
-                                                    CurrentTable = &SubTables[Label];
-                                                    ProgramCounter = ProgramCounter + AlignFromSize(CurrentTable->CodeSize) - ProgramCounter % AlignFromSize(CurrentTable->CodeSize);
+                                                    int Align;
+                                                    ToUpper(Operands[1]);
+                                                    if(Operands[1] == "AUTO")
+                                                        Align = AlignFromSize(CurrentTable->CodeSize);
+                                                    else
+                                                    {
+                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                        Align = E.Evaluate(Operands[1]);
+                                                        if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
+                                                            throw AssemblyException("SUBROUTINE ALIGN must be 2,4,8,16,32,64,128,256 or AUTO", SEVERITY_Error);
+                                                    }
+                                                    ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                    MainTable.Symbols[Label].Value = ProgramCounter;
                                                 }
-                                                else
-                                                    throw AssemblyException(fmt::format("Unrecognised operand '{Operand}'", fmt::arg("Operand", Operands[0])), SEVERITY_Error);
                                             }
+                                            else
+                                                if(Operands.size() != 0)
+                                                    throw AssemblyException(fmt::format("Unrecognised operand '{Operand}'", fmt::arg("Operand", Operands[0])), SEVERITY_Error);
                                             break;
                                         }
                                         case ENDSUB:
                                         {
-                                            if(!InSub)
-                                                throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
-                                            InSub = false;
                                             CurrentTable = &MainTable;
                                             break;
                                         }
                                         case ORG:
                                         {
-                                            if(!CurrentTable->Master)
+                                            if(CurrentTable != &MainTable)
                                                 throw AssemblyException("ORG Cannot be used in a SUBROUTINE", SEVERITY_Error);
 
                                             if(Operands.size() != 1)
@@ -514,7 +501,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                 if(Operand[0] == '\"')
                                                 {
                                                     std::vector<std::uint8_t> Data;
-                                                    ParseString(Operand, Data);
+                                                    StringToByteVector(Operand, Data);
                                                     ProgramCounter += Data.size();
                                                 }
                                                 else
@@ -551,23 +538,25 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         case SUB:
                                         {
                                             CurrentTable = &SubTables[Label];
-                                            if(CurrentTable->Relocatable)
+                                            if(Operands.size() == 2)
                                             {
-                                                int Align = AlignFromSize(CurrentTable->CodeSize);
-
-                                                if(ProgramCounter % Align > 0)
-                                                    ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                int Align;
+                                                ToUpper(Operands[1]);
+                                                if(Operands[1] == "AUTO")
+                                                    Align = AlignFromSize(CurrentTable->CodeSize);
+                                                else
+                                                {
+                                                    ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                    Align = E.Evaluate(Operands[1]);
+                                                }
+                                                ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
                                             }
-                                            InSub = true;
                                             CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
                                             ListingFile.Append();
                                             break;
                                         }
                                         case ENDSUB:
                                         {
-                                            if(!InSub)
-                                                throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
-                                            InSub = false;
                                             CurrentTable = &MainTable;
                                             ListingFile.Append();
                                             break;
@@ -586,12 +575,12 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         {
                                             std::vector<std::uint8_t> Data;
                                             ExpressionEvaluator E(MainTable, ProgramCounter);
-                                            if(CurrentTable->Relocatable)
+                                            if(CurrentTable != &MainTable)
                                                 E.AddLocalSymbols(CurrentTable);
                                             for(auto& Operand : Operands)
                                             {
                                                 if(Operand[0] == '\"')
-                                                    ParseString(Operand, Data);
+                                                    StringToByteVector(Operand, Data);
                                                 else
                                                 {
                                                 int x = E.Evaluate(Operand);
@@ -609,7 +598,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         {
                                             std::vector<std::uint8_t> Data;
                                             ExpressionEvaluator E(MainTable, ProgramCounter);
-                                            if(CurrentTable->Relocatable)
+                                            if(CurrentTable != &MainTable)
                                                 E.AddLocalSymbols(CurrentTable);
                                             for(auto& Operand : Operands)
                                             {
@@ -633,7 +622,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             {
                                                 std::vector<std::uint8_t> Data;
                                                 ExpressionEvaluator E(MainTable, ProgramCounter);
-                                                if(CurrentTable->Relocatable)
+                                                if(CurrentTable != &MainTable)
                                                     E.AddLocalSymbols(CurrentTable);
 
                                                 switch(OpCode->OpCodeType)
@@ -954,12 +943,7 @@ void PrintError(const std::string& Message, AssemblyErrorSeverity Severity)
 //!
 void PrintSymbols(const std::string& Name, const SymbolTable& Blob)
 {
-    std::string Title;
-    if(Blob.Relocatable)
-        Title = Name + " (Relocatable)";
-    else
-        Title = Name;
-    fmt::print("{Title:-^116}\n", fmt::arg("Title", Title));
+    fmt::print("{Name:-^116}\n", fmt::arg("Name", Name));
 
     int c = 0;
     for(auto& Symbol : Blob.Symbols)

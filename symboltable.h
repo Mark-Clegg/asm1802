@@ -17,12 +17,8 @@ class SymbolTable
 {
 public:
     SymbolTable();
-    SymbolTable(bool Relocatable);
-    SymbolTable(bool Relocatable, uint16_t Address);
 
-    const bool Master;              // True for Main code , False for Subroutine
-    const bool Relocatable;         // Only applicable for Subroutines.
-    int CodeSize = 0;;              // Size of relocatable subroutine code, used to calculate alignment
+    int CodeSize = 0;;              // Size of subroutine code, used when calculating auto alignment
     std::map<std::string, SymbolDefinition> Symbols;
 };
 

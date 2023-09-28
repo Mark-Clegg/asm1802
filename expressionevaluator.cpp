@@ -192,15 +192,15 @@ int ExpressionEvaluator::SubExp6()
         {
         case TOKEN_PLUS:
             TokenStream.Get();
-            return SubExp7();
+            return SubExp6();
             break;
         case TOKEN_MINUS:
             TokenStream.Get();
-            return -SubExp7();
+            return -SubExp6();
             break;
         case TOKEN_NOT:
             TokenStream.Get();
-            return ~SubExp7();
+            return ~SubExp6();
             break;
         default:
             break;

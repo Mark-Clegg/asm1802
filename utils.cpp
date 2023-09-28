@@ -345,13 +345,13 @@ int AlignFromSize(int Size)
 }
 
 //!
-//! \brief ParseString
+//! \brief StringToByteVector
 //! Scan the passed quoted string, return a byte array, resolving escaped special characters
 //! Assumes first character is double quote, and skips it.
 //! \param Operand
 //! \param Data
 //!
-void ParseString(const std::string& Operand, std::vector<uint8_t>& Data)
+void StringToByteVector(const std::string& Operand, std::vector<uint8_t>& Data)
 {
     int Len = 0;
     bool QuoteClosed = false;

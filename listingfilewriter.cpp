@@ -107,13 +107,7 @@ void ListingFileWriter::AppendSymbols(const std::string& Name, const SymbolTable
 {
     if(Enabled)
     {
-        fmt::print(ListStream, "\n");
-        std::string Title;
-        if(Blob.Relocatable)
-            Title = Name + " (Relocatable)";
-        else
-            Title = Name;
-        fmt::print(ListStream, "{Title:-^116}\n", fmt::arg("Title", Title));
+        fmt::print(ListStream, "{Name:-^116}\n", fmt::arg("Name", Name));
 
         int c = 0;
         for(auto& Symbol : Blob.Symbols)

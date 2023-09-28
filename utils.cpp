@@ -248,7 +248,7 @@ void ExpandDefines(std::string& Line, DefineMap& Defines)
 const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& Mnemonic, std::vector<std::string>& OperandList)
 {
     std::smatch MatchResult;
-    if(regex_match(Line, MatchResult, std::regex(R"(^(((\w+):\s*)|\s+)((\w+)(\s+(.*))?)?$)"))) // Label: OpCode Operands
+    if(regex_match(Line, MatchResult, std::regex(R"(^(((\w+):?\s*)|\s+)((\w+)(\s+(.*))?)?$)"))) // Label: OpCode Operands
     {
         // Extract Label, OpCode and Operands
         std::string Operands;

@@ -161,6 +161,13 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     std::map<uint16_t, std::vector<uint8_t>> Code = {{ 0, {}}};
     std::map<uint16_t, std::vector<uint8_t>>::iterator CurrentCode = Code.begin();
 
+    // Pre-Define DEFINES for common alignments
+    GlobalDefines["WORD"]  = "2";
+    GlobalDefines["DWORD"] = "4";
+    GlobalDefines["QWORD"] = "8";
+    GlobalDefines["PAGE"]  = "256";
+
+    // Pre-Define LABELS for Registers
     if(!NoRegisters)
         for(int i=0; i<16; i++)
         {
@@ -171,6 +178,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
             MainTable.Symbols[fmt::format("r{n:x}", fmt::arg("n", i))] = { i, true };
             MainTable.Symbols[fmt::format("r{n:X}", fmt::arg("n", i))] = { i, true };
         }
+    // Pre-Define LABELS for Ports
     if(!NoPorts)
         for(int i=1; i<8; i++)
         {
@@ -519,6 +527,21 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             Processor = OpCodeTable::CPUTable.at(Operands[0]);
                                             break;
                                         }
+                                        case ALIGN:
+                                        {
+                                            if(Operands.size() != 1)
+                                                throw AssemblyException("ALIGN Requires a single argument <alignment>", SEVERITY_Error);
+                                            ExpressionEvaluator E(MainTable, ProgramCounter);
+                                            if(CurrentTable != &MainTable)
+                                                E.AddLocalSymbols(CurrentTable);
+                                            int Align = E.Evaluate(Operands[0]);
+                                            if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
+                                                throw AssemblyException("ALIGN must be 2,4,8,16,32,64,128 or 256", SEVERITY_Error);
+                                            ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                            if(!Label.empty())
+                                                CurrentTable->Symbols[Label].Value = ProgramCounter;
+                                            break;
+                                        }
                                         default: // All Native Opcodes handled here.
                                         {
                                              if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
@@ -614,6 +637,17 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         case PROCESSOR:
                                         {
                                             Processor = OpCodeTable::CPUTable.at(Operands[0]);
+                                            ListingFile.Append();
+                                            break;
+                                        }
+                                        case ALIGN:
+                                        {
+                                            ExpressionEvaluator E(MainTable, ProgramCounter);
+                                            if(CurrentTable != &MainTable)
+                                                E.AddLocalSymbols(CurrentTable);
+                                            int Align = E.Evaluate(Operands[0]);
+                                            ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                            ListingFile.Append();
                                             break;
                                         }
                                         default:

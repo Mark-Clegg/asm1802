@@ -647,6 +647,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                 E.AddLocalSymbols(CurrentTable);
                                             int Align = E.Evaluate(Operands[0]);
                                             ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
                                             ListingFile.Append();
                                             break;
                                         }
@@ -859,12 +860,15 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     if(DumpSymbols)
     {
         fmt::print("\n");
-
+#if DEBUG
         PrintSymbols("Global Symbols", MainTable);
+#endif
         ListingFile.AppendSymbols("Global Symbols", MainTable);
         for(auto& Table : SubTables)
         {
+#if DEBUG
             PrintSymbols(Table.first, Table.second);
+#endif
             ListingFile.AppendSymbols(Table.first, Table.second);
         }
     }

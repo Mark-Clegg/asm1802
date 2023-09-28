@@ -134,12 +134,13 @@ enum OpCodeEnum
 
     // Pseudo OpCodes
 
-    EQU    = 0xFF01,
-    SUB    = 0xFF02,
-    ENDSUB = 0xFF03,
-    ORG    = 0xFF04,
-    DB     = 0xFF05,
-    DW     = 0xFF06
+    EQU       = 0xFF01,
+    SUB       = 0xFF02,
+    ENDSUB    = 0xFF03,
+    ORG       = 0xFF04,
+    DB        = 0xFF05,
+    DW        = 0xFF06,
+    PROCESSOR = 0xFF07
 };
 
 enum OpCodeTypeEnum
@@ -160,9 +161,9 @@ enum OpCodeTypeEnum
 
 enum CPUTypeEnum
 {
-    CPU_1802,
-    CPU_1806,
-    CPU_1806A
+    CPU_1802  = 0,
+    CPU_1806  = 1,
+    CPU_1806A = 2
 };
 
 class OpCodeSpec
@@ -178,6 +179,7 @@ class OpCodeTable
 public:
     static const std::map<std::string, OpCodeSpec> OpCode;
     static const std::map<OpCodeTypeEnum, int> OpCodeBytes;
+    static const std::map<std::string, CPUTypeEnum> CPUTable;
 };
 
 #endif // OPCODE_H

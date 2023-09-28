@@ -129,13 +129,14 @@ const std::map<std::string, OpCodeSpec> OpCodeTable::OpCode = {
 
     // Pseudo Operations
 
-    { "EQU",        { EQU,    PSEUDO_OP,             CPU_1802  }},
-    { "SUB",        { SUB,    PSEUDO_OP,             CPU_1802  }},
-    { "SUBROUTINE", { SUB,    PSEUDO_OP,             CPU_1802  }},
-    { "ENDSUB",     { ENDSUB, PSEUDO_OP,             CPU_1802  }},
-    { "ORG",        { ORG,    PSEUDO_OP,             CPU_1802  }},
-    { "DB",         { DB,     PSEUDO_OP,             CPU_1802  }},
-    { "DW",         { DW,     PSEUDO_OP,             CPU_1802  }}
+    { "EQU",        { EQU,       PSEUDO_OP,             CPU_1802  }},
+    { "SUB",        { SUB,       PSEUDO_OP,             CPU_1802  }},
+    { "SUBROUTINE", { SUB,       PSEUDO_OP,             CPU_1802  }},
+    { "ENDSUB",     { ENDSUB,    PSEUDO_OP,             CPU_1802  }},
+    { "ORG",        { ORG,       PSEUDO_OP,             CPU_1802  }},
+    { "DB",         { DB,        PSEUDO_OP,             CPU_1802  }},
+    { "DW",         { DW,        PSEUDO_OP,             CPU_1802  }},
+    { "PROCESSOR",  { PROCESSOR, PSEUDO_OP,             CPU_1802  }}
 };
 
 const std::map<OpCodeTypeEnum, int> OpCodeTable::OpCodeBytes = {
@@ -150,4 +151,21 @@ const std::map<OpCodeTypeEnum, int> OpCodeTable::OpCodeBytes = {
     { EXTENDED_IMMEDIATE,             3 },
     { EXTENDED_SHORT_BRANCH,          3 },
     { EXTENDED_REGISTER_IMMEDIATE16,  4 }
+};
+
+const std::map<std::string, CPUTypeEnum> OpCodeTable::CPUTable = {
+    { "1802",     CPU_1802  },
+    { "1804",     CPU_1806  },
+    { "1805",     CPU_1806  },
+    { "1806",     CPU_1806  },
+    { "1804A",    CPU_1806A },
+    { "1805A",    CPU_1806A },
+    { "1806A",    CPU_1806A },
+    { "CDP1802",  CPU_1802  },
+    { "CDP1804",  CPU_1806  },
+    { "CDP1805",  CPU_1806  },
+    { "CDP1806",  CPU_1806  },
+    { "CDP1804A", CPU_1806A },
+    { "CDP1805A", CPU_1806A },
+    { "CDP1806A", CPU_1806A }
 };

@@ -186,6 +186,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     {
         SymbolTable* CurrentTable = &MainTable;
         uint16_t ProgramCounter = 0;
+        CPUTypeEnum Processor = CPU_1802;
         bool InSub = false;
         try
         {
@@ -399,10 +400,23 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             ProgramCounter += Operands.size() * 2;
                                             break;
                                         }
+                                        case PROCESSOR:
+                                        {
+                                            if(Operands.size() != 1)
+                                                throw AssemblyException("PROCESSOR requires a single argument", SEVERITY_Error);
+                                            if(OpCodeTable::CPUTable.find(Operands[0]) == OpCodeTable::CPUTable.end())
+                                                throw AssemblyException("Unknown Processor type specification", SEVERITY_Error);
+                                            Processor = OpCodeTable::CPUTable.at(Operands[0]);
+                                            break;
+                                        }
                                         default: // All Native Opcodes handled here.
                                         {
                                             if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
+                                            {
+                                                if(OpCode.value().CPUType > Processor)
+                                                    throw AssemblyException("Instruction not supported on selected processor", SEVERITY_Error);
                                                 ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
+                                            }
                                             break;
                                         }
                                         }
@@ -513,6 +527,11 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             ProgramCounter += Operands.size() * 2;
                                             break;
                                         }
+                                        case PROCESSOR:
+                                        {
+                                            Processor = OpCodeTable::CPUTable.at(Operands[0]);
+                                            break;
+                                        }
                                         default: // All Native Opcodes handled here.
                                         {
                                              if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
@@ -601,6 +620,11 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
                                             ListingFile.Append(ProgramCounter, Data);
                                             ProgramCounter += Data.size();
+                                            break;
+                                        }
+                                        case PROCESSOR:
+                                        {
+                                            Processor = OpCodeTable::CPUTable.at(Operands[0]);
                                             break;
                                         }
                                         default:

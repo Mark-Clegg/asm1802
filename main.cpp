@@ -870,15 +870,15 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
         }
         catch (AssemblyException Ex)
         {
-            if(Ex.ShowLine)
-            {
-                PrintError(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-                Errors.Push(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-            }
-            else
+            if(Ex.Global)
             {
                 PrintError(Ex.Message, Ex.Severity);
                 Errors.Push(Ex.Message, Ex.Severity);
+            }
+            else
+            {
+                PrintError(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                Errors.Push(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
             }
         }
     } // for(int Pass = 1; Pass <= 3 && Errors.count(SEVERITY_Error) == 0; Pass++)...

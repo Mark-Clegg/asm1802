@@ -18,10 +18,10 @@ enum AssemblyErrorSeverity
 class AssemblyException : public std::exception
 {
 public:
-    AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity = SEVERITY_Warning, bool ShowLine = true);
+    AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity = SEVERITY_Warning, bool Global = true);
     std::string Message;
     AssemblyErrorSeverity Severity;
-    bool ShowLine;
+    bool Global;
 
     static const std::map<AssemblyErrorSeverity, std::string> SeverityName;
 };

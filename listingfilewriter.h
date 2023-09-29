@@ -25,6 +25,7 @@ public:
 
     void Append();
     void Append(const std::uint16_t Address, const std::vector<std::uint8_t>& Data);
+    void AppendGlobalErrors();
     void AppendSymbols(const std::string& Name, const SymbolTable& Symbols);
     ErrorTable& Errors;
 };

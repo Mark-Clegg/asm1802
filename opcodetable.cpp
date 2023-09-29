@@ -137,7 +137,8 @@ const std::map<std::string, OpCodeSpec> OpCodeTable::OpCode = {
     { "DB",         { DB,        PSEUDO_OP,             CPU_1802  }},
     { "DW",         { DW,        PSEUDO_OP,             CPU_1802  }},
     { "PROCESSOR",  { PROCESSOR, PSEUDO_OP,             CPU_1802  }},
-    { "ALIGN",      { ALIGN,     PSEUDO_OP,             CPU_1802  }}
+    { "ALIGN",      { ALIGN,     PSEUDO_OP,             CPU_1802  }},
+    { "END",        { END,       PSEUDO_OP,             CPU_1802  }}
 };
 
 const std::map<OpCodeTypeEnum, int> OpCodeTable::OpCodeBytes = {

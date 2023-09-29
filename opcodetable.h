@@ -141,7 +141,8 @@ enum OpCodeEnum
     DB        = 0xFF05,
     DW        = 0xFF06,
     PROCESSOR = 0xFF07,
-    ALIGN     = 0xFF08
+    ALIGN     = 0xFF08,
+    END       = 0xFF09
 };
 
 enum OpCodeTypeEnum

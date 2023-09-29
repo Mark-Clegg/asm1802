@@ -103,6 +103,26 @@ void ListingFileWriter::PrintError(const std::string& FileName, int LineNumber)
     }
 }
 
+void ListingFileWriter::AppendGlobalErrors()
+{
+    if(Enabled)
+    {
+        if(Errors.count("") != 0)
+        {
+            auto range = Errors[""].equal_range(0);
+            for(auto& it = range.first; it != range.second; it++)
+            {
+                auto MsgSevPair = it->second;
+                std::string Message = MsgSevPair.first;
+                AssemblyErrorSeverity Severity = MsgSevPair.second;
+                fmt::print(ListStream, "**************************************{severity:*>15}:  {message}\n",
+                           fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
+                           fmt::arg("message", Message));
+            }
+        }
+    }
+}
+
 void ListingFileWriter::AppendSymbols(const std::string& Name, const SymbolTable& Blob)
 {
     if(Enabled)

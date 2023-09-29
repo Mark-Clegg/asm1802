@@ -11,6 +11,7 @@ class ErrorTable
 public:
     ErrorTable();
     void Push(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity);
+    void Push(const std::string& Message, AssemblyErrorSeverity Severity);
     int count(const std::string& FileName);
     int count(const AssemblyErrorSeverity);
     std::multimap<int, std::pair<std::string, AssemblyErrorSeverity>>& operator[](const std::string FileName);

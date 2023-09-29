@@ -37,6 +37,21 @@ void ErrorTable::Push(const std::string& FileName, const int LineNumber, const s
 }
 
 //!
+//! \brief PushError
+//! \param Message
+//! \param Severity
+//!
+//! Log the error for output during listing, omitting duplicates
+//!
+void ErrorTable::Push(const std::string& Message, AssemblyErrorSeverity Severity)
+{
+    if(Table.count("") == 0)
+        Table.insert({"", {}});
+
+    Table[""].insert({ 0, { Message, Severity}});
+}
+
+//!
 //! \brief ErrorTable::count
 //! \param FileName
 //! \return

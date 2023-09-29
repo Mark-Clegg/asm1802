@@ -160,6 +160,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     std::map<std::string, SymbolTable> SubTables;
     std::map<uint16_t, std::vector<uint8_t>> Code = {{ 0, {}}};
     std::map<uint16_t, std::vector<uint8_t>>::iterator CurrentCode = Code.begin();
+    std::optional<uint16_t> EntryPoint;
 
     // Pre-Define DEFINES for common alignments
     GlobalDefines["WORD"]  = "2";
@@ -404,6 +405,15 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             Processor = OpCodeTable::CPUTable.at(Operands[0]);
                                             break;
                                         }
+                                        case END:
+                                            if(InSub)
+                                                throw AssemblyException("END cannot appear inside a SUBROUTINE", SEVERITY_Error);
+                                            if(Operands.size() != 1)
+                                                throw AssemblyException("END requires a single argument <entry point>", SEVERITY_Error);
+                                            while(Source.getLine(OriginalLine))
+                                                ;
+                                            break;
+
                                         default: // All Native Opcodes handled here.
                                         {
                                             if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
@@ -542,6 +552,10 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                 CurrentTable->Symbols[Label].Value = ProgramCounter;
                                             break;
                                         }
+                                        case END:
+                                            while(Source.getLine(OriginalLine))
+                                                ;
+                                            break;
                                         default: // All Native Opcodes handled here.
                                         {
                                              if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
@@ -649,6 +663,15 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
                                             CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
                                             ListingFile.Append();
+                                            break;
+                                        }
+                                        case END:
+                                        {
+                                            ExpressionEvaluator E(MainTable, ProgramCounter);
+                                            EntryPoint = E.Evaluate(Operands[0]);
+                                            ListingFile.Append();
+                                            while(Source.getLine(OriginalLine))
+                                                ListingFile.Append();
                                             break;
                                         }
                                         default:
@@ -817,9 +840,12 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                     PrintError(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
                     Errors.Push(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
                 }
-            }
-            if(IfNestingLevel != 0)
+            } // while(Source.getLine())...
+
+            if(Pass == 1 && IfNestingLevel != 0)
                 throw AssemblyException("#if Nesting Error or missing #endif", SEVERITY_Warning, false);
+            if(Pass == 3 && !EntryPoint.has_value())
+                throw AssemblyException("END Statement is missing", SEVERITY_Warning, false);
 
             // Check for overlapping code
             if(Pass == 3)
@@ -847,15 +873,17 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
             if(Ex.ShowLine)
             {
                 PrintError(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-                //Errors.Push(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                Errors.Push(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
             }
             else
             {
                 PrintError(Ex.Message, Ex.Severity);
-                //Errors.Push(Ex.Message, Ex.Severity);
+                Errors.Push(Ex.Message, Ex.Severity);
             }
         }
-    }
+    } // for(int Pass = 1; Pass <= 3 && Errors.count(SEVERITY_Error) == 0; Pass++)...
+
+    ListingFile.AppendGlobalErrors();
 
     if(DumpSymbols)
     {

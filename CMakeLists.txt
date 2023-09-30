@@ -21,6 +21,8 @@ add_executable(asm1802 main.cpp
     README.md
     expressionevaluator.h expressionevaluator.cpp
     expressiontokenizer.h expressiontokenizer.cpp
+    binarywriter.h binarywriter.cpp
+    binarywriter_intelhex.h binarywriter_intelhex.cpp
     )
 
 install(TARGETS asm1802

@@ -8,6 +8,7 @@
 #include <regex>
 #include <string>
 #include <getopt.h>
+#include "binarywriter_intelhex.h"
 #include "definemap.h"
 #include "errortable.h"
 #include "assemblyexception.h"
@@ -20,9 +21,18 @@
 
 namespace fs = std::filesystem;
 
+enum BinaryModeEnum
+{
+    INTEL_HEX
+};
+
+std::map<std::string, BinaryModeEnum> BinaryModeLookup = {
+    { "INTEL_HEX", INTEL_HEX }
+};
+
 DefineMap GlobalDefines;   // global #defines persist for all files following on the command line
 
-bool assemble(const std::string&, bool ListingEnabled, bool DumpSymbols);
+bool assemble(const std::string&, bool ListingEnabled, bool DumpSymbols, BinaryModeEnum BinMode);
 
 void PrintError(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity);
 void PrintError(const std::string& Message, AssemblyErrorSeverity Severity);
@@ -39,22 +49,24 @@ int main(int argc, char **argv)
 {
 
     option longopts[] = {
-        { "define",      required_argument, 0, 'D' },
-        { "undefine",    required_argument, 0, 'U' },
-        { "list",        no_argument,       0, 'L' },
-        { "symbols",     no_argument,       0, 'S' },
-        { "noregisters", no_argument,       0, 'R' },
-        { "noports",     no_argument,       0, 'P' },
+        { "define",      required_argument, 0, 'D' }, // Define pre-processor variable
+        { "undefine",    required_argument, 0, 'U' }, // Un-define pre-processor variable
+        { "list",        no_argument,       0, 'l' }, // Create a listing file after pass 3
+        { "symbols",     no_argument,       0, 's' }, // Include Symbol Table in listing file
+        { "noregisters", no_argument,       0, 'r' }, // Do not pre-define labels for Registers (R0-F, R0-15)
+        { "noports",     no_argument,       0, 'p' }, // No not pre-define labels for Ports (P1-7)
+        { "binmode",     no_argument,       0, 'b' }, // Set output file type (default = Intel Hex)
         { 0,0,0,0 }
     };
 
     bool Listing = false;
     bool Symbols = false;
+    BinaryModeEnum BinMode = INTEL_HEX;
     int FileCount = 0;
     int FilesAssembled = 0;
     while (1) {
 
-        const int opt = getopt_long(argc, argv, "-D:U:LS", longopts, 0);
+        const int opt = getopt_long(argc, argv, "-D:U:lsb:", longopts, 0);
 
         if (opt == -1) {
             break;
@@ -64,7 +76,7 @@ int main(int argc, char **argv)
         case 1:
             try
             {
-                if(assemble(optarg, Listing, Symbols))
+                if(assemble(optarg, Listing, Symbols, BinMode))
                     FilesAssembled++;
                 FileCount++;
             }
@@ -100,22 +112,32 @@ int main(int argc, char **argv)
             GlobalDefines.erase(optarg);
             break;
 
-        case 'L':
+        case 'l':
             Listing = true;
             break;
 
-        case 'S':
+        case 's':
             Symbols = true;
             break;
 
-        case 'R':
+        case 'r':
             NoRegisters = true;
             break;
 
-        case 'P':
+        case 'p':
             NoPorts = true;
             break;
 
+        case 'b':
+        {
+            std::string Mode = optarg;
+            ToUpper(Mode);
+            if(BinaryModeLookup.find(Mode) == BinaryModeLookup.end())
+                fmt::print("** Unrecognised binary output mode. Defaulting to Intel Hex\n");
+            else
+                BinMode = BinaryModeLookup.at(Mode);
+            break;
+        }
         default:
             return 1;
             fmt::print("Error\n");
@@ -126,7 +148,7 @@ int main(int argc, char **argv)
     {
         try
         {
-            if(assemble(argv[optind++], Listing, Symbols))
+            if(assemble(argv[optind++], Listing, Symbols, BinMode))
                 FilesAssembled++;
             FileCount++;
         }
@@ -152,7 +174,7 @@ int main(int argc, char **argv)
 //!
 //! Main Assembler
 //!
-bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols)
+bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols, BinaryModeEnum BinMode)
 {
     fmt::print("Assembling: {filename}\n", fmt::arg("filename", FileName));
     
@@ -870,16 +892,16 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
         }
         catch (AssemblyException Ex)
         {
-            if(Ex.Global)
-            {
+//            if(Ex.Global)
+//            {
                 PrintError(Ex.Message, Ex.Severity);
                 Errors.Push(Ex.Message, Ex.Severity);
-            }
-            else
-            {
-                PrintError(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-                Errors.Push(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-            }
+//            }
+//            else
+//            {
+//                PrintError(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+//                Errors.Push(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+//            }
         }
     } // for(int Pass = 1; Pass <= 3 && Errors.count(SEVERITY_Error) == 0; Pass++)...
 
@@ -908,6 +930,20 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     fmt::print("{count:4} Warnings\n",     fmt::arg("count", TotalWarnings));
     fmt::print("{count:4} Errors\n",       fmt::arg("count", TotalErrors));
     fmt::print("\n");
+
+    // If no Errors, then write the binary output
+    if(TotalErrors == 0)
+    {
+        switch(BinMode)
+        {
+        case INTEL_HEX:
+        {
+            BinaryWriter_IntelHex Output(FileName, "hex");
+            Output.Write(Code, EntryPoint);
+            break;
+        }
+        }
+    }
 
 #if DEBUG
     DumpCode(Code);

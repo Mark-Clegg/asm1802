@@ -33,10 +33,14 @@ Files and Options are processed cumulatively from left to right. When assembling
 
 | Precedence | Operator | Meaning |
 | :---: | :---: | --- |
-| 1 | + - ! | Unary +/-/NOT |
+| 1 | + - ~ ! | Unary +, -, Bitwise NOT, Logical NOT |
 | 2 | * / % | Multiply, Divide, Remainder |
 | 3 | + - | Addition, Subtraction |
 | 4 | << >> | Shift Left / Right |
-| 5 | & | Bitwise AND |
-| 6 | ^ | Bitwise Exclusive OR |
-| 7 | \| | Bitwise OR |
+| 5 | < <= >= > | Less, Less or Equal, Greater or Euqal, Greater |
+| 6 | = == != | Equality, Non-Equality (= and == treated the same |
+| 7 | & | Bitwise AND |
+| 8 | ^ | Bitwise Exclusive OR |
+| 9 | \| | Bitwise OR |
+| 10 | && | Logical AND |
+| 11 | \|\| | Logical OR |

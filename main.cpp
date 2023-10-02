@@ -47,7 +47,6 @@ void DumpCode(const std::map<uint16_t, std::vector<uint8_t>>& Code);
 
 int main(int argc, char **argv)
 {
-
     option longopts[] = {
         { "define",      required_argument, 0, 'D' }, // Define pre-processor variable
         { "undefine",    required_argument, 0, 'U' }, // Un-define pre-processor variable

@@ -37,10 +37,10 @@ TokenEnum ExpressionTokenizer::Get()
     switch(FirstChar)
     {
     case '(':
-        ID = TOKEN_OPENBRACE;
+        ID = TOKEN_OPEN_BRACE;
         break;
     case ')':
-        ID = TOKEN_CLOSEBRACE;
+        ID = TOKEN_CLOSE_BRACE;
         break;
     case '.':
         ID = TOKEN_DOT;
@@ -61,19 +61,146 @@ TokenEnum ExpressionTokenizer::Get()
         ID = TOKEN_REMAINDER;
         break;
     case '&':
-        ID = TOKEN_AND;
+        if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == '&')
+        {
+            InputStream.ignore();
+            ID = TOKEN_LOGICAL_AND;
+            break;
+        }
+        ID = TOKEN_BITWISE_AND;
         break;
     case '^':
-        ID = TOKEN_XOR;
+        ID = TOKEN_BITWISE_XOR;
         break;
     case '|':
-        ID = TOKEN_OR;
+        if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == '|')
+        {
+            InputStream.ignore();
+            ID = TOKEN_LOGICAL_OR;
+            break;
+        }
+        ID = TOKEN_BITWISE_OR;
         break;
     case '~':
-        ID = TOKEN_NOT;
+        ID = TOKEN_BITWISE_NOT;
+        break;
+    case '=':
+        if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == '=')
+            InputStream.ignore();
+        ID = TOKEN_EQUAL;
+        break;
+    case '!':
+        if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == '=')
+        {
+            InputStream.ignore();
+            ID = TOKEN_NOT_EQUAL;
+            break;
+        }
+        ID = TOKEN_LOGICAL_NOT;
         break;
     case ',':
         ID = TOKEN_COMMA;
+        break;
+    case '$':
+        IntegerValue = 0;
+        if(!isxdigit(InputStream.peek()))
+            ID = TOKEN_DOT;
+        else
+        {
+            while(!InputStream.eof() && !InputStream.fail() && isxdigit(InputStream.peek()))
+            {
+                char c = InputStream.get();
+                int v = (c >= 'A') ? (c >= 'a') ? (c - 'a' + 10) : (c - 'A' + 10) : (c - '0');
+                IntegerValue = (IntegerValue << 4) + v;
+            }
+            ID = TOKEN_NUMBER;
+        }
+        break;
+    case '<':
+        if(!InputStream.eof() && !InputStream.fail())
+            switch(InputStream.peek())
+            {
+            case '<':
+                InputStream.ignore();
+                ID = TOKEN_SHIFT_LEFT;
+                break;
+            case '=':
+                InputStream.ignore();
+                ID = TOKEN_LESS_OR_EQUAL;
+                break;
+            default:
+                ID = TOKEN_LESS;
+                break;
+            }
+        break;
+    case '>':
+        if(!InputStream.eof() && !InputStream.fail())
+            switch(InputStream.peek())
+            {
+            case '>':
+                InputStream.ignore();
+                ID = TOKEN_SHIFT_RIGHT;
+                break;
+            case '=':
+                InputStream.ignore();
+                ID = TOKEN_GREATER_OR_EQUAL;
+                break;
+            default:
+                ID = TOKEN_GREATER;
+                break;
+            }
+        break;
+    case '\'':
+        if(InputStream.eof() || InputStream.fail())
+            throw AssemblyException("Unterminated character constant", SEVERITY_Error);
+
+        if(InputStream.peek() == '\'')
+            throw AssemblyException("Empty Character constant", SEVERITY_Error);
+
+        if(InputStream.peek() == '\\')
+        {
+            InputStream.ignore();
+            if(InputStream.eof() || InputStream.fail())
+                throw AssemblyException("Unterminated character constant", SEVERITY_Error);
+            int EscapedChar = InputStream.get();
+            if(InputStream.eof() || InputStream.fail())
+                throw AssemblyException("Unterminated character constant", SEVERITY_Error);
+            if(InputStream.get() != '\'')
+                throw AssemblyException("Character constant too long", SEVERITY_Error);
+            switch(EscapedChar)
+            {
+            case '\'': IntegerValue = 0x27; break;
+            case '\"': IntegerValue = 0x22; break;
+            case '\?': IntegerValue = 0x3F; break;
+            case '\\': IntegerValue = 0x5C; break;
+            case 'a':  IntegerValue = 0x07; break;
+            case 'b':  IntegerValue = 0x08; break;
+            case 'f':  IntegerValue = 0x0C; break;
+            case 'n':  IntegerValue = 0x0A; break;
+            case 'r':  IntegerValue = 0x0D; break;
+            case 't':  IntegerValue = 0x09; break;
+            case 'v':  IntegerValue = 0x0B; break;
+            default:
+                throw AssemblyException("Unrecognised escape sequence", SEVERITY_Error);
+                break;
+            }
+        }
+        else
+        {
+            if(InputStream.eof() || InputStream.fail())
+                throw AssemblyException("Unterminated character constant", SEVERITY_Error);
+            IntegerValue = InputStream.get();
+            if(InputStream.eof() || InputStream.fail())
+                throw AssemblyException("Unterminated character constant", SEVERITY_Error);
+            if(InputStream.get() != '\'')
+            {
+                if(InputStream.eof() || InputStream.fail())
+                    throw AssemblyException("Unterminated character constant", SEVERITY_Error);
+                else
+                    throw AssemblyException("Character constant too long", SEVERITY_Error);
+            }
+        }
+        ID = TOKEN_NUMBER;
         break;
     default:
     {
@@ -84,26 +211,6 @@ TokenEnum ExpressionTokenizer::Get()
                 StringValue.push_back(InputStream.get());
             ID = TOKEN_LABEL;
             break;
-        }
-        if(FirstChar == '$')    // HEX NUMBER
-        {
-            IntegerValue = 0;
-            if(!isxdigit(InputStream.peek()))
-            {
-                ID = TOKEN_DOT;
-                break;
-            }
-            else
-            {
-                while(!InputStream.eof() && !InputStream.fail() && isxdigit(InputStream.peek()))
-                {
-                    char c = InputStream.get();
-                    int v = (c >= 'A') ? (c >= 'a') ? (c - 'a' + 10) : (c - 'A' + 10) : (c - '0');
-                    IntegerValue = (IntegerValue << 4) + v;
-                }
-                ID = TOKEN_NUMBER;
-                break;
-            }
         }
         if(isdigit(FirstChar))  // NUMBER
         {
@@ -148,78 +255,6 @@ TokenEnum ExpressionTokenizer::Get()
                 ID = TOKEN_NUMBER;
                 break;
             }
-        }
-        if(FirstChar == '<') // SHIFT LEFT
-        {
-            if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == '<')
-            {
-                InputStream.ignore();
-                ID = TOKEN_SHIFTLEFT;
-                break;
-            }
-        }
-        if(FirstChar == '>') // SHIFT RIGHT
-        {
-            if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == '>')
-            {
-                InputStream.ignore();
-                ID = TOKEN_SHIFTRIGHT;
-                break;
-            }
-        }
-        if(FirstChar == '\'') // CHARACTER CONSTANT
-        {
-            if(InputStream.eof() || InputStream.fail())
-                throw AssemblyException("Unterminated character constant", SEVERITY_Error);
-
-            if(InputStream.peek() == '\'')
-                throw AssemblyException("Empty Character constant", SEVERITY_Error);
-
-            if(InputStream.peek() == '\\')
-            {
-                InputStream.ignore();
-                if(InputStream.eof() || InputStream.fail())
-                    throw AssemblyException("Unterminated character constant", SEVERITY_Error);
-                int EscapedChar = InputStream.get();
-                if(InputStream.eof() || InputStream.fail())
-                    throw AssemblyException("Unterminated character constant", SEVERITY_Error);
-                if(InputStream.get() != '\'')
-                    throw AssemblyException("Character constant too long", SEVERITY_Error);
-                switch(EscapedChar)
-                {
-                case '\'': IntegerValue = 0x27; break;
-                case '\"': IntegerValue = 0x22; break;
-                case '\?': IntegerValue = 0x3F; break;
-                case '\\': IntegerValue = 0x5C; break;
-                case 'a':  IntegerValue = 0x07; break;
-                case 'b':  IntegerValue = 0x08; break;
-                case 'f':  IntegerValue = 0x0C; break;
-                case 'n':  IntegerValue = 0x0A; break;
-                case 'r':  IntegerValue = 0x0D; break;
-                case 't':  IntegerValue = 0x09; break;
-                case 'v':  IntegerValue = 0x0B; break;
-                default:
-                    throw AssemblyException("Unrecognised escape sequence", SEVERITY_Error);
-                    break;
-                }
-            }
-            else
-            {
-                if(InputStream.eof() || InputStream.fail())
-                    throw AssemblyException("Unterminated character constant", SEVERITY_Error);
-                IntegerValue = InputStream.get();
-                if(InputStream.eof() || InputStream.fail())
-                    throw AssemblyException("Unterminated character constant", SEVERITY_Error);
-                if(InputStream.get() != '\'')
-                {
-                    if(InputStream.eof() || InputStream.fail())
-                        throw AssemblyException("Unterminated character constant", SEVERITY_Error);
-                    else
-                        throw AssemblyException("Character constant too long", SEVERITY_Error);
-                }
-            }
-            ID = TOKEN_NUMBER;
-            break;
         }
         if(InputStream.eof() || InputStream.fail())
         {

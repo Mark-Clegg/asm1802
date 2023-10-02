@@ -362,7 +362,10 @@ void StringToByteVector(const std::string& Operand, std::vector<uint8_t>& Data)
             if(i != Operand.size() - 1)
                 throw AssemblyException("Error parsing string constant", SEVERITY_Error);
             else
+            {
                 QuoteClosed = true;
+                break;
+            }
         }
         if(Operand[i] == '\\')
         {

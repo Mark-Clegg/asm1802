@@ -217,6 +217,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     {
         SymbolTable* CurrentTable = &MainTable;
         uint16_t ProgramCounter = 0;
+        uint16_t SubroutineSize = 0;
         CPUTypeEnum Processor = CPU_1802;
         bool InSub = false;
         try
@@ -386,7 +387,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
                                             SubTables.insert(std::pair<std::string, SymbolTable>(Label, SymbolTable()));
                                             CurrentTable = &SubTables[Label];
-                                            ProgramCounter = 0; // ProgramCounter reflects code size onl during pass 1.
+                                            SubroutineSize = 0;
                                             break;
                                         case ENDSUB:
                                         {
@@ -394,7 +395,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                 throw AssemblyException("ENDSUB without matching SUB", SEVERITY_Error);
                                             InSub = false;
 
-                                            CurrentTable->CodeSize = ProgramCounter;
+                                            CurrentTable->CodeSize = SubroutineSize;
                                             CurrentTable = &MainTable;
                                             break;
                                         }
@@ -406,16 +407,16 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                 {
                                                     std::vector<std::uint8_t> Data;
                                                     StringToByteVector(Operand, Data);
-                                                    ProgramCounter += Data.size();
+                                                    SubroutineSize += Data.size();
                                                 }
                                                 else
-                                                    ProgramCounter++;
+                                                    SubroutineSize++;
                                             }
                                             break;
                                         }
                                         case DW:
                                         {
-                                            ProgramCounter += Operands.size() * 2;
+                                            SubroutineSize += Operands.size() * 2;
                                             break;
                                         }
                                         case PROCESSOR:
@@ -442,7 +443,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             {
                                                 if(OpCode.value().CPUType > Processor)
                                                     throw AssemblyException("Instruction not supported on selected processor", SEVERITY_Error);
-                                                ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
+                                                SubroutineSize += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
                                             }
                                             break;
                                         }

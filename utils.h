@@ -29,6 +29,7 @@ bool IsPreProcessorDirective(std::string& Line, PreProcessorDirectiveEnum& Direc
 PreProcessorDirectiveEnum SkipLines(SourceCodeReader& Source, std::string& TerminatingLine);
 void ExpandDefines(std::string& Line, DefineMap& Defines);
 const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCode, std::vector<std::string>& Operands);
+void StringListToVector(std::string& Input, std::vector<std::string>& Output, char Delimiter);
 std::string basename(const std::string FileName);
 int AlignFromSize(int Size);
 inline void ToUpper(std::string& In) { std::transform(In.begin(), In.end(), In.begin(), ::toupper); }

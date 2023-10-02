@@ -261,55 +261,7 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
         ToUpper(Mnemonic);
         Operands = MatchResult[7];
 
-        // Split the Operands into a vector
-        bool inSingleQuote = false;
-        bool inDoubleQuote = false;
-        bool inBrackets = false;
-        bool inEscape = false;
-        bool SkipSpaces = false;
-        std::string out;
-        for(auto ch : Operands)
-        {
-            if(SkipSpaces && (ch == ' ' || ch == '\t'))
-                continue;
-            SkipSpaces = false;
-            if(inEscape)
-            {
-                out.push_back(ch);
-                inEscape = false;
-                continue;
-            }
-            if(!inSingleQuote && !inDoubleQuote && !inEscape && !inBrackets && ch == ',')
-            {
-                OperandList.push_back(regex_replace(out, std::regex(R"(\s+$)"), ""));
-                out="";
-                SkipSpaces = true;
-                continue;
-            }
-            switch(ch)
-            {
-            case '\'':
-                if(!inDoubleQuote)
-                    inSingleQuote = !inSingleQuote;
-                break;
-            case '\"':
-                if(!inSingleQuote)
-                inDoubleQuote = !inDoubleQuote;
-                break;
-            case '(':
-                inBrackets = true;
-                break;
-            case ')':
-                inBrackets = false;
-                break;
-            case '\\':
-                inEscape = true;
-                break;
-            }
-            out.push_back(ch);
-        }
-        if(out.size() > 0)
-            OperandList.push_back(regex_replace(out, std::regex(R"(\s+$)"), ""));
+        StringListToVector(Operands, OperandList, ',');
 
         OpCodeSpec MachineWord;
         try
@@ -325,6 +277,59 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
     else
         throw AssemblyException("Unable to parse line", SEVERITY_Error);
 }
+
+void StringListToVector(std::string& Input, std::vector<std::string>& Output, char Delimiter)
+{
+    bool inSingleQuote = false;
+    bool inDoubleQuote = false;
+    bool inBrackets = false;
+    bool inEscape = false;
+    bool SkipSpaces = false;
+    std::string out;
+    for(auto ch : Input)
+    {
+        if(SkipSpaces && (ch == ' ' || ch == '\t'))
+            continue;
+        SkipSpaces = false;
+        if(inEscape)
+        {
+            out.push_back(ch);
+            inEscape = false;
+            continue;
+        }
+        if(!inSingleQuote && !inDoubleQuote && !inEscape && !inBrackets && ch == Delimiter)
+        {
+            Output.push_back(regex_replace(out, std::regex(R"(\s+$)"), ""));
+            out="";
+            SkipSpaces = true;
+            continue;
+        }
+        switch(ch)
+        {
+        case '\'':
+            if(!inDoubleQuote)
+                inSingleQuote = !inSingleQuote;
+            break;
+        case '\"':
+            if(!inSingleQuote)
+                inDoubleQuote = !inDoubleQuote;
+            break;
+        case '(':
+            inBrackets = true;
+            break;
+        case ')':
+            inBrackets = false;
+            break;
+        case '\\':
+            inEscape = true;
+            break;
+        }
+        out.push_back(ch);
+    }
+    if(out.size() > 0)
+        Output.push_back(regex_replace(out, std::regex(R"(\s+$)"), ""));
+}
+
 
 //!
 //! \brief AlignFromSize

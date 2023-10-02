@@ -485,19 +485,24 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         case SUB:
                                         {
                                             CurrentTable = &SubTables[Label];
-                                            if(Operands.size() == 2)
+                                            if(Operands.size() == 1)
                                             {
-                                                ToUpper(Operands[0]);
-                                                if(Operands[0] == "ALIGN")
+                                                std::vector<std::string> SubOptions;
+                                                StringListToVector(Operands[0], SubOptions, '=');
+                                                if(SubOptions.size() != 2)
+                                                    throw AssemblyException("Unrecognised SUBROUTINE parameters", SEVERITY_Error);
+
+                                                ToUpper(SubOptions[0]);
+                                                if(SubOptions[0] == "ALIGN")
                                                 {
                                                     int Align;
-                                                    ToUpper(Operands[1]);
-                                                    if(Operands[1] == "AUTO")
+                                                    ToUpper(SubOptions[1]);
+                                                    if(SubOptions[1] == "AUTO")
                                                         Align = AlignFromSize(CurrentTable->CodeSize);
                                                     else
                                                     {
                                                         ExpressionEvaluator E(MainTable, ProgramCounter);
-                                                        Align = E.Evaluate(Operands[1]);
+                                                        Align = E.Evaluate(SubOptions[1]);
                                                         if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
                                                             throw AssemblyException("SUBROUTINE ALIGN must be 2,4,8,16,32,64,128,256 or AUTO", SEVERITY_Error);
                                                     }
@@ -507,7 +512,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             }
                                             else
                                                 if(Operands.size() != 0)
-                                                    throw AssemblyException(fmt::format("Unrecognised operand '{Operand}'", fmt::arg("Operand", Operands[0])), SEVERITY_Error);
+                                                    throw AssemblyException(fmt::format("Incorrect number of arguments", fmt::arg("Operand", Operands[0])), SEVERITY_Error);
                                             break;
                                         }
                                         case ENDSUB:
@@ -598,16 +603,18 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         case SUB:
                                         {
                                             CurrentTable = &SubTables[Label];
-                                            if(Operands.size() == 2)
+                                            if(Operands.size() == 1)
                                             {
+                                                std::vector<std::string> SubOptions;
+                                                StringListToVector(Operands[0], SubOptions, '=');
                                                 int Align;
-                                                ToUpper(Operands[1]);
-                                                if(Operands[1] == "AUTO")
+                                                ToUpper(SubOptions[1]);
+                                                if(SubOptions[1] == "AUTO")
                                                     Align = AlignFromSize(CurrentTable->CodeSize);
                                                 else
                                                 {
                                                     ExpressionEvaluator E(MainTable, ProgramCounter);
-                                                    Align = E.Evaluate(Operands[1]);
+                                                    Align = E.Evaluate(SubOptions[1]);
                                                 }
                                                 ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
                                             }

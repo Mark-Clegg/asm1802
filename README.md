@@ -21,9 +21,9 @@ Files and Options are processed cumulatively from left to right. When assembling
 | Menmonic | Meaning |
 | --- | --- |
 | ORG arg | Set Address |
-| SUBROUTINE {ALIGN, 2\|4\|8\|16\|32\|64\|128\|256\|AUTO } | Define a Subroutine, optionally aligned to boundary |
+| SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO } | Define a Subroutine, optionally aligned to boundary |
 | ENDSUB | End of Subroutine Definition |
-| ALIGN arg | align to boundary |
+| ALIGN arg | align to boundary (arg = 2,4,8,16,32,64,128 or 256) |
 | PROCESSOR model | Set Processor architecture, 1802\|1806\|1806A |
 | EQU value | Assign value to label |
 | DB value list | Define Bytes, each value can be numeric or "string" |

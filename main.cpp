@@ -694,6 +694,18 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             ListingFile.Append();
                                             break;
                                         }
+                                        case ASSERT:
+                                        {
+                                            if(Operands.size() != 1)
+                                                throw AssemblyException("ASSERT Requires a single argument <expression>", SEVERITY_Error);
+                                            ExpressionEvaluator E(MainTable, ProgramCounter);
+                                            if(CurrentTable != &MainTable)
+                                                E.AddLocalSymbols(CurrentTable);
+                                            int Result = E.Evaluate(Operands[0]);
+                                            if (Result == 0)
+                                                throw AssemblyException("ASSERT Failed", SEVERITY_Error);
+                                            break;
+                                        }
                                         case END:
                                         {
                                             ExpressionEvaluator E(MainTable, ProgramCounter);

@@ -704,6 +704,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             int Result = E.Evaluate(Operands[0]);
                                             if (Result == 0)
                                                 throw AssemblyException("ASSERT Failed", SEVERITY_Error);
+                                            ListingFile.Append();
                                             break;
                                         }
                                         case END:

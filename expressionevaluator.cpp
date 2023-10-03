@@ -2,8 +2,12 @@
 #include "expressionevaluator.h"
 
 const std::map<std::string, FunctionSpec> ExpressionEvaluator::FunctionTable = {
-    { "HIGH", { FN_HIGH, 1 }},
-    { "LOW",  { FN_LOW,  1 }}
+    { "HIGH",        { FN_HIGH,    1 }},
+    { "LOW",         { FN_LOW,     1 }},
+    { "ISDEFINED",   { FN_ISDEF,   1 }},
+    { "ISDEF",       { FN_ISDEF,   1 }},
+    { "ISUNDEFINED", { FN_ISUNDEF, 1 }},
+    { "ISUNDEF",     { FN_ISUNDEF, 1 }}
 };
 
 ExpressionEvaluator::ExpressionEvaluator(const SymbolTable& Global, uint16_t ProgramCounter) : Global(&Global), ProgramCounter(ProgramCounter)
@@ -33,7 +37,8 @@ int ExpressionEvaluator::Evaluate(std::string& Expression)
     TokenStream.Initialize(Expression);
 
     int Result = SubExp0();
-    if(TokenStream.Peek() != TOKEN_END)
+    auto Token = TokenStream.Peek();
+    if(Token != TOKEN_END && Token != TOKEN_COMMA && Token != TOKEN_CLOSE_BRACE)
         throw AssemblyException("Extra Characters at end of expression", SEVERITY_Error);
     return Result;
 }
@@ -311,7 +316,7 @@ int ExpressionEvaluator::SubExp10()
 //!
 int ExpressionEvaluator::SubExp11()
 {
-    int Result;
+    int Result = 0;
     auto Token = TokenStream.Get();
     switch(Token)
     {
@@ -337,40 +342,65 @@ int ExpressionEvaluator::SubExp11()
         if(TokenStream.Peek() == TOKEN_OPEN_BRACE)
         {
             TokenStream.Get();
-            std::vector<int> Arguments = { };
-            if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
-                TokenStream.Get();
-            else
-            {
-                Arguments.push_back(SubExp0());            
-                while(TokenStream.Peek() == TOKEN_COMMA)
-                {
-                    TokenStream.Get();
-                    Arguments.push_back(SubExp0());
-                }
-                if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
-                    TokenStream.Get();
-                else
-                    throw AssemblyException("Syntax error in argument list");
-            }
 
             auto FunctionSpec = FunctionTable.find(Label);
             if(FunctionSpec == FunctionTable.end())
                 throw AssemblyException("Unknown function call", SEVERITY_Error);
-            if(FunctionSpec->second.Arguments != Arguments.size())
-                throw AssemblyException(fmt::format("Incorrect number of arguments: {Arg} expects {Count} argument(s)", fmt::arg("Arg", Label), fmt::arg("Count", FunctionSpec->second.Arguments)), SEVERITY_Error);
+
+            std::vector<int> Arguments = { };
             switch(FunctionSpec->second.ID)
             {
             case FN_LOW:
-                return Arguments[0] & 0xFF;
+                if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
+                    throw AssemblyException("Incorrect number of arguments: LOW expects 1 argument", SEVERITY_Error);
+                Result = Arguments[0] & 0xFF;
                 break;
             case FN_HIGH:
-                return (Arguments[0] >> 8) & 0xFF;
+                if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
+                    throw AssemblyException("Incorrect number of arguments: HIGH expects 1 argument", SEVERITY_Error);
+                Result = (Arguments[0] >> 8) & 0xFF;
+                break;
+            case FN_ISDEF:
+                if(TokenStream.Peek() == TOKEN_LABEL)
+                {
+                    Result = 0;
+                    TokenStream.Get();
+                    std::string Label = TokenStream.StringValue;
+                    if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
+                    {
+                        TokenStream.Get();
+                        if (LocalSymbols && Local->Symbols.find(Label) != Local->Symbols.end())
+                            Result = 1;
+                        if (Global->Symbols.find(Label) != Global->Symbols.end())
+                            Result = 1;
+                    }
+                    else
+                        throw AssemblyException("')' Expected", SEVERITY_Error);
+                }
+                else
+                    throw AssemblyException("ISDEF expects a single LABEL argument", SEVERITY_Error);
+                break;
+            case FN_ISUNDEF:
+                if(TokenStream.Peek() == TOKEN_LABEL)
+                {
+                    Result = 1;
+                    TokenStream.Get();
+                    std::string Label = TokenStream.StringValue;
+                    if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
+                    {
+                        TokenStream.Get();
+                        if (LocalSymbols && Local->Symbols.find(Label) != Local->Symbols.end())
+                            Result = 0;
+                        if (Global->Symbols.find(Label) != Global->Symbols.end())
+                            Result = 0;
+                    }
+                    else
+                        throw AssemblyException("')' Expected", SEVERITY_Error);
+                }
+                else
+                    throw AssemblyException("ISNDEF expects a single LABEL argument", SEVERITY_Error);
                 break;
             }
-
-            //Result = call_function_with(Arguments); // TODO Function Evaluation
-            Result = 0;
         }
         else
             Result = SymbolValue(Label);
@@ -381,6 +411,34 @@ int ExpressionEvaluator::SubExp11()
     }
     return Result;
 }
+
+//!
+//! \brief ExpressionEvaluator::GetFunctionArguments
+//! Evaluate function arguments and populate the passed vector.
+//! \param Arguments
+//! \param Count
+//! \return True if correct number of arguments were found
+//!
+bool ExpressionEvaluator::GetFunctionArguments(std::vector<int> &Arguments, int Count)
+{
+    if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
+        TokenStream.Get();
+    else
+    {
+        Arguments.push_back(SubExp0());
+        while(TokenStream.Peek() == TOKEN_COMMA)
+        {
+            TokenStream.Get();
+            Arguments.push_back(SubExp0());
+        }
+        if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
+            TokenStream.Get();
+        else
+            throw AssemblyException("Syntax error in argument list", SEVERITY_Error);
+    }
+    return Arguments.size() == Count;
+}
+
 
 //!
 //! \brief ExpressionEvaluator::SymbolValue

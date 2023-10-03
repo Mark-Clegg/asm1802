@@ -20,14 +20,15 @@ Files and Options are processed cumulatively from left to right. When assembling
 
 | Menmonic | Meaning |
 | --- | --- |
-| ORG arg | Set Address |
-| SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO } | Define a Subroutine, optionally aligned to boundary |
-| ENDSUB | End of Subroutine Definition |
 | ALIGN arg | align to boundary (arg = 2,4,8,16,32,64,128 or 256) |
-| PROCESSOR model | Set Processor architecture, 1802\|1806\|1806A |
-| EQU value | Assign value to label |
+| ASSERT expression | Throw an error if expression evaluates to false (0) |
 | DB value list | Define Bytes, each value can be numeric or "string" |
 | DW value list | Define double bytes |
+| EQU value | Assign value to label |
+| ORG arg | Set Address |
+| PROCESSOR model | Set Processor architecture, 1802\|1806\|1806A |
+| SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO } | Define a Subroutine, optionally aligned to boundary |
+| ENDSUB | End of Subroutine Definition |
 
 ## Operators
 
@@ -44,3 +45,9 @@ Files and Options are processed cumulatively from left to right. When assembling
 | 9 | \| | Bitwise OR |
 | 10 | && | Logical AND |
 | 11 | \|\| | Logical OR |
+
+## Functions
+ | Function | Parameters | Meaning |
+ | --- | --- | --- |
+ | HIGH | value | High order 8 bits of value |
+ | LOW | value | LOW order 8 bits of value |

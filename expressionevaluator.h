@@ -9,7 +9,9 @@
 enum FunctionEnum
 {
     FN_HIGH,
-    FN_LOW
+    FN_LOW,
+    FN_ISDEF,
+    FN_ISUNDEF
 };
 
 struct FunctionSpec
@@ -33,7 +35,7 @@ private:
 
     const uint16_t ProgramCounter;
     uint16_t SymbolValue(std::string& Label);
-
+    bool GetFunctionArguments(std::vector<int>& Arguments , int Count);
     ExpressionTokenizer TokenStream;
 
     int SubExp0();

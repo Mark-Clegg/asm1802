@@ -16,6 +16,15 @@ Files and Options are processed cumulatively from left to right. When assembling
 | | --noregisters | Do not predefine Register equates (R0-RF) |
 | | --noports | Do not predefine Post equates (P1-P7) |
 
+## Numberical Constants
+
+| Format | Meaning |
+| --- | --- |
+| 1234 | Decimal |
+| 0123 | Octal |
+| $1234 | Hexadecimal |
+| 0x1234 | Hexadecimal |
+
 ## Pseudo Operators
 
 | Menmonic | Meaning |
@@ -25,6 +34,8 @@ Files and Options are processed cumulatively from left to right. When assembling
 | DB value list | Define Bytes, each value can be numeric or "string" |
 | DW value list | Define double bytes |
 | EQU value | Assign value to label |
+| ISDEF/ISDEFINED label | Return true if label is defined |
+| ISUNDEF/ISUNDEFINED label | Return true if lable is not defined |
 | ORG arg | Set Address |
 | PROCESSOR model | Set Processor architecture, 1802\|1806\|1806A |
 | SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO } | Define a Subroutine, optionally aligned to boundary |

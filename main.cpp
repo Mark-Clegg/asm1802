@@ -8,6 +8,7 @@
 #include <regex>
 #include <string>
 #include <getopt.h>
+#include "binarywriter_idiot4.h"
 #include "binarywriter_intelhex.h"
 #include "definemap.h"
 #include "errortable.h"
@@ -21,18 +22,20 @@
 
 namespace fs = std::filesystem;
 
-enum BinaryModeEnum
+enum OutputFormatEnum
 {
-    INTEL_HEX
+    INTEL_HEX,
+    IDIOT4
 };
 
-std::map<std::string, BinaryModeEnum> BinaryModeLookup = {
-    { "INTEL_HEX", INTEL_HEX }
+std::map<std::string, OutputFormatEnum> OutputFormatLookup = {
+    { "INTEL_HEX", INTEL_HEX },
+    { "IDIOT4",    IDIOT4    }
 };
 
 DefineMap GlobalDefines;   // global #defines persist for all files following on the command line
 
-bool assemble(const std::string&, bool ListingEnabled, bool DumpSymbols, BinaryModeEnum BinMode);
+bool assemble(const std::string&, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode);
 
 void PrintError(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity);
 void PrintError(const std::string& Message, AssemblyErrorSeverity Severity);
@@ -54,18 +57,18 @@ int main(int argc, char **argv)
         { "symbols",     no_argument,       0, 's' }, // Include Symbol Table in listing file
         { "noregisters", no_argument,       0, 'r' }, // Do not pre-define labels for Registers (R0-F, R0-15)
         { "noports",     no_argument,       0, 'p' }, // No not pre-define labels for Ports (P1-7)
-        { "binmode",     no_argument,       0, 'b' }, // Set output file type (default = Intel Hex)
+        { "output",      required_argument, 0, 'o' }, // Set output file type (default = Intel Hex)
         { 0,0,0,0 }
     };
 
     bool Listing = false;
     bool Symbols = false;
-    BinaryModeEnum BinMode = INTEL_HEX;
+    OutputFormatEnum OutputFormat = INTEL_HEX;
     int FileCount = 0;
     int FilesAssembled = 0;
     while (1) {
 
-        const int opt = getopt_long(argc, argv, "-D:U:lsb:", longopts, 0);
+        const int opt = getopt_long(argc, argv, "-D:U:lso:", longopts, 0);
 
         if (opt == -1) {
             break;
@@ -75,7 +78,7 @@ int main(int argc, char **argv)
         case 1:
             try
             {
-                if(assemble(optarg, Listing, Symbols, BinMode))
+                if(assemble(optarg, Listing, Symbols, OutputFormat))
                     FilesAssembled++;
                 FileCount++;
             }
@@ -127,14 +130,14 @@ int main(int argc, char **argv)
             NoPorts = true;
             break;
 
-        case 'b':
+        case 'o':
         {
             std::string Mode = optarg;
             ToUpper(Mode);
-            if(BinaryModeLookup.find(Mode) == BinaryModeLookup.end())
+            if(OutputFormatLookup.find(Mode) == OutputFormatLookup.end())
                 fmt::print("** Unrecognised binary output mode. Defaulting to Intel Hex\n");
             else
-                BinMode = BinaryModeLookup.at(Mode);
+                OutputFormat = OutputFormatLookup.at(Mode);
             break;
         }
         default:
@@ -147,7 +150,7 @@ int main(int argc, char **argv)
     {
         try
         {
-            if(assemble(argv[optind++], Listing, Symbols, BinMode))
+            if(assemble(argv[optind++], Listing, Symbols, OutputFormat))
                 FilesAssembled++;
             FileCount++;
         }
@@ -173,7 +176,7 @@ int main(int argc, char **argv)
 //!
 //! Main Assembler
 //!
-bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols, BinaryModeEnum BinMode)
+bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode)
 {
     fmt::print("Assembling: {filename}\n", fmt::arg("filename", FileName));
     
@@ -954,15 +957,22 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     // If no Errors, then write the binary output
     if(TotalErrors == 0)
     {
+        BinaryWriter *Output;
         switch(BinMode)
         {
         case INTEL_HEX:
         {
-            BinaryWriter_IntelHex Output(FileName, "hex");
-            Output.Write(Code, EntryPoint);
+            Output = new BinaryWriter_IntelHex(FileName, "hex");
+            break;
+        }
+        case IDIOT4:
+        {
+            Output = new BinaryWriter_Idiot4(FileName, "idiot");
             break;
         }
         }
+        Output->Write(Code, EntryPoint);
+        delete Output;
     }
 
 #if DEBUG

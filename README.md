@@ -1,6 +1,44 @@
 # asm1802
-Assembler for the CDP1802 series microprocessor
+Assembler for the CDP1802 series microprocessor. 
 
+## Features
+
+- Support for 1802, 1804/5/6 and 1804/5/6A microprocessors
+- Subroutines with local labels
+- Alignable subroutines to support pseudo-relocatable includes
+- Intel HEX output
+- Idiot/4 monitor output
+
+## Subroutines
+
+```
+Label SUBROUTINE {ALIGN=...}
+    assembly code
+    ENDSUB
+```    
+
+... defines a subroutine and adds Label to the global symbol table.
+
+Any labels defined within the subroutine are local to that subroutine only, and
+cannot be referenced elsewhere.
+
+The optional ALIGN=... parameter will align the subroutine to the specified 
+power of boudary. (e.g. ALIGN=32). Specifying ALIGN=AUTO will align to the nearest greater
+power of two boundary. This facilitates the creation of library modules that can be #included
+anywhere in code ensuring that short branches remain in range wherever the code is included.
+To prevent any following code from having out of range branches, it is recommended that
+#included library code is placed at the end of the source.
+
+## Building asm1802
+
+asm1802 written in C++, is built using cmake, and uses the fmt library: https://fmt.dev/latest/index.html
+
+From the project folder, execute:
+```
+$ cmake -S . -B build
+$ cd build
+$ make
+```
 ## Command Line Options
 
 asm1802 {options} file {options} file ... file

@@ -11,23 +11,51 @@ Assembler for the CDP1802 series microprocessor.
 
 ## Subroutines
 
-```
-Label SUBROUTINE {ALIGN=...}
-    assembly code
-    ENDSUB
-```    
+### SUBROUTINE {ALIGN=...}
 
-... defines a subroutine and adds Label to the global symbol table.
+... defines a subroutine.
 
-Any labels defined within the subroutine are local to that subroutine only, and
-cannot be referenced elsewhere.
+#### Optional arguments
 
-The optional ALIGN=... parameter will align the subroutine to the specified 
-power of boudary. (e.g. ALIGN=32). Specifying ALIGN=AUTO will align to the nearest greater
+ALIGN=... Align the subroutine to the specified 
+power of 2 boudary. (e.g. ALIGN=32). Specifying ALIGN=AUTO will align to the nearest greater
 power of two boundary. This facilitates the creation of library modules that can be #included
 anywhere in code ensuring that short branches remain in range wherever the code is included.
 To prevent any following code from having out of range branches, it is recommended that
 #included library code is placed at the end of the source.
+
+Any labels defined within the subroutine are local to that subroutine, and
+cannot be referenced elsewhere. The subroutine name itself appears in both the 
+local and global symbol tables, with possibly different values.
+
+### ENDSUB {label}
+
+Marks the end of a SUBROUTINE definition. If an optional Label is supplied, this must refer 
+to a previously declared Label within the subroutine, and marks the entyr point of that 
+subroutine. This modifies the value of the SUBROUTINE's label in the Master symbol table to
+point to the referenced local label so that any reference to the SUBROUTINE name in main code
+references the local label instead of the first byte of the SUBROUTINE itself.
+
+e.g.
+```
+0000 F8 10                  LDI     HIGH(FlashQ)
+0002 B6                     PHI     R6
+0003 F8 01                  LDI     LOW(FlashQ)
+0005 A6                     PLO     R6
+0006 D6                     SEP     R6  
+
+                            ...
+                            
+                    FlashQ  SUBROUTINE
+1000 D3                     SEP     R3
+1001 7B             START   SEQ
+1002 7A                     REQ
+1003 30 00                  BR      FlashQ
+                            ENDSUB  START
+```
+
+Main code loads R6 with the address of the local START label (1001). However, within the
+subroutine, FlashQ will have it's initial address of 1000.
 
 ## Building asm1802
 

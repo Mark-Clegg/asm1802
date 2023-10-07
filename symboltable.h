@@ -16,10 +16,12 @@ struct SymbolDefinition
 class SymbolTable
 {
 public:
+    std::string Name;
     SymbolTable();
 
-    int CodeSize = 0;;              // Size of subroutine code, used when calculating auto alignment
-    std::map<std::string, SymbolDefinition> Symbols;
+    int CodeSize = 0;;                               // Size of subroutine code, used when calculating auto alignment
+    std::string EntryPointLabel;                     // Entry Point, if specifid by SUBROUTINE ENTRYPOINT = ... parameter
+    std::map<std::string, SymbolDefinition> Symbols; // Symbol Table
 };
 
 #endif // SYMBOLTABLE_H

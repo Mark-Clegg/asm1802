@@ -28,9 +28,18 @@ enum OutputFormatEnum
     IDIOT4
 };
 
+enum SubroutineOptionsEnum
+{
+    SUBOPT_ALIGN
+};
+
 std::map<std::string, OutputFormatEnum> OutputFormatLookup = {
     { "INTEL_HEX", INTEL_HEX },
     { "IDIOT4",    IDIOT4    }
+};
+
+std::map<std::string, SubroutineOptionsEnum> SubroutineOptionsLookup = {
+    { "ALIGN",      SUBOPT_ALIGN      }
 };
 
 DefineMap GlobalDefines;   // global #defines persist for all files following on the command line
@@ -487,38 +496,61 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         case SUB:
                                         {
                                             CurrentTable = &SubTables[Label];
-                                            if(Operands.size() == 1)
+                                            CurrentTable->Name = Label;
+                                            for(int i = 0; i < Operands.size(); i++)
                                             {
                                                 std::vector<std::string> SubOptions;
-                                                StringListToVector(Operands[0], SubOptions, '=');
-                                                if(SubOptions.size() != 2)
-                                                    throw AssemblyException("Unrecognised SUBROUTINE parameters", SEVERITY_Error);
-
+                                                StringListToVector(Operands[i], SubOptions, '=');
                                                 ToUpper(SubOptions[0]);
-                                                if(SubOptions[0] == "ALIGN")
+                                                auto Option = SubroutineOptionsLookup.find(SubOptions[0]);
+                                                if(Option == SubroutineOptionsLookup.end())
+                                                    throw AssemblyException("Unrecognised SUBROUTINE option", SEVERITY_Warning);
+                                                switch(Option->second)
                                                 {
-                                                    int Align;
-                                                    ToUpper(SubOptions[1]);
-                                                    if(SubOptions[1] == "AUTO")
-                                                        Align = AlignFromSize(CurrentTable->CodeSize);
+                                                case SUBOPT_ALIGN:
+                                                    if(SubOptions.size() != 2)
+                                                        throw AssemblyException("Unrecognised SUBROUTINE ALIGN parameters", SEVERITY_Error);
                                                     else
                                                     {
-                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
-                                                        Align = E.Evaluate(SubOptions[1]);
-                                                        if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
-                                                            throw AssemblyException("SUBROUTINE ALIGN must be 2,4,8,16,32,64,128,256 or AUTO", SEVERITY_Error);
+                                                        ToUpper(SubOptions[1]);
+                                                        int Align;
+                                                        if(SubOptions[1] == "AUTO")
+                                                            Align = AlignFromSize(CurrentTable->CodeSize);
+                                                        else
+                                                        {
+                                                            ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            Align = E.Evaluate(SubOptions[1]);
+                                                            if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
+                                                                throw AssemblyException("SUBROUTINE ALIGN must be 2,4,8,16,32,64,128,256 or AUTO", SEVERITY_Error);
+                                                        }
+                                                        ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                        MainTable.Symbols[Label].Value = ProgramCounter;
                                                     }
-                                                    ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
-                                                    MainTable.Symbols[Label].Value = ProgramCounter;
+                                                    break;
+                                                default:
+                                                    throw AssemblyException("Unrecognised SUBROUTINE option", SEVERITY_Warning);
+                                                    break;
                                                 }
                                             }
-                                            else
-                                                if(Operands.size() != 0)
-                                                    throw AssemblyException(fmt::format("Incorrect number of arguments", fmt::arg("Operand", Operands[0])), SEVERITY_Error);
+                                            CurrentTable->Symbols[Label].Value = ProgramCounter;
                                             break;
                                         }
                                         case ENDSUB:
                                         {
+                                            switch(Operands.size())
+                                            {
+                                            case 0:
+                                                break;
+                                            case 1:
+                                            {
+                                                ExpressionEvaluator E(*CurrentTable, ProgramCounter);
+                                                auto EntryPoint = E.Evaluate(Operands[0]);
+                                                MainTable.Symbols[CurrentTable->Name].Value = EntryPoint;
+                                                break;
+                                            }
+                                            default:
+                                                throw AssemblyException("Incorrect number of arguments", SEVERITY_Error);
+                                            }
                                             CurrentTable = &MainTable;
                                             break;
                                         }
@@ -605,22 +637,33 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         case SUB:
                                         {
                                             CurrentTable = &SubTables[Label];
-                                            if(Operands.size() == 1)
+                                            for(int i = 0; i < Operands.size(); i++)
                                             {
                                                 std::vector<std::string> SubOptions;
-                                                StringListToVector(Operands[0], SubOptions, '=');
-                                                int Align;
-                                                ToUpper(SubOptions[1]);
-                                                if(SubOptions[1] == "AUTO")
-                                                    Align = AlignFromSize(CurrentTable->CodeSize);
-                                                else
+                                                StringListToVector(Operands[i], SubOptions, '=');
+                                                ToUpper(SubOptions[0]);
+                                                auto Option = SubroutineOptionsLookup.find(SubOptions[0]);
+                                                if(Option == SubroutineOptionsLookup.end())
+                                                    throw AssemblyException("Unrecognised SUBROUTINE option", SEVERITY_Warning);
+                                                switch(Option->second)
                                                 {
-                                                    ExpressionEvaluator E(MainTable, ProgramCounter);
-                                                    Align = E.Evaluate(SubOptions[1]);
+                                                case SUBOPT_ALIGN:
+                                                {
+                                                    int Align;
+                                                    ToUpper(SubOptions[1]);
+                                                    if(SubOptions[1] == "AUTO")
+                                                        Align = AlignFromSize(CurrentTable->CodeSize);
+                                                    else
+                                                    {
+                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                        Align = E.Evaluate(SubOptions[1]);
+                                                    }
+                                                    ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
+                                                    break;
                                                 }
-                                                ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                }
                                             }
-                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
                                             ListingFile.Append();
                                             break;
                                         }
@@ -887,44 +930,45 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                 }
             } // while(Source.getLine())...
 
-            if(Pass == 1 && IfNestingLevel != 0)
-                throw AssemblyException("#if Nesting Error or missing #endif", SEVERITY_Warning, false);
-            if(Pass == 3 && !EntryPoint.has_value())
-                throw AssemblyException("END Statement is missing", SEVERITY_Warning, false);
-
-            // Check for overlapping code
-            if(Pass == 3)
+            // Custom processing at the end of each pass
+            switch(Pass)
             {
-                int Overlap = 0;
-                for(auto &Code1 : Code)
+            case 1:
+                // Verify #if nesting structure
+                if(IfNestingLevel != 0)
+                    throw AssemblyException("#if Nesting Error or missing #endif", SEVERITY_Warning, false);
+                break;
+            case 2:
+                break;
+            case 3:
                 {
-                    uint16_t Start1 = Code1.first;
+                    if(!EntryPoint.has_value())
+                        throw AssemblyException("END Statement is missing", SEVERITY_Warning, false);
 
-                    for(auto &Code2 : Code)
+                    // Check for overlapping code
+                    int Overlap = 0;
+                    for(auto &Code1 : Code)
                     {
-                        uint16_t Start2 = Code2.first;
-                        uint16_t End2 = Code2.first + Code2.second.size();
-                        if (Start1 >= Start2 && Start1 < End2)
-                            Overlap++;
-                    }
-                }
-                if(Overlap > Code.size())
-                    throw AssemblyException("Code blocks ovelap", SEVERITY_Warning, false);
-            }
+                        uint16_t Start1 = Code1.first;
 
+                        for(auto &Code2 : Code)
+                        {
+                            uint16_t Start2 = Code2.first;
+                            uint16_t End2 = Code2.first + Code2.second.size();
+                            if (Start1 >= Start2 && Start1 < End2)
+                                Overlap++;
+                        }
+                    }
+                    if(Overlap > Code.size())
+                        throw AssemblyException("Code blocks overlap", SEVERITY_Warning, false);
+                    break;
+                }
+            }
         }
         catch (AssemblyException Ex)
         {
-//            if(Ex.Global)
-//            {
-                PrintError(Ex.Message, Ex.Severity);
-                Errors.Push(Ex.Message, Ex.Severity);
-//            }
-//            else
-//            {
-//                PrintError(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-//                Errors.Push(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-//            }
+            PrintError(Ex.Message, Ex.Severity);
+            Errors.Push(Ex.Message, Ex.Severity);
         }
     } // for(int Pass = 1; Pass <= 3 && Errors.count(SEVERITY_Error) == 0; Pass++)...
 

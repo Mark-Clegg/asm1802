@@ -28,13 +28,15 @@ Any labels defined within the subroutine are local to that subroutine, and
 cannot be referenced elsewhere. The subroutine name itself appears in both the 
 local and global symbol tables, with possibly different values.
 
-### ENDSUB {label}
+### ENDSUB {expression}
 
 Marks the end of a SUBROUTINE definition. If an optional Label is supplied, this must refer 
 to a previously declared Label within the subroutine, and marks the entyr point of that 
 subroutine. This modifies the value of the SUBROUTINE's label in the Master symbol table to
 point to the referenced local label so that any reference to the SUBROUTINE name in main code
 references the local label instead of the first byte of the SUBROUTINE itself.
+
+Note: ENDSUB expression can only reference local labels.
 
 e.g.
 ```

@@ -264,5 +264,6 @@ TokenEnum ExpressionTokenizer::Get()
         throw AssemblyException("Unrecognised token in expression", SEVERITY_Error);
     }
     }
+
     return ID;
 }

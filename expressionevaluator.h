@@ -50,6 +50,7 @@ private:
     int SubExp9();
     int SubExp10();
     int SubExp11();
+    int SubExp12();
 };
 
 #endif // EXPRESSIONEVALUATOR_H

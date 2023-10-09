@@ -36,8 +36,6 @@ subroutine. This modifies the value of the SUBROUTINE's label in the Master symb
 point to the referenced local label so that any reference to the SUBROUTINE name in main code
 references the local label instead of the first byte of the SUBROUTINE itself.
 
-Note: ENDSUB expression can only reference local labels.
-
 e.g.
 ```
 0000 F8 10                  LDI     HIGH(FlashQ)
@@ -114,6 +112,7 @@ Files and Options are processed cumulatively from left to right. When assembling
 | Precedence | Operator | Meaning |
 | :---: | :---: | --- |
 | 1 | + - ~ ! | Unary +, -, Bitwise NOT, Logical NOT |
+| 2 | . | High Low selector e.g. (label.1) |
 | 2 | * / % | Multiply, Divide, Remainder |
 | 3 | + - | Addition, Subtraction |
 | 4 | << >> | Shift Left / Right |

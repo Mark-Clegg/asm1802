@@ -276,11 +276,38 @@ int ExpressionEvaluator::SubExp9()
 }
 
 //!
+//! \brief ExpressionEvaluator::SubExp11
+//! . Postfix operator - select Low ot High byte
+//! \return
+//!
+int ExpressionEvaluator::SubExp10()
+{
+    int Result = SubExp11();
+    if(TokenStream.Peek() == TOKEN_DOT)
+    {
+        TokenStream.Get();
+        int Selector = SubExp11();
+        switch(Selector)
+        {
+        case 0:
+            Result = Result & 0xFF;
+            break;
+        case 1:
+            Result = (Result >> 8) & 0xFF;
+            break;
+        default:
+            throw AssemblyException("Expected .0 or .1 High/Low selector", SEVERITY_Error);
+        }
+    }
+    return Result;
+}
+
+//!
 //! \brief ExpressionEvaluator::SubExp8
 //! Unary PLUS / MINUS / Bitwise NOT / Logical NOT
 //! \return
 //!
-int ExpressionEvaluator::SubExp10()
+int ExpressionEvaluator::SubExp11()
 {
     int Result;
     auto Token = TokenStream.Peek();
@@ -290,22 +317,22 @@ int ExpressionEvaluator::SubExp10()
         switch(Token)
         {
         case TOKEN_PLUS:
-            return SubExp10();
+            return SubExp11();
             break;
         case TOKEN_MINUS:
-            return -SubExp10();
+            return -SubExp11();
             break;
         case TOKEN_BITWISE_NOT:
-            return ~SubExp10();
+            return ~SubExp11();
             break;
         case TOKEN_LOGICAL_NOT:
-            return SubExp10() ? 1 : 0;
+            return SubExp11() ? 1 : 0;
             break;
         default:
             break;
         }
     }
-    return SubExp11();
+    return SubExp12();
 }
 
 //!
@@ -314,7 +341,7 @@ int ExpressionEvaluator::SubExp10()
 //! Constant / Label / Function Call / Bracketed Expression
 //! \return
 //!
-int ExpressionEvaluator::SubExp11()
+int ExpressionEvaluator::SubExp12()
 {
     int Result = 0;
     auto Token = TokenStream.Get();

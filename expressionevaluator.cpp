@@ -351,6 +351,7 @@ int ExpressionEvaluator::SubExp12()
         Result = TokenStream.IntegerValue;
         break;
 
+    case TOKEN_DOLLAR:
     case TOKEN_DOT:
         Result = ProgramCounter;
         break;

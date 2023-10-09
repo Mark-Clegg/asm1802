@@ -11,6 +11,7 @@ enum TokenEnum
     TOKEN_LABEL,
     TOKEN_NUMBER,
     TOKEN_DOT,
+    TOKEN_DOLLAR,
     TOKEN_PLUS,
     TOKEN_MINUS,
     TOKEN_MULTIPLY,

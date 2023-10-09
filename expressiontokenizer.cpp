@@ -104,7 +104,7 @@ TokenEnum ExpressionTokenizer::Get()
     case '$':
         IntegerValue = 0;
         if(!isxdigit(InputStream.peek()))
-            ID = TOKEN_DOT;
+            ID = TOKEN_DOLLAR;
         else
         {
             while(!InputStream.eof() && !InputStream.fail() && isxdigit(InputStream.peek()))

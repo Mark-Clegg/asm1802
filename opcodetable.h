@@ -143,7 +143,11 @@ enum OpCodeEnum
     PROCESSOR = 0xFF07,
     ALIGN     = 0xFF08,
     ASSERT    = 0xFF09,
-    END       = 0xFF0A
+    MACRO     = 0xFF0A,
+    ENDMACRO  = 0xFF0B,
+    MACROEXPANSION = 0xFF0C,
+    END            = 0xFF0D
+
 };
 
 enum OpCodeTypeEnum
@@ -172,7 +176,11 @@ enum CPUTypeEnum
 class OpCodeSpec
 {
 public:
+//    OpCodeSpec();
+//    OpCodeSpec(OpCodeEnum OpCode, OpCodeTypeEnum OpCodeType, CPUTypeEnum CPUType);
+//    OpCodeSpec(OpCodeEnum OpCode, std::string& Mnemonic, OpCodeTypeEnum OpCodeType, CPUTypeEnum CPUType);
     OpCodeEnum OpCode;
+//    std::string Mnemonic;
     OpCodeTypeEnum OpCodeType;
     CPUTypeEnum CPUType;
 };

@@ -32,9 +32,21 @@ void ListingFileWriter::Append()
         {
             ListStream.open(ListFileName, std::ofstream::out | std::ofstream::trunc);
         }
-        std::string FileName = fs::path(Source.getFileName()).filename();
-        if(FileName.length() > 20)
-            FileName = FileName.substr(0, 17) + "...";
+        std::string FileName;
+        std::string ErrorFileName;
+        switch(Source.getStreamType())
+        {
+        case SourceCodeReader::SourceType::SOURCE_FILE:
+            FileName = fs::path(Source.getName()).filename();
+            ErrorFileName = FileName;
+            if(FileName.length() > 20)
+                FileName = FileName.substr(0, 17) + "...";
+            break;
+        case SourceCodeReader::SourceType::SOURCE_LITERAL:
+            FileName = fmt::format("Macro: {Name}", fmt::arg("Name", Source.getName()));
+            ErrorFileName = Source.getName();
+            break;
+        }
 
         fmt::print(ListStream, "[{filename:22}({linenumber:5})] |                    |  {line}\n",
                    fmt::arg("filename", FileName),
@@ -42,7 +54,7 @@ void ListingFileWriter::Append()
                    fmt::arg("line", Source.getLastLine())
                    );
 
-        PrintError(FileName, Source.getLineNumber());
+        PrintError(ErrorFileName, Source.getLineNumber());
     }
 }
 
@@ -54,9 +66,21 @@ void ListingFileWriter::Append(const std::uint16_t Address, const std::vector<st
         {
             ListStream.open(ListFileName, std::ofstream::out | std::ofstream::trunc);
         }
-        std::string FileName = fs::path(Source.getFileName()).filename();
-        if(FileName.length() > 20)
-            FileName = FileName.substr(0, 17) + "...";
+        std::string FileName;
+        std::string ErrorFileName;
+        switch(Source.getStreamType())
+        {
+        case SourceCodeReader::SourceType::SOURCE_FILE:
+            FileName = fs::path(Source.getName()).filename();
+            ErrorFileName = FileName;
+            if(FileName.length() > 20)
+                FileName = FileName.substr(0, 17) + "...";
+            break;
+        case SourceCodeReader::SourceType::SOURCE_LITERAL:
+            FileName = fmt::format("Macro: {Name}", fmt::arg("Name", Source.getName()));
+            ErrorFileName = Source.getName();
+            break;
+        }
 
         for(int i = 0; i < (Data.size() - 1) / 4 + 1; i++)
         {
@@ -82,7 +106,7 @@ void ListingFileWriter::Append(const std::uint16_t Address, const std::vector<st
             ListStream << std::endl;
         }
 
-        PrintError(FileName, Source.getLineNumber());
+        PrintError(ErrorFileName, Source.getLineNumber());
     }
 }
 

@@ -22,15 +22,15 @@
 
 namespace fs = std::filesystem;
 
+enum SubroutineOptionsEnum
+{
+    SUBOPT_ALIGN
+};
+
 enum OutputFormatEnum
 {
     INTEL_HEX,
     IDIOT4
-};
-
-enum SubroutineOptionsEnum
-{
-    SUBOPT_ALIGN
 };
 
 std::map<std::string, OutputFormatEnum> OutputFormatLookup = {
@@ -49,7 +49,6 @@ bool assemble(const std::string&, bool ListingEnabled, bool DumpSymbols, OutputF
 void PrintError(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity);
 void PrintError(const std::string& Message, AssemblyErrorSeverity Severity);
 void PrintSymbols(const std::string & Name, const SymbolTable& Table);
-
 bool NoRegisters = false;   // Suppress pre-defined Register equates
 bool NoPorts     = false;   // Suppress pre-defined Port equates
 
@@ -410,6 +409,57 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             CurrentTable = &MainTable;
                                             break;
                                         }
+                                        case MACRO:
+                                        {
+                                            Macro& MacroDefinition = CurrentTable->Macros[Label];
+                                            std::regex ArgMatch(R"(^[A-Za-z][A-Za-z0-9_]*$)");
+                                            for(auto& Argument : Operands)
+                                                if(std::regex_match(Argument, ArgMatch))
+                                                    if(std::find(MacroDefinition.Arguments.begin(), MacroDefinition.Arguments.end(), Argument) == MacroDefinition.Arguments.end())
+                                                        MacroDefinition.Arguments.push_back(Argument);
+                                                    else
+                                                        throw AssemblyException("Macro arguments must be unique", SEVERITY_Error);
+                                                else
+                                                    throw AssemblyException(fmt::format("Invalid argument name: '{Name}'", fmt::arg("Name", Argument)), SEVERITY_Error);
+
+                                            std::string Expansion;
+                                            while(Source.getLine(OriginalLine))
+                                            {
+                                                std::string Line = trim(OriginalLine);
+                                                ExpandDefines(Line, Defines);
+                                                std::optional<OpCodeSpec> OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
+                                                if(!Label.empty())
+                                                    throw AssemblyException("Cannot define a label inside a macro", SEVERITY_Error);
+                                                if(OpCode.has_value() && OpCode.value().OpCode == ENDMACRO)
+                                                    break;
+                                                Expansion.append(Line);
+                                                Expansion.append("\n");
+                                            }
+                                            MacroDefinition.Expansion = Expansion;
+                                            break;
+                                        }
+                                        case ENDMACRO:
+                                            throw AssemblyException("ENDMACRO without opening MACRO pseudo-op", SEVERITY_Error);
+                                            break;
+                                        case MACROEXPANSION:
+                                        {
+                                            auto MacroDefinition = CurrentTable->Macros.find(Mnemonic);
+                                            std::string MacroExpansion;
+                                            if(MacroDefinition != CurrentTable->Macros.end())
+                                                ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
+                                            else
+                                                if(CurrentTable != &MainTable)
+                                                {
+                                                    MacroDefinition = MainTable.Macros.find(Mnemonic);
+                                                    if(MacroDefinition != MainTable.Macros.end())
+                                                        ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
+                                                }
+                                            if(!MacroExpansion.empty())
+                                                Source.IncludeLiteral(Mnemonic, MacroExpansion);
+                                            else
+                                                throw AssemblyException("Unknown OpCode", SEVERITY_Error);
+                                            break;
+                                        }
                                         case DB:
                                         {
                                             for(auto& Operand : Operands)
@@ -464,7 +514,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                 }
                                 case 2: // Generate Symbol Tables
                                 {
-                                    if(!Label.empty())
+                                    if(!Label.empty() && (!OpCode.has_value() || OpCode.value().OpCode != MACRO))
                                     {
                                         if(CurrentTable->Symbols.find(Label) == CurrentTable->Symbols.end())
                                             CurrentTable->Symbols[Label].Value = ProgramCounter;
@@ -552,6 +602,37 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                 throw AssemblyException("Incorrect number of arguments", SEVERITY_Error);
                                             }
                                             CurrentTable = &MainTable;
+                                            break;
+                                        }
+                                        case MACRO:
+                                        {
+                                            while(Source.getLine(OriginalLine))
+                                            {
+                                                std::string Line = trim(OriginalLine);
+                                                ExpandDefines(Line, Defines);
+                                                std::optional<OpCodeSpec> OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
+                                                if(OpCode.has_value() && OpCode.value().OpCode == ENDMACRO)
+                                                    break;
+                                            }
+                                            break;
+                                        }
+                                        case MACROEXPANSION:
+                                        {
+                                            auto MacroDefinition = CurrentTable->Macros.find(Mnemonic);
+                                            std::string MacroExpansion;
+                                            if(MacroDefinition != CurrentTable->Macros.end())
+                                                ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
+                                            else
+                                                if(CurrentTable != &MainTable)
+                                                {
+                                                    MacroDefinition = MainTable.Macros.find(Mnemonic);
+                                                    if(MacroDefinition != MainTable.Macros.end())
+                                                        ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
+                                                }
+                                            if(!MacroExpansion.empty())
+                                                Source.IncludeLiteral(Mnemonic, MacroExpansion);
+                                            else
+                                                throw AssemblyException("Unknown OpCode", SEVERITY_Error);
                                             break;
                                         }
                                         case ORG:
@@ -671,6 +752,40 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         {
                                             CurrentTable = &MainTable;
                                             ListingFile.Append();
+                                            break;
+                                        }
+                                        case MACRO:
+                                        {
+                                            ListingFile.Append();
+                                            while(Source.getLine(OriginalLine))
+                                            {
+                                                ListingFile.Append();
+                                                std::string Line = trim(OriginalLine);
+                                                ExpandDefines(Line, Defines);
+                                                std::optional<OpCodeSpec> OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
+                                                if(OpCode.has_value() && OpCode.value().OpCode == ENDMACRO)
+                                                    break;
+                                            }
+                                            break;
+                                        }
+                                        case MACROEXPANSION:
+                                        {
+                                            auto MacroDefinition = CurrentTable->Macros.find(Mnemonic);
+                                            std::string MacroExpansion;
+                                            if(MacroDefinition != CurrentTable->Macros.end())
+                                                ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
+                                            else
+                                                if(CurrentTable != &MainTable)
+                                                {
+                                                    MacroDefinition = MainTable.Macros.find(Mnemonic);
+                                                    if(MacroDefinition != MainTable.Macros.end())
+                                                        ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
+                                                }
+                                            ListingFile.Append();
+                                            if(!MacroExpansion.empty())
+                                                Source.IncludeLiteral(Mnemonic, MacroExpansion);
+                                            else
+                                                throw AssemblyException("Unknown OpCode", SEVERITY_Error);
                                             break;
                                         }
                                         case ORG:
@@ -910,8 +1025,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                             }
                             catch (AssemblyException Ex)
                             {
-                                PrintError(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-                                Errors.Push(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                                PrintError(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                                Errors.Push(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
                                 if (Pass == 3) {
                                     ListingFile.Append();
                                 }
@@ -925,8 +1040,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                 }
                 catch (AssemblyException Ex)
                 {
-                    PrintError(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-                    Errors.Push(Source.getFileName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                    PrintError(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                    Errors.Push(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
                 }
             } // while(Source.getLine())...
 
@@ -1050,7 +1165,6 @@ void DumpCode(const std::map<uint16_t, std::vector<uint8_t>>& Code)
     }
 }
 #endif
-
 
 //!
 //! \brief PrintError

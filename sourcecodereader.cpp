@@ -1,22 +1,22 @@
 #include "assemblyexception.h"
 #include "sourcecodereader.h"
 
-SourceCodeReader::SourceEntry::SourceEntry(SourceType Type, const std::string& Name) :
-    Type(Type),
+SourceCodeReader::SourceEntry::SourceEntry(const std::string& Name) :
     Name(Name),
     LineNumber(0)
 {
-    switch(Type)
-    {
-    case SOURCE_FILE:
-        Stream = new std::ifstream(Name);
+    this->Type = SourceType::SOURCE_FILE;
+    Stream = new std::ifstream(Name);
         if(Stream->fail())
             throw AssemblyException("Unable to open " + Name, SEVERITY_Error);
-        break;
-    case SOURCE_LITERAL:
-        Stream = new std::istringstream(Name);
-        break;
-    }
+}
+
+SourceCodeReader::SourceEntry::SourceEntry(const std::string& Name, const std::string& Data) :
+    Name(Name),
+    LineNumber(0)
+{
+    this->Type = SourceType::SOURCE_LITERAL;
+    Stream = new std::istringstream(Data);
 }
 
 bool SourceCodeReader::getLine(std::string &Line)
@@ -55,37 +55,28 @@ const int SourceCodeReader::getLineNumber() const
         throw std::exception();
 }
 
-const std::string& SourceCodeReader::getFileName() const
+const std::string& SourceCodeReader::getName() const
 {
-    static const std::string Empty = "";
+    return SourceStreams.top().Name;
+}
 
-    if(SourceStreams.size() > 0)
-    {
-        switch(SourceStreams.top().Type)
-        {
-        case SOURCE_FILE:
-            return SourceStreams.top().Name;
-            break;
-        case SOURCE_LITERAL:
-            return Empty;
-            break;
-        }
-    }
-    return Empty;
+const SourceCodeReader::SourceType SourceCodeReader::getStreamType() const
+{
+    return SourceStreams.top().Type;
 }
 
 void SourceCodeReader::IncludeFile(const std::string& FileName)
 {
     try {
-        SourceEntry Entry(SOURCE_FILE, FileName);
+        SourceEntry Entry(FileName);
         SourceStreams.push(Entry);
     } catch (...) {
         throw AssemblyException("Unable to open " + FileName, SEVERITY_Error);
     }
 }
 
-void SourceCodeReader::IncludeLiteral(const std::string& Data)
+void SourceCodeReader::IncludeLiteral(const std::string& Name, const std::string& Data)
 {
-    SourceEntry Entry(SOURCE_LITERAL, Data);
+    SourceEntry Entry(Name, Data);
     SourceStreams.push(Entry);
 }

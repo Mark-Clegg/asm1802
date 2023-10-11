@@ -2,11 +2,14 @@
 #define UTILS_H
 
 #include <cstdint>
+#include <fmt/core.h>
+#include <fmt/ostream.h>
 #include <iostream>
 #include <optional>
 #include <regex>
 #include <string>
 #include "definemap.h"
+#include "macro.h"
 #include "opcodetable.h"
 #include "sourcecodereader.h"
 
@@ -34,5 +37,6 @@ std::string basename(const std::string FileName);
 int AlignFromSize(int Size);
 inline void ToUpper(std::string& In) { std::transform(In.begin(), In.end(), In.begin(), ::toupper); }
 void StringToByteVector(const std::string& Operand, std::vector<uint8_t>& Data);
+void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operands, std::string& Output);
 
 #endif // UTILS_H

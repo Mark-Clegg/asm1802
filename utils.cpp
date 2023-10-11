@@ -182,7 +182,8 @@ void ExpandDefines(std::string& Line, DefineMap& Defines)
     for(auto& Define : Defines)
     {
         std::string out;
-        bool inQuotes = false;
+        bool inSingleQuotes = false;
+        bool inDoubleQuotes = false;
         bool inEscape = false;
         while(Line.size() > 0)
         {
@@ -196,39 +197,55 @@ void ExpandDefines(std::string& Line, DefineMap& Defines)
             }
             else
             {
-                if(inQuotes)
+                if(inSingleQuotes)
                 {
-                    out += ch;;
+                    out += ch;
                     Line.erase(0,1);
 
                     if(ch == '\\')
                         inEscape = true;
 
-                    if(inQuotes && ch == '\"' && !inEscape)
-                        inQuotes = false;
+                    if(inSingleQuotes && ch == '\'' && !inEscape)
+                        inSingleQuotes = false;
                 }
                 else
                 {
-                    if(ch == '\"')
-                        inQuotes = true;
-
-                    std::string FirstWord;
-                    std::smatch MatchResult;
-                    if(regex_match(Line, MatchResult, std::regex(R"(^(\w+).*)")))
+                    if(inDoubleQuotes)
                     {
-                        FirstWord = MatchResult[1];
-                        if(FirstWord == Define)
-                        {
-                            out += Defines[FirstWord]; // TODO Update to expand Macro Parameters if implemented
-                        }
-                        else
-                            out += FirstWord;
-                        Line.erase(0,FirstWord.size());
+                        out += ch;;
+                        Line.erase(0,1);
+
+                        if(ch == '\\')
+                            inEscape = true;
+
+                        if(inDoubleQuotes && ch == '\"' && !inEscape)
+                            inDoubleQuotes = false;
                     }
                     else
                     {
-                        out += Line[0];
-                        Line.erase(0,1);
+                        if(ch == '\'')
+                            inSingleQuotes = true;
+                        if(ch == '\"')
+                            inDoubleQuotes = true;
+
+                        std::string FirstWord;
+                        std::smatch MatchResult;
+                        if(regex_match(Line, MatchResult, std::regex(R"(^(\w+).*)")))
+                        {
+                            FirstWord = MatchResult[1];
+                            if(FirstWord == Define)
+                            {
+                                out += Defines[FirstWord];
+                            }
+                            else
+                                out += FirstWord;
+                            Line.erase(0,FirstWord.size());
+                        }
+                        else
+                        {
+                            out += Line[0];
+                            Line.erase(0,1);
+                        }
                     }
                 }
             }
@@ -248,7 +265,7 @@ void ExpandDefines(std::string& Line, DefineMap& Defines)
 const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& Mnemonic, std::vector<std::string>& OperandList)
 {
     std::smatch MatchResult;
-    if(regex_match(Line, MatchResult, std::regex(R"(^(((\w+):?\s*)|\s+)((\w+)(\s+(.*))?)?$)"))) // Label: OpCode Operands
+    if(regex_match(Line, MatchResult, std::regex(R"(^(((\w+):?\s*)|\s+)((\w+)(\s+(.*))?)?$)"))) // Label{:} OpCode Operands
     {
         // Extract Label, OpCode and Operands
         std::string Operands;
@@ -270,7 +287,7 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
         }
         catch (std::out_of_range Ex)
         {
-            throw AssemblyException("Unrecognised Mnemonic", SEVERITY_Error);
+            MachineWord = { MACROEXPANSION, PSEUDO_OP, CPU_1802 };
         }
         return MachineWord;
     }
@@ -403,4 +420,44 @@ void StringToByteVector(const std::string& Operand, std::vector<uint8_t>& Data)
         throw AssemblyException("String constant is empty", SEVERITY_Error);
     if(!QuoteClosed)
         throw AssemblyException("unterminated string constant", SEVERITY_Error);
+}
+
+//!
+//! \brief ExpandMacro
+//! Apply the Operands to the Macro Arguments, and return the Expanded string with the operands replaced.
+//! \param Definition
+//! \param Operands
+//! \return
+//!
+void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operands, std::string& Output)
+{
+    if(Definition.Arguments.size() != Operands.size())
+        throw AssemblyException(fmt::format("Incorrect number of arguments passed to macro. Received {In}, Expected {Out}", fmt::arg("In", Operands.size()), fmt::arg("Out", Definition.Arguments.size())), SEVERITY_Error);
+
+    std::map<std::string, std::string> Parameters;
+    for(int i=0; i < Definition.Arguments.size(); i++)
+        Parameters[Definition.Arguments[i]] = Operands[i];
+
+    std::string Input = Definition.Expansion;
+    std::regex IdentifierRegex(R"(^([A-Za-z][A-Za-z0-9_]*).*$)", std::regex::extended);
+    std::smatch MatchResult;
+
+    while(Input.size() > 0)
+    {
+        auto p = std::regex_match(Input, MatchResult, IdentifierRegex);
+        if(regex_match(Input, MatchResult, IdentifierRegex))
+        {
+            std::string Identifier = MatchResult[1];
+            if(Parameters.find(Identifier) != Parameters.end())
+                Output += Parameters[Identifier];
+            else
+                Output += Identifier;
+            Input.erase(0, Identifier.size());
+        }
+        else
+        {
+            Output += Input[0];
+            Input.erase(0, 1);
+        }
+    }
 }

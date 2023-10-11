@@ -8,6 +8,7 @@
 
 class SourceCodeReader
 {
+public:
     enum SourceType
     {
         SOURCE_FILE,
@@ -24,7 +25,8 @@ class SourceCodeReader
         int LineNumber;
         std::istream* Stream;
 
-        SourceEntry(SourceType Type, const std::string& Name);
+        SourceEntry(const std::string& Name);                           // For a File Stream
+        SourceEntry(const std::string& Name, const std::string& Data);  // For a Literal Stream
     };
 
 private:
@@ -33,11 +35,12 @@ private:
 
 public:
     void IncludeFile(const std::string& FileName);
-    void IncludeLiteral(const std::string& Data);
+    void IncludeLiteral(const std::string& Name, const std::string& Data);
     bool getLine(std::string& line);
     const std::string& getLastLine() const;
     const int getLineNumber() const;
-    const std::string& getFileName() const;
+    const std::string& getName() const;
+    const SourceType getStreamType() const;
 };
 
 #endif // SOURCECODEREADER_H

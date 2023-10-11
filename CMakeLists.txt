@@ -24,6 +24,7 @@ add_executable(asm1802 main.cpp
     binarywriter.h binarywriter.cpp
     binarywriter_intelhex.h binarywriter_intelhex.cpp
     binarywriter_idiot4.h binarywriter_idiot4.cpp
+    macro.h macro.cpp
     )
 
 install(TARGETS asm1802

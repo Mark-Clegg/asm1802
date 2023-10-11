@@ -139,6 +139,9 @@ const std::map<std::string, OpCodeSpec> OpCodeTable::OpCode = {
     { "PROCESSOR",  { PROCESSOR, PSEUDO_OP,             CPU_1802  }},
     { "ALIGN",      { ALIGN,     PSEUDO_OP,             CPU_1802  }},
     { "ASSERT",     { ASSERT,    PSEUDO_OP,             CPU_1802  }},
+    { "MACRO",      { MACRO,     PSEUDO_OP,             CPU_1802  }},
+    { "ENDMACRO",   { ENDMACRO,  PSEUDO_OP,             CPU_1802  }},
+    { "ENDM",       { ENDMACRO,  PSEUDO_OP,             CPU_1802  }},
     { "END",        { END,       PSEUDO_OP,             CPU_1802  }}
 };
 
@@ -172,3 +175,22 @@ const std::map<std::string, CPUTypeEnum> OpCodeTable::CPUTable = {
     { "CDP1805A", CPU_1806A },
     { "CDP1806A", CPU_1806A }
 };
+
+//OpCodeSpec::OpCodeSpec()
+//{
+//}
+
+//OpCodeSpec::OpCodeSpec(OpCodeEnum OpCode, OpCodeTypeEnum OpCodeType, CPUTypeEnum CPUType)
+//{
+//    this->OpCode = OpCode;
+//    this->OpCodeType = OpCodeType;
+//    this->CPUType = CPUType;
+//}
+
+//OpCodeSpec::OpCodeSpec(OpCodeEnum OpCode, std::string& Mnemonic, OpCodeTypeEnum OpCodeType, CPUTypeEnum CPUType)
+//{
+//    this->OpCode = OpCode;
+//    this->Mnemonic = Mnemonic;
+//    this->OpCodeType = OpCodeType;
+//    this->CPUType = CPUType;
+//}

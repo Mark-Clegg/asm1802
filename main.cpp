@@ -1204,23 +1204,9 @@ void PrintError(const std::string& SourceFileName, const int LineNumber, const s
 
 void PrintError(const std::string& Message, AssemblyErrorSeverity Severity)
 {
-    try // Source may not contain anything...
-    {
-        fmt::print("[{filename:22}({linenumber:5})] {line}\n",
-                   fmt::arg("filename", " "),
-                   fmt::arg("linenumber", " "),
-                   fmt::arg("line", " ")
-                   );
-        fmt::print("***************{severity:*>15}: {message}\n",
-                   fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
-                   fmt::arg("message", Message));
-    }
-    catch(...)
-    {
-        fmt::print("***************{severity:*>15}: {message}\n",
-                   fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
-                   fmt::arg("message", Message));
-    }
+    fmt::print("***************{severity:*>15}: {message}\n",
+               fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
+               fmt::arg("message", Message));
 }
 
 

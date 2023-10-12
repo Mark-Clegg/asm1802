@@ -22,6 +22,8 @@
 
 namespace fs = std::filesystem;
 
+std::string Version("0.1");
+
 enum SubroutineOptionsEnum
 {
     SUBOPT_ALIGN
@@ -66,6 +68,8 @@ int main(int argc, char **argv)
         { "noregisters", no_argument,       0, 'r' }, // Do not pre-define labels for Registers (R0-F, R0-15)
         { "noports",     no_argument,       0, 'p' }, // No not pre-define labels for Ports (P1-7)
         { "output",      required_argument, 0, 'o' }, // Set output file type (default = Intel Hex)
+        { "version",     no_argument,       0, 'v' }, // Print version number and exit
+        { "help",        no_argument,       0, '?' }, // Print using information
         { 0,0,0,0 }
     };
 
@@ -75,12 +79,10 @@ int main(int argc, char **argv)
     int FileCount = 0;
     int FilesAssembled = 0;
     while (1) {
+        const int opt = getopt_long(argc, argv, "-D:U:lso:v?", longopts, 0);
 
-        const int opt = getopt_long(argc, argv, "-D:U:lso:", longopts, 0);
-
-        if (opt == -1) {
+        if (opt == -1)
             break;
-        }
 
         switch (opt) {
         case 1:
@@ -148,9 +150,45 @@ int main(int argc, char **argv)
                 OutputFormat = OutputFormatLookup.at(Mode);
             break;
         }
+        case 'v':
+        {
+            fmt::print("{version}\n", fmt::arg("version", Version));
+            return 0;
+        }
+        case '?':
+        {
+            std::string FileName = fs::path(argv[0]).filename();
+            fmt::println("{FileName}: Version {Version}", fmt::arg("FileName", FileName), fmt::arg("Version", Version));
+            fmt::println("Macro Assembler for the COSMAC CDP1802 series MicroProcessor");
+            fmt::println("Usage:");
+            fmt::println("asm1802 <options> SourceFile <options>");
+            fmt::println("");
+            fmt::println("Options:");
+            fmt::println("-D|--define Name{{=value}}");
+            fmt::println("\tDefine preprocessor variable");
+            fmt::println("-U|--undefine Name");
+            fmt::println("\tUndefine preprocessor variable");
+            fmt::println("-l|--list");
+            fmt::println("\tCreate listing file");
+            fmt::println("-s|--symbols");
+            fmt::println("\tInclude Symbol Tables in listing");
+            fmt::println("--noregisters");
+            fmt::println("\tDo not predefine R0-RF register symbols");
+            fmt::println("--noports");
+            fmt::println("\tDo not predefine P1-P7 port symbols");
+            fmt::println("-o|--output format");
+            fmt::println("\tCreate output file in \"intelhex\" or \"idiiot4\" format");
+            fmt::println("-v|--version");
+            fmt::println("\tPrint version number and exit");
+            fmt::println("-?|--help");
+            fmt::println("\tPrint thie help and exit");
+            return 0;
+        }
         default:
-            return 1;
+        {
             fmt::print("Error\n");
+            return 1;
+        }
         }
     }
 

@@ -82,7 +82,7 @@ Files and Options are processed cumulatively from left to right. When assembling
 | | --noregisters | Do not predefine Register equates (R0-RF) |
 | | --noports | Do not predefine Post equates (P1-P7) |
 
-## Numberical Constants
+## Numerical Constants
 
 | Format | Meaning |
 | --- | --- |
@@ -90,6 +90,7 @@ Files and Options are processed cumulatively from left to right. When assembling
 | 0123 | Octal |
 | $1234 | Hexadecimal |
 | 0x1234 | Hexadecimal |
+| . / $ | Current Address |
 
 ## Pseudo Operators
 
@@ -129,3 +130,23 @@ Files and Options are processed cumulatively from left to right. When assembling
  | --- | --- | --- |
  | HIGH | value | High order 8 bits of value |
  | LOW | value | LOW order 8 bits of value |
+
+## Macros
+
+```
+; Definition
+NAME    MACRO   Param1, Param2... , ParamN
+        Assembly code
+        ENDMACRO
+; usage        
+        NAME    1, "Hello", 'C'
+```
+... defines a Macro named LABEL. Macros can be used anywhere in code, by using 
+LABEL as the OpCode, followed by a matching list of arguments.
+During assembly, Param1..N are substituted from the call.
+
+### Notes
+
+- Macros defined inside a subroutine, are local to that subroutine.
+
+- Macros cannot contain labels.

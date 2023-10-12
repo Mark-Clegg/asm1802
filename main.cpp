@@ -243,18 +243,13 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
         for(int i=0; i<16; i++)
         {
             MainTable.Symbols[fmt::format("R{n}",   fmt::arg("n", i))] = { i, true };
-            MainTable.Symbols[fmt::format("r{n}",   fmt::arg("n", i))] = { i, true };
-            MainTable.Symbols[fmt::format("R{n:x}", fmt::arg("n", i))] = { i, true };
             MainTable.Symbols[fmt::format("R{n:X}", fmt::arg("n", i))] = { i, true };
-            MainTable.Symbols[fmt::format("r{n:x}", fmt::arg("n", i))] = { i, true };
-            MainTable.Symbols[fmt::format("r{n:X}", fmt::arg("n", i))] = { i, true };
         }
     // Pre-Define LABELS for Ports
     if(!NoPorts)
         for(int i=1; i<8; i++)
         {
             MainTable.Symbols[fmt::format("P{n}",   fmt::arg("n", i))] = { i, true };
-            MainTable.Symbols[fmt::format("p{n}",   fmt::arg("n", i))] = { i, true };
         }
 
     SourceCodeReader Source;
@@ -449,9 +444,16 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         }
                                         case MACRO:
                                         {
+                                            if(CurrentTable->Macros.find(Label) != CurrentTable->Macros.end())
+                                                throw AssemblyException(fmt::format("Macro '{Macro}' is already defined", fmt::arg("Macro", Label)));
+                                            if(OpCodeTable::OpCode.find(Label) != OpCodeTable::OpCode.end())
+                                                throw AssemblyException(fmt::format("Cannot use reserved word '{OpCode}' as a Macro name", fmt::arg("OpCode", Label)));
                                             Macro& MacroDefinition = CurrentTable->Macros[Label];
-                                            std::regex ArgMatch(R"(^[A-Za-z][A-Za-z0-9_]*$)");
-                                            for(auto& Argument : Operands)
+                                            std::regex ArgMatch(R"(^[A-Z][A-Z0-9_]*$)");
+                                            for(auto& Arg : Operands)
+                                            {
+                                                std::string Argument(Arg);
+                                                ToUpper(Argument);
                                                 if(std::regex_match(Argument, ArgMatch))
                                                     if(std::find(MacroDefinition.Arguments.begin(), MacroDefinition.Arguments.end(), Argument) == MacroDefinition.Arguments.end())
                                                         MacroDefinition.Arguments.push_back(Argument);
@@ -459,6 +461,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         throw AssemblyException("Macro arguments must be unique", SEVERITY_Error);
                                                 else
                                                     throw AssemblyException(fmt::format("Invalid argument name: '{Name}'", fmt::arg("Name", Argument)), SEVERITY_Error);
+                                            }
 
                                             std::string Expansion;
                                             while(Source.getLine(OriginalLine))

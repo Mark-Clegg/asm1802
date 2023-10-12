@@ -270,6 +270,7 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
         // Extract Label, OpCode and Operands
         std::string Operands;
         Label = MatchResult[3];
+        ToUpper(Label);
         Mnemonic = MatchResult[5];
 
         if(Mnemonic.length() == 0)
@@ -444,10 +445,10 @@ void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operan
 
     while(Input.size() > 0)
     {
-        auto p = std::regex_match(Input, MatchResult, IdentifierRegex);
         if(regex_match(Input, MatchResult, IdentifierRegex))
         {
             std::string Identifier = MatchResult[1];
+            ToUpper(Identifier);
             if(Parameters.find(Identifier) != Parameters.end())
                 Output += Parameters[Identifier];
             else

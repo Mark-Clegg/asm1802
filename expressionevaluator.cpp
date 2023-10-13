@@ -477,7 +477,6 @@ bool ExpressionEvaluator::GetFunctionArguments(std::vector<int> &Arguments, int 
 //!
 uint16_t ExpressionEvaluator::SymbolValue(std::string Label)
 {
-    ToUpper(Label);
     if(LocalSymbols)
     {
         auto Symbol = Local->Symbols.find(Label);

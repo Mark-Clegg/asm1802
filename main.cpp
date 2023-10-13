@@ -47,7 +47,6 @@ std::map<std::string, SubroutineOptionsEnum> SubroutineOptionsLookup = {
 DefineMap GlobalDefines;   // global #defines persist for all files following on the command line
 
 bool assemble(const std::string&, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode);
-
 void PrintError(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity);
 void PrintError(const std::string& Message, AssemblyErrorSeverity Severity);
 void PrintSymbols(const std::string & Name, const SymbolTable& Table);
@@ -114,6 +113,8 @@ int main(int argc, char **argv)
                 key = trimmedKvp;
                 value = "";
             }
+            ToUpper(key);
+            ToUpper(value);
             if(GlobalDefines.contains(key))
                 fmt::print("** Warning: Macro redeclared: {key}\n", fmt::arg("key", key));
             GlobalDefines[key] = value;
@@ -121,9 +122,12 @@ int main(int argc, char **argv)
         }
 
         case 'U':
+        {
+            std::string key = optarg;
+            ToUpper(key);
             GlobalDefines.erase(optarg);
             break;
-
+        }
         case 'l':
             Listing = true;
             break;
@@ -378,9 +382,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                             }
                             case PP_list:
                             {
-                                if(Expression == "on")
+                                if(Expression == "ON")
                                     ListingFile.Enabled = true;
-                                else if(Expression == "off")
+                                else if(Expression == "OFF")
                                     ListingFile.Enabled = false;
                                 else
                                     throw AssemblyException("#list must specify 'on' or 'off'", SEVERITY_Warning);
@@ -388,9 +392,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                             }
                             case PP_symbols:
                             {
-                                if(Expression == "on")
+                                if(Expression == "ON")
                                     DumpSymbols = true;
-                                else if(Expression == "off")
+                                else if(Expression == "OFF")
                                     DumpSymbols = false;
                                 else
                                     throw AssemblyException("#symbols must specify 'on' or 'off'", SEVERITY_Warning);
@@ -453,7 +457,6 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             for(auto& Arg : Operands)
                                             {
                                                 std::string Argument(Arg);
-                                                ToUpper(Argument);
                                                 if(std::regex_match(Argument, ArgMatch))
                                                     if(std::find(MacroDefinition.Arguments.begin(), MacroDefinition.Arguments.end(), Argument) == MacroDefinition.Arguments.end())
                                                         MacroDefinition.Arguments.push_back(Argument);
@@ -592,7 +595,6 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             {
                                                 std::vector<std::string> SubOptions;
                                                 StringListToVector(Operands[i], SubOptions, '=');
-                                                ToUpper(SubOptions[0]);
                                                 auto Option = SubroutineOptionsLookup.find(SubOptions[0]);
                                                 if(Option == SubroutineOptionsLookup.end())
                                                     throw AssemblyException("Unrecognised SUBROUTINE option", SEVERITY_Warning);
@@ -603,7 +605,6 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         throw AssemblyException("Unrecognised SUBROUTINE ALIGN parameters", SEVERITY_Error);
                                                     else
                                                     {
-                                                        ToUpper(SubOptions[1]);
                                                         int Align;
                                                         if(SubOptions[1] == "AUTO")
                                                             Align = AlignFromSize(CurrentTable->CodeSize);
@@ -763,7 +764,6 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             {
                                                 std::vector<std::string> SubOptions;
                                                 StringListToVector(Operands[i], SubOptions, '=');
-                                                ToUpper(SubOptions[0]);
                                                 auto Option = SubroutineOptionsLookup.find(SubOptions[0]);
                                                 if(Option == SubroutineOptionsLookup.end())
                                                     throw AssemblyException("Unrecognised SUBROUTINE option", SEVERITY_Warning);
@@ -772,7 +772,6 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                 case SUBOPT_ALIGN:
                                                 {
                                                     int Align;
-                                                    ToUpper(SubOptions[1]);
                                                     if(SubOptions[1] == "AUTO")
                                                         Align = AlignFromSize(CurrentTable->CodeSize);
                                                     else

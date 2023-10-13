@@ -1,5 +1,6 @@
 #include "assemblyexception.h"
 #include "sourcecodereader.h"
+#include "utils.h"
 
 SourceCodeReader::SourceEntry::SourceEntry(const std::string& Name) :
     Name(Name),
@@ -30,6 +31,7 @@ bool SourceCodeReader::getLine(std::string &Line)
                 Line.pop_back();
 
             LastLine = Line;
+            ToUpper(Line);
             SourceStreams.top().LineNumber++;
             return true;
         }

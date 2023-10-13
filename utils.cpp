@@ -4,20 +4,20 @@
 #include "utils.h"
 
 const std::map<std::string, PreProcessorDirectiveEnum> PreProcessorDirectives = {
-    { "define",      PP_define  },
-    { "undef",       PP_undef   },
-    { "undefine",    PP_undef   },
-    { "if",          PP_if      },
-    { "ifdef",       PP_ifdef   },
-    { "ifdefined",   PP_ifdef   },
-    { "ifndef",      PP_ifndef  },
-    { "ifundef",     PP_ifndef  },
-    { "ifundefined", PP_ifndef  },
-    { "else",        PP_else    },
-    { "endif",       PP_endif   },
-    { "include",     PP_include },
-    { "list",        PP_list    },
-    { "symbols",     PP_symbols }
+    { "DEFINE",      PP_define  },
+    { "UNDEF",       PP_undef   },
+    { "UNDEFINE",    PP_undef   },
+    { "IF",          PP_if      },
+    { "IFDEF",       PP_ifdef   },
+    { "IFDEFINED",   PP_ifdef   },
+    { "IFNDEF",      PP_ifndef  },
+    { "IFUNDEF",     PP_ifndef  },
+    { "IFUNDEFINED", PP_ifndef  },
+    { "ELSE",        PP_else    },
+    { "ENDIF",       PP_endif   },
+    { "INCLUDE",     PP_include },
+    { "LIST",        PP_list    },
+    { "SYMBOLS",     PP_symbols }
 };
 
 //!
@@ -270,13 +270,11 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
         // Extract Label, OpCode and Operands
         std::string Operands;
         Label = MatchResult[3];
-        ToUpper(Label);
         Mnemonic = MatchResult[5];
 
         if(Mnemonic.length() == 0)
             return {};
 
-        ToUpper(Mnemonic);
         Operands = MatchResult[7];
 
         StringListToVector(Operands, OperandList, ',');
@@ -448,7 +446,6 @@ void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operan
         if(regex_match(Input, MatchResult, IdentifierRegex))
         {
             std::string Identifier = MatchResult[1];
-            ToUpper(Identifier);
             if(Parameters.find(Identifier) != Parameters.end())
                 Output += Parameters[Identifier];
             else

@@ -63,8 +63,8 @@ asm1802 written in C++, is built using cmake, and uses the fmt library: https://
 
 From the project folder, execute:
 ```
-$ cmake -S . -B build
-$ cd build
+$ cmake -DCMAKE_BUILD_TYPE=Release -B Release
+$ cd Release
 $ make
 ```
 ## Command Line Options
@@ -107,13 +107,15 @@ Files and Options are processed cumulatively from left to right. When assembling
 | PROCESSOR model | Set Processor architecture, 1802\|1806\|1806A |
 | SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO } | Define a Subroutine, optionally aligned to boundary |
 | ENDSUB | End of Subroutine Definition |
+| MACRO parameters | Define a Macro |
+| ENDM | End of Macro Definition |
 
 ## Operators
 
 | Precedence | Operator | Meaning |
 | :---: | :---: | --- |
 | 1 | + - ~ ! | Unary +, -, Bitwise NOT, Logical NOT |
-| 2 | . | High Low selector e.g. (label.1) |
+| 2 | . | High Low selector e.g. (label.1) (label.0) |
 | 2 | * / % | Multiply, Divide, Remainder |
 | 3 | + - | Addition, Subtraction |
 | 4 | << >> | Shift Left / Right |
@@ -125,11 +127,13 @@ Files and Options are processed cumulatively from left to right. When assembling
 | 10 | && | Logical AND |
 | 11 | \|\| | Logical OR |
 
+For Logical operators, 0 = false, 1 = true.
+
 ## Functions
  | Function | Parameters | Meaning |
  | --- | --- | --- |
- | HIGH | value | High order 8 bits of value |
- | LOW | value | LOW order 8 bits of value |
+ | HIGH(expression) | value | High order 8 bits of value |
+ | LOW(expression) | value | LOW order 8 bits of value |
 
 ## Macros
 

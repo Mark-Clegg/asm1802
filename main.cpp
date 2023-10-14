@@ -78,12 +78,13 @@ int main(int argc, char **argv)
     int FileCount = 0;
     int FilesAssembled = 0;
     while (1) {
-        const int opt = getopt_long(argc, argv, "-D:U:lso:v?", longopts, 0);
+        const int opt = getopt_long(argc, argv, "D:U:lso:v?", longopts, 0);
 
         if (opt == -1)
             break;
 
         switch (opt) {
+/* Uncomment if ordered option processing is enabled ( "-D:U:lsi:v?" )
         case 1:
             try
             {
@@ -96,7 +97,7 @@ int main(int argc, char **argv)
                 fmt::print("** Error: Unable to open/read file: {message}\n", fmt::arg("message", Error.Message));
             }
             break;
-
+*/
         case 'D':
         {
             std::string trimmedKvp = regex_replace(optarg, std::regex(R"(\s+$)"), "");
@@ -1096,6 +1097,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                 {
                     PrintError(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
                     Errors.Push(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                    if(Ex.SkipToOpCode.has_value())
+                        throw; // AssemblyException is only thrown with a SkipToOpcode in an enclosed try / catch so this should never happen
                 }
             } // while(Source.getLine())...
 
@@ -1138,6 +1141,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
         {
             PrintError(Ex.Message, Ex.Severity);
             Errors.Push(Ex.Message, Ex.Severity);
+            if(Ex.SkipToOpCode.has_value())
+                    throw; // AssemblyException is only thrown with a SkipToOpcode in an enclosed try / catch so this should never happen
         }
     } // for(int Pass = 1; Pass <= 3 && Errors.count(SEVERITY_Error) == 0; Pass++)...
 

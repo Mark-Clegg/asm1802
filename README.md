@@ -71,7 +71,7 @@ $ make
 
 asm1802 {options} file {options} file ... file
 
-Files and Options are processed cumulatively from left to right. When assembling a file, all options to the left of the filename are considered.
+All Options are processed first, before assembling any files.
 
 | Short | Long | Meaning |
 | :---: | --- | --- |

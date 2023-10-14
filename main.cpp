@@ -423,15 +423,15 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         {
                                         case SUB:
                                             if(InSub)
-                                                throw AssemblyException("SUBROUTINEs cannot be nested", SEVERITY_Error);
-                                            InSub = true;
+                                                throw AssemblyException("SUBROUTINEs cannot be nested", SEVERITY_Error, ENDSUB);
 
                                             if(Label.empty())
-                                                throw AssemblyException("SUBROUTINE requires a Label", SEVERITY_Error);
+                                                throw AssemblyException("SUBROUTINE requires a Label", SEVERITY_Error, ENDSUB);
 
                                             if(SubTables.find(Label) != SubTables.end())
-                                                throw AssemblyException(fmt::format("Subroutine '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error);
+                                                throw AssemblyException(fmt::format("Subroutine '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error, ENDSUB);
 
+                                            InSub = true;
                                             SubTables.insert(std::pair<std::string, SymbolTable>(Label, SymbolTable()));
                                             CurrentTable = &SubTables[Label];
                                             SubroutineSize = 0;
@@ -449,9 +449,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         case MACRO:
                                         {
                                             if(CurrentTable->Macros.find(Label) != CurrentTable->Macros.end())
-                                                throw AssemblyException(fmt::format("Macro '{Macro}' is already defined", fmt::arg("Macro", Label)));
+                                                throw AssemblyException(fmt::format("Macro '{Macro}' is already defined", fmt::arg("Macro", Label)), SEVERITY_Error, ENDMACRO);
                                             if(OpCodeTable::OpCode.find(Label) != OpCodeTable::OpCode.end())
-                                                throw AssemblyException(fmt::format("Cannot use reserved word '{OpCode}' as a Macro name", fmt::arg("OpCode", Label)));
+                                                throw AssemblyException(fmt::format("Cannot use reserved word '{OpCode}' as a Macro name", fmt::arg("OpCode", Label)), SEVERITY_Error, ENDMACRO);
                                             Macro& MacroDefinition = CurrentTable->Macros[Label];
                                             std::regex ArgMatch(R"(^[A-Z][A-Z0-9_]*$)");
                                             for(auto& Arg : Operands)
@@ -1067,6 +1067,20 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                             {
                                 PrintError(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
                                 Errors.Push(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                                if(Ex.SkipToOpCode.has_value())
+                                {
+                                    while(Source.getLine(OriginalLine))
+                                    {
+                                        std::string Line = trim(OriginalLine);
+                                        ExpandDefines(Line, Defines);
+                                        std::string Label;
+                                        std::string Mnemonic;
+                                        std::vector<std::string>Operands;
+                                        std::optional<OpCodeSpec> OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
+                                        if(OpCode.has_value() && OpCode.value().OpCode == Ex.SkipToOpCode)
+                                            break;
+                                    }
+                                }
                                 if (Pass == 3) {
                                     ListingFile.Append();
                                 }
@@ -1091,14 +1105,14 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
             case 1:
                 // Verify #if nesting structure
                 if(IfNestingLevel != 0)
-                    throw AssemblyException("#if Nesting Error or missing #endif", SEVERITY_Warning, false);
+                    throw AssemblyException("#if Nesting Error or missing #endif", SEVERITY_Warning);
                 break;
             case 2:
                 break;
             case 3:
                 {
                     if(!EntryPoint.has_value())
-                        throw AssemblyException("END Statement is missing", SEVERITY_Warning, false);
+                        throw AssemblyException("END Statement is missing", SEVERITY_Warning);
 
                     // Check for overlapping code
                     int Overlap = 0;
@@ -1115,7 +1129,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                         }
                     }
                     if(Overlap > Code.size())
-                        throw AssemblyException("Code blocks overlap", SEVERITY_Warning, false);
+                        throw AssemblyException("Code blocks overlap", SEVERITY_Warning);
                     break;
                 }
             }

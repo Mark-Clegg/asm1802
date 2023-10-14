@@ -6,9 +6,15 @@ const std::map<AssemblyErrorSeverity, std::string> AssemblyException::SeverityNa
     { SEVERITY_Error,   "Error"       }
 };
 
-AssemblyException::AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity, bool Global)
+AssemblyException::AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity)
 {
     this->Message = Message;
     this->Severity = Severity;
-    this->Global = Global;
+}
+
+AssemblyException::AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity, OpCodeEnum SkipToOpCode)
+{
+    this->Message = Message;
+    this->Severity = Severity;
+    this->SkipToOpCode = SkipToOpCode;
 }

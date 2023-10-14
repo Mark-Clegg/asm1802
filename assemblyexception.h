@@ -6,6 +6,7 @@
 #include <optional>
 #include <string>
 #include <filesystem>
+#include "opcodetable.h"
 
 namespace fs = std::filesystem;
 
@@ -18,12 +19,13 @@ enum AssemblyErrorSeverity
 class AssemblyException : public std::exception
 {
 public:
-    AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity = SEVERITY_Warning, bool Global = true);
+    AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity);
+    AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity, OpCodeEnum SkipToOpCode);
     std::string Message;
     AssemblyErrorSeverity Severity;
-    bool Global;
 
     static const std::map<AssemblyErrorSeverity, std::string> SeverityName;
+    std::optional<OpCodeEnum> SkipToOpCode;
 };
 
 #endif // ASSEMBLYEXCEPTION_H

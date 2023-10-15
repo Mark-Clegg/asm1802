@@ -270,7 +270,7 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
         // Extract Label, OpCode and Operands
         std::string Operands;
         Label = MatchResult[3];
-        if(!Label.empty() && !regex_match(Label, std::regex(R"(^[A-Z_]\w*$)")))
+        if(!Label.empty() && !regex_match(Label, std::regex(R"(^[A-Z_][A-Z0-9_]*$)")))
             throw AssemblyException(fmt::format("Invalid Label: '{Label}'", fmt::arg("Label", Label)), SEVERITY_Error);
         Mnemonic = MatchResult[5];
 
@@ -440,7 +440,7 @@ void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operan
         Parameters[Definition.Arguments[i]] = Operands[i];
 
     std::string Input = Definition.Expansion;
-    std::regex IdentifierRegex(R"(^([A-Z][A-Z0-9_]*).*$)", std::regex::extended);
+    std::regex IdentifierRegex(R"(^([A-Z_][A-Z0-9_]*).*$)", std::regex::extended);
     std::smatch MatchResult;
 
     while(Input.size() > 0)

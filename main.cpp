@@ -454,7 +454,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             if(OpCodeTable::OpCode.find(Label) != OpCodeTable::OpCode.end())
                                                 throw AssemblyException(fmt::format("Cannot use reserved word '{OpCode}' as a Macro name", fmt::arg("OpCode", Label)), SEVERITY_Error, ENDMACRO);
                                             Macro& MacroDefinition = CurrentTable->Macros[Label];
-                                            std::regex ArgMatch(R"(^[A-Z][A-Z0-9_]*$)");
+                                            std::regex ArgMatch(R"(^[A-Z_][A-Z0-9_]*$)");
                                             for(auto& Arg : Operands)
                                             {
                                                 std::string Argument(Arg);

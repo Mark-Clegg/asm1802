@@ -101,12 +101,13 @@ std::string trim(const std::string& in)
 //!
 //! Check if line is a pre-processor directive, parse and return
 //!
-bool IsPreProcessorDirective(std::string& Line, PreProcessorDirectiveEnum& Directive, std::string& Expression)
+bool IsPreProcessorDirective(const std::string& Line, PreProcessorDirectiveEnum& Directive, std::string& Expression)
 {
     std::smatch MatchResult;
     if(regex_match(Line, MatchResult, std::regex(R"(^#(\w+)(\s+(.*))?$)")))
     {
-        const std::string FirstToken = MatchResult[1];
+        std::string FirstToken = MatchResult[1];
+        ToUpper(FirstToken);
         Expression = MatchResult[3];
 
         if (PreProcessorDirectives.find(FirstToken) != PreProcessorDirectives.end())

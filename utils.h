@@ -28,7 +28,7 @@ enum PreProcessorDirectiveEnum
 };
 
 std::string trim(const std::string &);
-bool IsPreProcessorDirective(std::string& Line, PreProcessorDirectiveEnum& Directive, std::string& Expression);
+bool IsPreProcessorDirective(const std::string& Line, PreProcessorDirectiveEnum& Directive, std::string& Expression);
 PreProcessorDirectiveEnum SkipLines(SourceCodeReader& Source, std::string& TerminatingLine);
 void ExpandDefines(std::string& Line, DefineMap& Defines);
 const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCode, std::vector<std::string>& Operands);

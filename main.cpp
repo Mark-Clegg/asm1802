@@ -314,6 +314,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                     key = Expression;
                                     value = "";
                                 }
+                                ToUpper(key);
                                 if(Defines.contains(key))
                                     throw AssemblyException("Duplicate definition", SEVERITY_Warning);
                                 Defines[key]=value;
@@ -321,6 +322,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                             }
                             case PP_undef:
                             {
+                                ToUpper(Expression);
                                 if(Defines.contains(Expression))
                                     Defines.erase(Expression);
                                 else
@@ -336,6 +338,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                             case PP_ifdef:
                             {
                                 IfNestingLevel++;
+                                ToUpper(Expression);
                                 if(!Defines.contains(Expression))
                                 {
                                     if(SkipLines(Source, OriginalLine) == PP_endif)
@@ -350,6 +353,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                             case PP_ifndef:
                             {
                                 IfNestingLevel++;
+                                ToUpper(Expression);
                                 if(Defines.contains(Expression))
                                 {
                                     if(SkipLines(Source, OriginalLine) == PP_endif)
@@ -383,6 +387,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                             }
                             case PP_list:
                             {
+                                ToUpper(Expression);
                                 if(Expression == "ON")
                                     ListingFile.Enabled = true;
                                 else if(Expression == "OFF")
@@ -393,6 +398,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                             }
                             case PP_symbols:
                             {
+                                ToUpper(Expression);
                                 if(Expression == "ON")
                                     DumpSymbols = true;
                                 else if(Expression == "OFF")

@@ -591,6 +591,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                 throw AssemblyException("EQU Requires a single argument <value>", SEVERITY_Error);
 
                                             ExpressionEvaluator E(MainTable, ProgramCounter);
+                                            if(CurrentTable != &MainTable)
+                                                E.AddLocalSymbols(CurrentTable);
                                             int Value = E.Evaluate(Operands[0]);
                                             CurrentTable->Symbols[Label].Value = Value;
                                             break;

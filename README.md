@@ -54,7 +54,7 @@ The following Pre-processor directives are supported
 
 Define a preprocessor variable and optionally assign a value
 
-- #uncdefine variable
+- #undefine variable
 
 Remove the definition of a variable
 
@@ -161,7 +161,7 @@ For Logical operators, 0 = false, 1 = true.
 
  | Function | Parameters | Meaning |
  | --- | --- | --- |
- | HIGH(expression) | value | High order 8 bits of value |
+ | HIGH(expression) | value | HIGH order 8 bits of value |
  | LOW(expression) | value | LOW order 8 bits of value |
 
 ## Pseudo Operators

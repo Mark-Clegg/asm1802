@@ -458,6 +458,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             for(auto& Arg : Operands)
                                             {
                                                 std::string Argument(Arg);
+                                                ToUpper(Argument);
                                                 if(std::regex_match(Argument, ArgMatch))
                                                     if(std::find(MacroDefinition.Arguments.begin(), MacroDefinition.Arguments.end(), Argument) == MacroDefinition.Arguments.end())
                                                         MacroDefinition.Arguments.push_back(Argument);

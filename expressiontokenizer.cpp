@@ -1,5 +1,6 @@
 #include "assemblyexception.h"
 #include "expressiontokenizer.h"
+#include "utils.h"
 
 ExpressionTokenizer::ExpressionTokenizer()
 {
@@ -204,11 +205,12 @@ TokenEnum ExpressionTokenizer::Get()
         break;
     default:
     {
-        if(isalpha(FirstChar))  // LABEL
+        if(isalpha(FirstChar) || FirstChar=='_')  // LABEL
         {
             StringValue = FirstChar;
-            while(!InputStream.eof() && !InputStream.fail() && isalnum(InputStream.peek()))
+            while(!InputStream.eof() && !InputStream.fail() && (isalnum(InputStream.peek()) || InputStream.peek() == '_'))
                 StringValue.push_back(InputStream.get());
+            ToUpper(StringValue);
             ID = TOKEN_LABEL;
             break;
         }

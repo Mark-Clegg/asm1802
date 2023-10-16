@@ -270,9 +270,11 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
         // Extract Label, OpCode and Operands
         std::string Operands;
         Label = MatchResult[3];
+        ToUpper(Label);
         if(!Label.empty() && !regex_match(Label, std::regex(R"(^[A-Z_][A-Z0-9_]*$)")))
             throw AssemblyException(fmt::format("Invalid Label: '{Label}'", fmt::arg("Label", Label)), SEVERITY_Error);
         Mnemonic = MatchResult[5];
+        ToUpper(Mnemonic);
 
         if(Mnemonic.length() == 0)
             return {};
@@ -440,7 +442,7 @@ void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operan
         Parameters[Definition.Arguments[i]] = Operands[i];
 
     std::string Input = Definition.Expansion;
-    std::regex IdentifierRegex(R"(^([A-Z_][A-Z0-9_]*).*$)", std::regex::extended);
+    std::regex IdentifierRegex(R"(^([A-Za-z_][A-Za-z0-9_]*).*$)", std::regex::extended);
     std::smatch MatchResult;
 
     while(Input.size() > 0)
@@ -448,6 +450,7 @@ void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operan
         if(regex_match(Input, MatchResult, IdentifierRegex))
         {
             std::string Identifier = MatchResult[1];
+            ToUpper(Identifier);
             if(Parameters.find(Identifier) != Parameters.end())
                 Output += Parameters[Identifier];
             else

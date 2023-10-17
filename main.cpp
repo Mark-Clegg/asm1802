@@ -959,10 +959,10 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     if(Operands.size() != 1)
                                                         throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
                                                     uint16_t Byte = E.Evaluate(Operands[0]);
-                                                    if(Byte > 255)
+                                                    if(Byte > 0xFF && Byte < 0xFF80)
                                                         throw AssemblyException("Operand out of range (0-FF)", SEVERITY_Error);
                                                     Data.push_back(OpCode->OpCode);
-                                                    Data.push_back(Byte);
+                                                    Data.push_back(Byte & 0xFF);
                                                     break;
                                                 }
                                                 case SHORT_BRANCH:
@@ -1020,11 +1020,11 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     if(Operands.size() != 1)
                                                         throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
                                                     uint16_t Byte = E.Evaluate(Operands[0]);
-                                                    if(Byte > 255)
+                                                    if(Byte > 0xFF && Byte < 0xFF80)
                                                         throw AssemblyException("Immediate operand out of range (0-FF)", SEVERITY_Error);
                                                     Data.push_back(OpCode->OpCode >> 8);
                                                     Data.push_back(OpCode->OpCode & 0xFF);
-                                                    Data.push_back(Byte);
+                                                    Data.push_back(Byte & 0xFF);
                                                     break;
                                                 }
                                                 case EXTENDED_SHORT_BRANCH:

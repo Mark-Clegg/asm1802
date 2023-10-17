@@ -316,7 +316,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                 }
                                 ToUpper(key);
                                 if(Defines.contains(key))
-                                    throw AssemblyException("Duplicate definition", SEVERITY_Warning);
+                                    throw AssemblyException(fmt::format("Duplicate definition: {Name} is already defined.", fmt::arg("Name", key)), SEVERITY_Warning);
                                 Defines[key]=value;
                                 break;
                             }
@@ -1075,8 +1075,11 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                             }
                             catch (AssemblyException Ex)
                             {
-                                PrintError(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-                                Errors.Push(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                                if(!Errors.Contains(Source.getName(), Source.getLineNumber(), Ex.Message, Ex.Severity))
+                                {
+                                    PrintError(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                                    Errors.Push(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                                }
                                 if(Ex.SkipToOpCode.has_value())
                                 {
                                     while(Source.getLine(OriginalLine))
@@ -1104,8 +1107,11 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                 }
                 catch (AssemblyException Ex)
                 {
-                    PrintError(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-                    Errors.Push(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                    if(!Errors.Contains(Source.getName(), Source.getLineNumber(), Ex.Message, Ex.Severity))
+                    {
+                        PrintError(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                        Errors.Push(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                    }
                     if(Ex.SkipToOpCode.has_value())
                         throw; // AssemblyException is only thrown with a SkipToOpcode in an enclosed try / catch so this should never happen
                 }

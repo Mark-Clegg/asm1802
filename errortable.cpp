@@ -82,6 +82,34 @@ int ErrorTable::count(const AssemblyErrorSeverity Severity)
 }
 
 //!
+//! \brief Contains
+//! \param FileName
+//! \param LineNumber
+//! \param Message
+//! \param Severity
+//! \return
+//!
+//! Check if the error table already contains the specified error
+//!
+bool ErrorTable::Contains(const std::string& FileName, const int LineNumber, const std::string& Message, AssemblyErrorSeverity Severity)
+{
+    auto FileTable = Table.find(FileName);
+    if(FileTable == Table.end())
+        return false;
+
+    auto& LineTable = FileTable->second;
+    auto ErrorTable = LineTable.find(LineNumber);
+    if(ErrorTable == LineTable.end())
+        return false;
+
+    auto& MessagePair = ErrorTable->second;
+    if(MessagePair.first == Message && MessagePair.second == Severity)
+        return true;
+
+    return false;
+}
+
+//!
 //! \brief ErrorTable::operator []
 //! \param FileName
 //! \return

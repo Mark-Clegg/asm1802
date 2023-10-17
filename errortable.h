@@ -14,6 +14,7 @@ public:
     void Push(const std::string& Message, AssemblyErrorSeverity Severity);
     int count(const std::string& FileName);
     int count(const AssemblyErrorSeverity);
+    bool Contains(const std::string& FileName, const int LineNumber, const std::string& Message, AssemblyErrorSeverity Severity);
     std::multimap<int, std::pair<std::string, AssemblyErrorSeverity>>& operator[](const std::string FileName);
 
 private:

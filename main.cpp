@@ -268,6 +268,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
         uint16_t SubroutineSize = 0;
         CPUTypeEnum Processor = CPU_1802;
         bool InSub = false;
+        bool InAutoAlignedSub = false;
         try
         {
             fmt::print("Pass {pass}\n", fmt::arg("pass", Pass));
@@ -617,7 +618,10 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     {
                                                         int Align;
                                                         if(SubOptions[1] == "AUTO")
+                                                        {
                                                             Align = AlignFromSize(CurrentTable->CodeSize);
+                                                            InAutoAlignedSub = true;
+                                                        }
                                                         else
                                                         {
                                                             ExpressionEvaluator E(MainTable, ProgramCounter);
@@ -639,6 +643,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         }
                                         case ENDSUB:
                                         {
+                                            InAutoAlignedSub = false;
                                             switch(Operands.size())
                                             {
                                             case 0:
@@ -734,6 +739,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         }
                                         case ALIGN:
                                         {
+                                            if(InAutoAlignedSub)
+                                                throw AssemblyException("ALIGN cannot be used inside an AUTO Aligned SUBROUTINE", SEVERITY_Error);
                                             if(Operands.size() != 1)
                                                 throw AssemblyException("ALIGN Requires a single argument <alignment>", SEVERITY_Error);
                                             ExpressionEvaluator E(MainTable, ProgramCounter);

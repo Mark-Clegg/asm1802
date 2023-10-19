@@ -275,25 +275,25 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
         if(!Label.empty() && !regex_match(Label, std::regex(R"(^[A-Z_][A-Z0-9_]*$)")))
             throw AssemblyException(fmt::format("Invalid Label: '{Label}'", fmt::arg("Label", Label)), SEVERITY_Error);
         Mnemonic = MatchResult[5];
-        ToUpper(Mnemonic);
 
         if(Mnemonic.length() == 0)
             return {};
+        ToUpper(Mnemonic);
 
         Operands = MatchResult[7];
 
         StringListToVector(Operands, OperandList, ',');
 
-        OpCodeSpec MachineWord;
+        OpCodeSpec OpCode;
         try
         {
-            MachineWord = OpCodeTable::OpCode.at(Mnemonic);
+            OpCode = OpCodeTable::OpCode.at(Mnemonic);
         }
-        catch (std::out_of_range Ex)
+        catch (std::out_of_range Ex)  // If Mnemonic wasn't found in the OpCode table, it's possibly a Macro so return MACROEXPANSION
         {
-            MachineWord = { MACROEXPANSION, PSEUDO_OP, CPU_1802 };
+            OpCode = { MACROEXPANSION, PSEUDO_OP, CPU_1802 };
         }
-        return MachineWord;
+        return OpCode;
     }
     else
         throw AssemblyException("Unable to parse line", SEVERITY_Error);
@@ -451,9 +451,10 @@ void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operan
         if(regex_match(Input, MatchResult, IdentifierRegex))
         {
             std::string Identifier = MatchResult[1];
-            ToUpper(Identifier);
-            if(Parameters.find(Identifier) != Parameters.end())
-                Output += Parameters[Identifier];
+            std::string UCIdentifier = Identifier;
+            ToUpper(UCIdentifier);
+            if(Parameters.find(UCIdentifier) != Parameters.end())
+                Output += Parameters[UCIdentifier];
             else
                 Output += Identifier;
             Input.erase(0, Identifier.size());

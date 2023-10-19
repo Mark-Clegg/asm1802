@@ -302,6 +302,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                             {
                             case PP_define:
                             {
+                                if(Source.getStreamType() == SourceCodeReader::SOURCE_LITERAL)
+                                    throw AssemblyException("Cannot use #define inside a MACRO", SEVERITY_Error);
                                 std::string key;
                                 std::string value;
                                 std::smatch MatchResult;
@@ -479,13 +481,23 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             while(Source.getLine(OriginalLine))
                                             {
                                                 std::string Line = trim(OriginalLine);
-                                                ExpandDefines(Line, Defines);
-                                                std::optional<OpCodeSpec> OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
+                                                std::optional<OpCodeSpec> OpCode;
+                                                try
+                                                {
+                                                    OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
+                                                }
+                                                catch(AssemblyException Ex)
+                                                {
+                                                    Label = {};
+                                                    Mnemonic = {};
+                                                    OpCode = {};
+                                                    Operands = {};
+                                                }
                                                 if(!Label.empty())
                                                     throw AssemblyException("Cannot define a label inside a macro", SEVERITY_Error);
                                                 if(OpCode.has_value() && OpCode.value().OpCode == ENDMACRO)
                                                     break;
-                                                Expansion.append(Line);
+                                                Expansion.append(OriginalLine);
                                                 Expansion.append("\n");
                                             }
                                             MacroDefinition.Expansion = Expansion;
@@ -666,8 +678,17 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             while(Source.getLine(OriginalLine))
                                             {
                                                 std::string Line = trim(OriginalLine);
-                                                ExpandDefines(Line, Defines);
-                                                std::optional<OpCodeSpec> OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
+                                                try
+                                                {
+                                                    OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
+                                                }
+                                                catch(AssemblyException Ex)
+                                                {
+                                                    Label = {};
+                                                    Mnemonic = {};
+                                                    OpCode = {};
+                                                    Operands = {};
+                                                }
                                                 if(OpCode.has_value() && OpCode.value().OpCode == ENDMACRO)
                                                     break;
                                             }
@@ -818,8 +839,17 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             {
                                                 ListingFile.Append();
                                                 std::string Line = trim(OriginalLine);
-                                                ExpandDefines(Line, Defines);
-                                                std::optional<OpCodeSpec> OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
+                                                try
+                                                {
+                                                    OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
+                                                }
+                                                catch(AssemblyException Ex)
+                                                {
+                                                    Label = {};
+                                                    Mnemonic = {};
+                                                    OpCode = {};
+                                                    Operands = {};
+                                                }
                                                 if(OpCode.has_value() && OpCode.value().OpCode == ENDMACRO)
                                                     break;
                                             }

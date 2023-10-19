@@ -15,6 +15,8 @@ ListingFileWriter::ListingFileWriter(const SourceCodeReader& Src, const std::str
 {
     auto p = fs::path(FileName);
     p.replace_extension("lst");
+    if(fs::exists(p))
+        fs::remove(p);
     ListFileName = p;
 }
 

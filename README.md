@@ -78,18 +78,9 @@ Alternate branch for #if... directives
 
 End of conditional assembly block
 
-- #include \<filename\>
+- #include \<filename\> | "filename"
 
 Include the contents of the specified file into the input stream.
-
-- #list on|off
-
-Turn on or off listing output (.lst). If 'ON', the listing file is
-created during pass 3.
-
-- #symbols on|off
-
-Turn on or off including symbol tables in listing output.
 
 Note that Pre-processor variables are distinct from labels specified 
 during assembly. During pre-processing, any reference to a pre-processor
@@ -113,6 +104,19 @@ Mnemonics must be preceeded by whitespace. Any required operands for the
 mnemonic should follow, with each operand separated by a ','.
 
 Any text following a ';' is treated as a comment.
+
+### Pre-Defined Labels
+
+The following labels are pre-defined
+
+| Label | Value |
+| --- | --- |
+| R0 - R15 | 0 - 15 |
+| R0 - RF | 0 - 15 |
+| P1 - P7 | 1 -7 |
+| ON | TRUE | 1 |
+| OFF | FALSE | 0 |
+
 
 ## Operands
 
@@ -180,6 +184,8 @@ For Logical operators, 0 = false, 1 = true.
 | SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO } | Define a Subroutine, optionally aligned to boundary |
 | ENDSUB | End of Subroutine Definition |
 | MACRO parameters | Define a Macro |
+| LIST value | Turn Listing output on (1) or off (0) |
+| SYMBOLS value | Turn on symbol table dump (1) or off (0) |
 | ENDM | End of Macro Definition |
 
 ## Subroutines

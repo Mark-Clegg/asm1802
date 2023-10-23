@@ -15,9 +15,7 @@ const std::map<std::string, PreProcessorDirectiveEnum> PreProcessorDirectives = 
     { "IFUNDEFINED", PP_ifndef  },
     { "ELSE",        PP_else    },
     { "ENDIF",       PP_endif   },
-    { "INCLUDE",     PP_include },
-    { "LIST",        PP_list    },
-    { "SYMBOLS",     PP_symbols }
+    { "INCLUDE",     PP_include }
 };
 
 //!

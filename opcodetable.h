@@ -146,7 +146,9 @@ enum OpCodeEnum
     MACRO     = 0xFF0A,
     ENDMACRO  = 0xFF0B,
     MACROEXPANSION = 0xFF0C,
-    END            = 0xFF0D
+    LIST      = 0xFF0D,
+    SYMBOLS   = 0xFF0E,
+    END       = 0xFF0F
 
 };
 

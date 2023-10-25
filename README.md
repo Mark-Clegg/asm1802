@@ -41,7 +41,7 @@ All Options are processed first, before assembling any files.
 | -L | --list | Create listing file (.lst) |
 | -S | --symbols | Append Symbol Table to listing |
 | | --noregisters | Do not predefine Register equates (R0-RF) |
-| | --noports | Do not predefine Post equates (P1-P7) |
+| | --noports | Do not predefine Port equates (P1-P7) |
 
 ## Pre-Processor
 

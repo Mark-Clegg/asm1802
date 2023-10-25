@@ -30,7 +30,6 @@ bool SourceCodeReader::getLine(std::string &Line)
                 Line.pop_back();
 
             LastLine = Line;
-            //ToUpper(Line);
             SourceStreams.top().LineNumber++;
             return true;
         }

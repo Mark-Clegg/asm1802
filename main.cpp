@@ -1,5 +1,6 @@
 #include <cstring>
 #include <filesystem>
+#include <fmt/chrono.h>
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 #include <iomanip>
@@ -282,6 +283,10 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
             // Initialise Defines from Global Defines
             DefineMap Defines(GlobalDefines);   // Defines, initialised from Global Defines
+            std::time_t t = std::time(nullptr);
+            Defines["__DATE__"] = fmt::format("\"{:%b %d %Y}\"", fmt::localtime(t));
+            Defines["__TIME__"] = fmt::format("\"{:%H:%M:%S}\"", fmt::localtime(t));
+            Defines["__TIMESTAMP__"] = fmt::format("\"{:%a %b %d %H:%M:%S %Y}\"", fmt::localtime(t));
 
             // Setup stack of #if results
             int IfNestingLevel = 0;
@@ -290,6 +295,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
             std::string OriginalLine;
             while(Source.getLine(OriginalLine))
             {
+                Defines["__FILE__"] = fmt::format("\"{FileName}\"", fmt::arg("FileName", Source.getName()));
+                Defines["__LINE__"] = fmt::format("{LineNumber}", fmt::arg("LineNumber", Source.getLineNumber()));
                 try
                 {
                     std::string Line = trim(OriginalLine);

@@ -22,7 +22,8 @@ enum PreProcessorDirectiveEnum
     PP_ifndef,
     PP_else,
     PP_endif,
-    PP_include
+    PP_include,
+    PP_error
 };
 
 std::string trim(const std::string &);

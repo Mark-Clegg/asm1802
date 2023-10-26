@@ -266,6 +266,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     ErrorTable Errors;
     ListingFileWriter ListingFile(Source, FileName, Errors, ListingEnabled);
 
+    std::time_t Now = std::time(nullptr);
+
     for(int Pass = 1; Pass <= 3 && Errors.count(SEVERITY_Error) == 0; Pass++)
     {
         SymbolTable* CurrentTable = &MainTable;
@@ -283,10 +285,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
             // Initialise Defines from Global Defines
             DefineMap Defines(GlobalDefines);   // Defines, initialised from Global Defines
-            std::time_t t = std::time(nullptr);
-            Defines["__DATE__"] = fmt::format("\"{:%b %d %Y}\"", fmt::localtime(t));
-            Defines["__TIME__"] = fmt::format("\"{:%H:%M:%S}\"", fmt::localtime(t));
-            Defines["__TIMESTAMP__"] = fmt::format("\"{:%a %b %d %H:%M:%S %Y}\"", fmt::localtime(t));
+            Defines["__DATE__"] = fmt::format("\"{:%b %d %Y}\"", fmt::localtime(Now));
+            Defines["__TIME__"] = fmt::format("\"{:%H:%M:%S}\"", fmt::localtime(Now));
+            Defines["__TIMESTAMP__"] = fmt::format("\"{:%a %b %d %H:%M:%S %Y}\"", fmt::localtime(Now));
 
             // Setup stack of #if results
             int IfNestingLevel = 0;
@@ -403,6 +404,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                         throw AssemblyException("Unable to interpret filename expected <filename> or \"filename\"", SEVERITY_Error);
                                     break;
                                 }
+                                case PP_error:
+                                    throw AssemblyException(fmt::format("#error: {Message}", fmt::arg("Message", Expression)), SEVERITY_Error);
+                                    break;
                             }
                         }
                         else // Assembly Source line

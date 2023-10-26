@@ -17,11 +17,13 @@ void BinaryWriter_IntelHex::Write(std::map<uint16_t, std::vector<uint8_t>>& Code
             for(int i = 0; i < DataIn.size() / 16 + 1; i++)
             {
                 int RecordSize = 0;
-                std::vector<uint8_t> DataBlock = {
+                std::vector<uint8_t> DataBlock =
+                {
                     0,                                              // Byte Count (to be replaced)
                     (uint8_t)(((Address + i * 16) & 0xFF00) >> 8),  // Address (Hi)
                     (uint8_t)((Address + i * 16) & 0xFF),           // Address (Lo)
-                    0 };                                            // Record Type 0
+                    0
+                };                                            // Record Type 0
 
                 for(int j = 0; j < 16 && i * 16 + j < DataIn.size(); j++)
                 {
@@ -39,7 +41,8 @@ void BinaryWriter_IntelHex::Write(std::map<uint16_t, std::vector<uint8_t>>& Code
 
     if(StartAddress.has_value())
     {
-        std::vector<uint8_t> Type3Record = {
+        std::vector<uint8_t> Type3Record =
+        {
             4,                                               // Byte Count
             0,                                               // Address (Hi)
             0,                                               // Address (Lo)
@@ -52,7 +55,8 @@ void BinaryWriter_IntelHex::Write(std::map<uint16_t, std::vector<uint8_t>>& Code
         AddCheckSum(Type3Record);
         fmt::print(Output, ":{:02X}\n", fmt::join(Type3Record, ""));
 
-        std::vector<uint8_t> Type5Record = {
+        std::vector<uint8_t> Type5Record =
+        {
             4,                                               // Byte Count
             0,                                               // Address (Hi)
             0,                                               // Address (Lo)

@@ -33,7 +33,10 @@ const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::strin
 void StringListToVector(std::string& Input, std::vector<std::string>& Output, char Delimiter);
 std::string basename(const std::string FileName);
 int AlignFromSize(int Size);
-inline void ToUpper(std::string& In) { std::transform(In.begin(), In.end(), In.begin(), ::toupper); }
+inline void ToUpper(std::string& In)
+{
+    std::transform(In.begin(), In.end(), In.begin(), ::toupper);
+}
 void StringToByteVector(const std::string& Operand, std::vector<uint8_t>& Data);
 void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operands, std::string& Output);
 

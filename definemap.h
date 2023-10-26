@@ -28,10 +28,22 @@ public:
 
     //iterator begin() { return keys.begin(); }
     //iterator end() { return keys.end(); }
-    const_iterator begin() const  { return keys.begin(); }
-    const_iterator end() const { return keys.end(); }
-    const_iterator cbegin() const { return keys.cbegin(); }
-    const_iterator cend() const { return keys.cend(); }
+    const_iterator begin() const
+    {
+        return keys.begin();
+    }
+    const_iterator end() const
+    {
+        return keys.end();
+    }
+    const_iterator cbegin() const
+    {
+        return keys.cbegin();
+    }
+    const_iterator cend() const
+    {
+        return keys.cend();
+    }
 
     std::string& operator[](const std::string& key);
     bool contains(const std::string& key);

@@ -14,7 +14,6 @@
 
 namespace fs = std::filesystem;
 
-
 //!
 //! \brief The BinaryWriter class
 //! Abstrat base class for an output file writer.

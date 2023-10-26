@@ -1,6 +1,7 @@
 #include "opcodetable.h"
 
-const std::map<std::string, OpCodeSpec> OpCodeTable::OpCode = {
+const std::map<std::string, OpCodeSpec> OpCodeTable::OpCode =
+{
     { "IDL",  { IDL,  BASIC,                         CPU_1802  }},
     { "LDN",  { LDN,  REGISTER,                      CPU_1802  }},
     { "INC",  { INC,  REGISTER,                      CPU_1802  }},
@@ -148,7 +149,8 @@ const std::map<std::string, OpCodeSpec> OpCodeTable::OpCode = {
     { "END",        { END,       PSEUDO_OP,             CPU_1802  }}
 };
 
-const std::map<OpCodeTypeEnum, int> OpCodeTable::OpCodeBytes = {
+const std::map<OpCodeTypeEnum, int> OpCodeTable::OpCodeBytes =
+{
     { BASIC,                          1 },
     { REGISTER,                       1 },
     { IMMEDIATE,                      2 },
@@ -162,7 +164,8 @@ const std::map<OpCodeTypeEnum, int> OpCodeTable::OpCodeBytes = {
     { EXTENDED_REGISTER_IMMEDIATE16,  4 }
 };
 
-const std::map<std::string, CPUTypeEnum> OpCodeTable::CPUTable = {
+const std::map<std::string, CPUTypeEnum> OpCodeTable::CPUTable =
+{
     { "1802",     CPU_1802  },
     { "1804",     CPU_1806  },
     { "1805",     CPU_1806  },

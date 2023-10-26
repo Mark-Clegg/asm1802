@@ -3,7 +3,8 @@
 #include "sourcecodereader.h"
 #include "utils.h"
 
-const std::map<std::string, PreProcessorDirectiveEnum> PreProcessorDirectives = {
+const std::map<std::string, PreProcessorDirectiveEnum> PreProcessorDirectives =
+{
     { "DEFINE",      PP_define  },
     { "UNDEF",       PP_undef   },
     { "UNDEFINE",    PP_undef   },
@@ -42,22 +43,22 @@ std::string trim(const std::string& in)
 
             switch(ch)
             {
-            case '\'':
-                if(!inDoubleQuote)
-                {
-                    inSingleQuote = true;
-                    out.push_back(ch);
-                    continue;
-                }
-                break;
-            case '\"':
-                if(!inSingleQuote)
-                {
-                    inDoubleQuote = true;
-                    out.push_back(ch);
-                    continue;
-                }
-                break;
+                case '\'':
+                    if(!inDoubleQuote)
+                    {
+                        inSingleQuote = true;
+                        out.push_back(ch);
+                        continue;
+                    }
+                    break;
+                case '\"':
+                    if(!inSingleQuote)
+                    {
+                        inDoubleQuote = true;
+                        out.push_back(ch);
+                        continue;
+                    }
+                    break;
             }
         }
 
@@ -138,30 +139,30 @@ PreProcessorDirectiveEnum SkipLines(SourceCodeReader& Source, std::string& Termi
         {
             switch (Directive)
             {
-            case PP_if:
-            case PP_ifdef:
-            case PP_ifndef:
-                Level++;
-                break;
-            case PP_else:
-                if (Level == 0)
-                {
-                    TerminatingLine = OriginalLine;
-                    return PP_else;
-                }
-                break;
-            case PP_endif:
-                if (Level == 0)
-                {
-                    TerminatingLine = OriginalLine;
-                    return PP_endif;
-                }
-                else
-                    Level--;
-                break;
-            // The remaining directives have no effect on if/else/end processing
-            default:
-                break;
+                case PP_if:
+                case PP_ifdef:
+                case PP_ifndef:
+                    Level++;
+                    break;
+                case PP_else:
+                    if (Level == 0)
+                    {
+                        TerminatingLine = OriginalLine;
+                        return PP_else;
+                    }
+                    break;
+                case PP_endif:
+                    if (Level == 0)
+                    {
+                        TerminatingLine = OriginalLine;
+                        return PP_endif;
+                    }
+                    else
+                        Level--;
+                    break;
+                // The remaining directives have no effect on if/else/end processing
+                default:
+                    break;
             }
         }
     }
@@ -325,30 +326,29 @@ void StringListToVector(std::string& Input, std::vector<std::string>& Output, ch
         }
         switch(ch)
         {
-        case '\'':
-            if(!inDoubleQuote)
-                inSingleQuote = !inSingleQuote;
-            break;
-        case '\"':
-            if(!inSingleQuote)
-                inDoubleQuote = !inDoubleQuote;
-            break;
-        case '(':
-            inBrackets = true;
-            break;
-        case ')':
-            inBrackets = false;
-            break;
-        case '\\':
-            inEscape = true;
-            break;
+            case '\'':
+                if(!inDoubleQuote)
+                    inSingleQuote = !inSingleQuote;
+                break;
+            case '\"':
+                if(!inSingleQuote)
+                    inDoubleQuote = !inDoubleQuote;
+                break;
+            case '(':
+                inBrackets = true;
+                break;
+            case ')':
+                inBrackets = false;
+                break;
+            case '\\':
+                inEscape = true;
+                break;
         }
         out.push_back(ch);
     }
     if(out.size() > 0)
         Output.push_back(regex_replace(out, std::regex(R"(\s+$)"), ""));
 }
-
 
 //!
 //! \brief AlignFromSize
@@ -398,20 +398,42 @@ void StringToByteVector(const std::string& Operand, std::vector<uint8_t>& Data)
             i++;
             switch(Operand[i])
             {
-            case '\'': Data.push_back(0x27); break;
-            case '\"': Data.push_back(0x22); break;
-            case '\?': Data.push_back(0x3F); break;
-            case '\\': Data.push_back(0x5C); break;
-            case 'a':  Data.push_back(0x07); break;
-            case 'b':  Data.push_back(0x08); break;
-            case 'f':  Data.push_back(0x0C); break;
-            case 'n':  Data.push_back(0x0A); break;
-            case 'r':  Data.push_back(0x0D); break;
-            case 't':  Data.push_back(0x09); break;
-            case 'v':  Data.push_back(0x0B); break;
-            default:
-                throw AssemblyException("Unrecognised escape sequence in string constant", SEVERITY_Error);
-                break;
+                case '\'':
+                    Data.push_back(0x27);
+                    break;
+                case '\"':
+                    Data.push_back(0x22);
+                    break;
+                case '\?':
+                    Data.push_back(0x3F);
+                    break;
+                case '\\':
+                    Data.push_back(0x5C);
+                    break;
+                case 'a':
+                    Data.push_back(0x07);
+                    break;
+                case 'b':
+                    Data.push_back(0x08);
+                    break;
+                case 'f':
+                    Data.push_back(0x0C);
+                    break;
+                case 'n':
+                    Data.push_back(0x0A);
+                    break;
+                case 'r':
+                    Data.push_back(0x0D);
+                    break;
+                case 't':
+                    Data.push_back(0x09);
+                    break;
+                case 'v':
+                    Data.push_back(0x0B);
+                    break;
+                default:
+                    throw AssemblyException("Unrecognised escape sequence in string constant", SEVERITY_Error);
+                    break;
             }
         }
         else

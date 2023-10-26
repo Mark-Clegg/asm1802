@@ -1,7 +1,8 @@
 #include "assemblyexception.h"
 #include "expressionevaluator.h"
 
-const std::map<std::string, FunctionSpec> ExpressionEvaluator::FunctionTable = {
+const std::map<std::string, FunctionSpec> ExpressionEvaluator::FunctionTable =
+{
     { "HIGH",        { FN_HIGH,    1 }},
     { "LOW",         { FN_LOW,     1 }},
     { "ISDEFINED",   { FN_ISDEF,   1 }},
@@ -139,14 +140,14 @@ int ExpressionEvaluator::SubExp5()
         auto Token = TokenStream.Get();
         switch(Token)
         {
-        case TOKEN_EQUAL:
-            Result = (Result == SubExp6()) ? 1 : 0;
-            break;
-        case TOKEN_NOT_EQUAL:
-            Result = (Result == SubExp6()) ? 0 : 1;
-            break;
-        default:
-            break;
+            case TOKEN_EQUAL:
+                Result = (Result == SubExp6()) ? 1 : 0;
+                break;
+            case TOKEN_NOT_EQUAL:
+                Result = (Result == SubExp6()) ? 0 : 1;
+                break;
+            default:
+                break;
         }
     }
     return Result;
@@ -165,20 +166,20 @@ int ExpressionEvaluator::SubExp6()
         auto Token = TokenStream.Get();
         switch(Token)
         {
-        case TOKEN_LESS:
-            Result = (Result < SubExp7()) ? 1 : 0;
-            break;
-        case TOKEN_LESS_OR_EQUAL:
-            Result = (Result <= SubExp7()) ? 1 : 0;
-            break;
-        case TOKEN_GREATER:
-            Result = (Result > SubExp7()) ? 1 : 0;
-            break;
-        case TOKEN_GREATER_OR_EQUAL:
-            Result = (Result >= SubExp7()) ? 1 : 0;
-            break;
-        default:
-            break;
+            case TOKEN_LESS:
+                Result = (Result < SubExp7()) ? 1 : 0;
+                break;
+            case TOKEN_LESS_OR_EQUAL:
+                Result = (Result <= SubExp7()) ? 1 : 0;
+                break;
+            case TOKEN_GREATER:
+                Result = (Result > SubExp7()) ? 1 : 0;
+                break;
+            case TOKEN_GREATER_OR_EQUAL:
+                Result = (Result >= SubExp7()) ? 1 : 0;
+                break;
+            default:
+                break;
         }
     }
     return Result;
@@ -197,14 +198,14 @@ int ExpressionEvaluator::SubExp7()
         auto Token = TokenStream.Get();
         switch(Token)
         {
-        case TOKEN_SHIFT_LEFT:
-            Result <<= SubExp8();
-            break;
-        case TOKEN_SHIFT_RIGHT:
-            Result >>= SubExp8();
-            break;
-        default:
-            break;
+            case TOKEN_SHIFT_LEFT:
+                Result <<= SubExp8();
+                break;
+            case TOKEN_SHIFT_RIGHT:
+                Result >>= SubExp8();
+                break;
+            default:
+                break;
         }
     }
     return Result;
@@ -223,14 +224,14 @@ int ExpressionEvaluator::SubExp8()
         auto Token = TokenStream.Get();
         switch(Token)
         {
-        case TOKEN_PLUS:
-            Result += SubExp9();
-            break;
-        case TOKEN_MINUS:
-            Result -= SubExp9();
-            break;
-        default:
-            break;
+            case TOKEN_PLUS:
+                Result += SubExp9();
+                break;
+            case TOKEN_MINUS:
+                Result -= SubExp9();
+                break;
+            default:
+                break;
         }
     }
     return Result;
@@ -249,27 +250,27 @@ int ExpressionEvaluator::SubExp9()
         auto Token = TokenStream.Get();
         switch(Token)
         {
-        case TOKEN_MULTIPLY:
-            Result *= SubExp10();
-            break;
-        case TOKEN_DIVIDE:
-        {
-            int Operand = SubExp10();
-            if(Operand == 0)
-                throw AssemblyException("Divide by zero", SEVERITY_Error);
-            Result /= Operand;
-            break;
-        }
-        case TOKEN_REMAINDER:
-        {
-            int Operand = SubExp10();
-            if(Operand == 0)
-                throw AssemblyException("Divide by zero", SEVERITY_Error);
-            Result %= Operand;
-            break;
-        }
-        default:
-            break;
+            case TOKEN_MULTIPLY:
+                Result *= SubExp10();
+                break;
+            case TOKEN_DIVIDE:
+            {
+                int Operand = SubExp10();
+                if(Operand == 0)
+                    throw AssemblyException("Divide by zero", SEVERITY_Error);
+                Result /= Operand;
+                break;
+            }
+            case TOKEN_REMAINDER:
+            {
+                int Operand = SubExp10();
+                if(Operand == 0)
+                    throw AssemblyException("Divide by zero", SEVERITY_Error);
+                Result %= Operand;
+                break;
+            }
+            default:
+                break;
         }
     }
     return Result;
@@ -289,14 +290,14 @@ int ExpressionEvaluator::SubExp10()
         int Selector = SubExp11();
         switch(Selector)
         {
-        case 0:
-            Result = Result & 0xFF;
-            break;
-        case 1:
-            Result = (Result >> 8) & 0xFF;
-            break;
-        default:
-            throw AssemblyException("Expected .0 or .1 High/Low selector", SEVERITY_Error);
+            case 0:
+                Result = Result & 0xFF;
+                break;
+            case 1:
+                Result = (Result >> 8) & 0xFF;
+                break;
+            default:
+                throw AssemblyException("Expected .0 or .1 High/Low selector", SEVERITY_Error);
         }
     }
     return Result;
@@ -316,20 +317,20 @@ int ExpressionEvaluator::SubExp11()
         TokenStream.Get();
         switch(Token)
         {
-        case TOKEN_PLUS:
-            return SubExp11();
-            break;
-        case TOKEN_MINUS:
-            return -SubExp11();
-            break;
-        case TOKEN_BITWISE_NOT:
-            return ~SubExp11();
-            break;
-        case TOKEN_LOGICAL_NOT:
-            return SubExp11() ? 1 : 0;
-            break;
-        default:
-            break;
+            case TOKEN_PLUS:
+                return SubExp11();
+                break;
+            case TOKEN_MINUS:
+                return -SubExp11();
+                break;
+            case TOKEN_BITWISE_NOT:
+                return ~SubExp11();
+                break;
+            case TOKEN_LOGICAL_NOT:
+                return SubExp11() ? 1 : 0;
+                break;
+            default:
+                break;
         }
     }
     return SubExp12();
@@ -347,95 +348,95 @@ int ExpressionEvaluator::SubExp12()
     auto Token = TokenStream.Get();
     switch(Token)
     {
-    case TOKEN_NUMBER:
-        Result = TokenStream.IntegerValue;
-        break;
+        case TOKEN_NUMBER:
+            Result = TokenStream.IntegerValue;
+            break;
 
-    case TOKEN_DOLLAR:
-    case TOKEN_DOT:
-        Result = ProgramCounter;
-        break;
+        case TOKEN_DOLLAR:
+        case TOKEN_DOT:
+            Result = ProgramCounter;
+            break;
 
-    case TOKEN_OPEN_BRACE: // Bracketed Expression
-        Result = SubExp0();
-        if (TokenStream.Peek() != TOKEN_CLOSE_BRACE)
-            throw AssemblyException("Expected ')'", SEVERITY_Error);
-        else
-            TokenStream.Get();
-        break;
+        case TOKEN_OPEN_BRACE: // Bracketed Expression
+            Result = SubExp0();
+            if (TokenStream.Peek() != TOKEN_CLOSE_BRACE)
+                throw AssemblyException("Expected ')'", SEVERITY_Error);
+            else
+                TokenStream.Get();
+            break;
 
-    case TOKEN_LABEL:
-    {
-        std::string Label = TokenStream.StringValue;
-        if(TokenStream.Peek() == TOKEN_OPEN_BRACE)
+        case TOKEN_LABEL:
         {
-            TokenStream.Get();
-
-            auto FunctionSpec = FunctionTable.find(Label);
-            if(FunctionSpec == FunctionTable.end())
-                throw AssemblyException("Unknown function call", SEVERITY_Error);
-
-            std::vector<int> Arguments = { };
-            switch(FunctionSpec->second.ID)
+            std::string Label = TokenStream.StringValue;
+            if(TokenStream.Peek() == TOKEN_OPEN_BRACE)
             {
-            case FN_LOW:
-                if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
-                    throw AssemblyException("Incorrect number of arguments: LOW expects 1 argument", SEVERITY_Error);
-                Result = Arguments[0] & 0xFF;
-                break;
-            case FN_HIGH:
-                if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
-                    throw AssemblyException("Incorrect number of arguments: HIGH expects 1 argument", SEVERITY_Error);
-                Result = (Arguments[0] >> 8) & 0xFF;
-                break;
-            case FN_ISDEF:
-                if(TokenStream.Peek() == TOKEN_LABEL)
+                TokenStream.Get();
+
+                auto FunctionSpec = FunctionTable.find(Label);
+                if(FunctionSpec == FunctionTable.end())
+                    throw AssemblyException("Unknown function call", SEVERITY_Error);
+
+                std::vector<int> Arguments = { };
+                switch(FunctionSpec->second.ID)
                 {
-                    Result = 0;
-                    TokenStream.Get();
-                    std::string Label = TokenStream.StringValue;
-                    if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
-                    {
-                        TokenStream.Get();
-                        if (LocalSymbols && Local->Symbols.find(Label) != Local->Symbols.end())
-                            Result = 1;
-                        if (Global->Symbols.find(Label) != Global->Symbols.end())
-                            Result = 1;
-                    }
-                    else
-                        throw AssemblyException("')' Expected", SEVERITY_Error);
-                }
-                else
-                    throw AssemblyException("ISDEF expects a single LABEL argument", SEVERITY_Error);
-                break;
-            case FN_ISUNDEF:
-                if(TokenStream.Peek() == TOKEN_LABEL)
-                {
-                    Result = 1;
-                    TokenStream.Get();
-                    std::string Label = TokenStream.StringValue;
-                    if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
-                    {
-                        TokenStream.Get();
-                        if (LocalSymbols && Local->Symbols.find(Label) != Local->Symbols.end())
+                    case FN_LOW:
+                        if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
+                            throw AssemblyException("Incorrect number of arguments: LOW expects 1 argument", SEVERITY_Error);
+                        Result = Arguments[0] & 0xFF;
+                        break;
+                    case FN_HIGH:
+                        if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
+                            throw AssemblyException("Incorrect number of arguments: HIGH expects 1 argument", SEVERITY_Error);
+                        Result = (Arguments[0] >> 8) & 0xFF;
+                        break;
+                    case FN_ISDEF:
+                        if(TokenStream.Peek() == TOKEN_LABEL)
+                        {
                             Result = 0;
-                        if (Global->Symbols.find(Label) != Global->Symbols.end())
-                            Result = 0;
-                    }
-                    else
-                        throw AssemblyException("')' Expected", SEVERITY_Error);
+                            TokenStream.Get();
+                            std::string Label = TokenStream.StringValue;
+                            if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
+                            {
+                                TokenStream.Get();
+                                if (LocalSymbols && Local->Symbols.find(Label) != Local->Symbols.end())
+                                    Result = 1;
+                                if (Global->Symbols.find(Label) != Global->Symbols.end())
+                                    Result = 1;
+                            }
+                            else
+                                throw AssemblyException("')' Expected", SEVERITY_Error);
+                        }
+                        else
+                            throw AssemblyException("ISDEF expects a single LABEL argument", SEVERITY_Error);
+                        break;
+                    case FN_ISUNDEF:
+                        if(TokenStream.Peek() == TOKEN_LABEL)
+                        {
+                            Result = 1;
+                            TokenStream.Get();
+                            std::string Label = TokenStream.StringValue;
+                            if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
+                            {
+                                TokenStream.Get();
+                                if (LocalSymbols && Local->Symbols.find(Label) != Local->Symbols.end())
+                                    Result = 0;
+                                if (Global->Symbols.find(Label) != Global->Symbols.end())
+                                    Result = 0;
+                            }
+                            else
+                                throw AssemblyException("')' Expected", SEVERITY_Error);
+                        }
+                        else
+                            throw AssemblyException("ISNDEF expects a single LABEL argument", SEVERITY_Error);
+                        break;
                 }
-                else
-                    throw AssemblyException("ISNDEF expects a single LABEL argument", SEVERITY_Error);
-                break;
             }
+            else
+                Result = SymbolValue(Label);
+            break;
         }
-        else
-            Result = SymbolValue(Label);
-        break;
-    }
-    default: // Should never happen
-        throw AssemblyException("Current Token Not Yet Implemented", SEVERITY_Error);
+        default: // Should never happen
+            throw AssemblyException("Current Token Not Yet Implemented", SEVERITY_Error);
     }
     return Result;
 }
@@ -466,7 +467,6 @@ bool ExpressionEvaluator::GetFunctionArguments(std::vector<int> &Arguments, int 
     }
     return Arguments.size() == Count;
 }
-
 
 //!
 //! \brief ExpressionEvaluator::SymbolValue

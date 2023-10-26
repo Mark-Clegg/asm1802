@@ -5,7 +5,6 @@
 #ifndef ERRORTABLE_H
 #define ERRORTABLE_H
 
-
 class ErrorTable
 {
 public:

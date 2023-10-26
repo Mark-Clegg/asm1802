@@ -5,7 +5,6 @@
 #include <string>
 #include "expressiontokenizer.h"
 #include "symboltable.h"
-#include "utils.h"
 
 enum FunctionEnum
 {
@@ -36,7 +35,7 @@ private:
 
     const uint16_t ProgramCounter;
     uint16_t SymbolValue(std::string Label);
-    bool GetFunctionArguments(std::vector<int>& Arguments , int Count);
+    bool GetFunctionArguments(std::vector<int>& Arguments, int Count);
     ExpressionTokenizer TokenStream;
 
     int SubExp0();

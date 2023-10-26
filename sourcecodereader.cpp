@@ -7,8 +7,8 @@ SourceCodeReader::SourceEntry::SourceEntry(const std::string& Name) :
 {
     this->Type = SourceType::SOURCE_FILE;
     Stream = new std::ifstream(Name);
-        if(Stream->fail())
-            throw AssemblyException("Unable to open " + Name, SEVERITY_Error);
+    if(Stream->fail())
+        throw AssemblyException("Unable to open " + Name, SEVERITY_Error);
 }
 
 SourceCodeReader::SourceEntry::SourceEntry(const std::string& Name, const std::string& Data) :
@@ -69,10 +69,13 @@ void SourceCodeReader::IncludeFile(const std::string& FileName)
 {
     if(SourceStreams.size() > 100)
         throw AssemblyException("Source File Nesting limit exceeded", SEVERITY_Error);
-    try {
+    try
+    {
         SourceEntry Entry(FileName);
         SourceStreams.push(Entry);
-    } catch (...) {
+    }
+    catch (...)
+    {
         throw AssemblyException("Unable to open " + FileName, SEVERITY_Error);
     }
 }

@@ -1,7 +1,8 @@
 #include "assemblyexception.h"
 #include <fmt/core.h>
 
-const std::map<AssemblyErrorSeverity, std::string> AssemblyException::SeverityName = {
+const std::map<AssemblyErrorSeverity, std::string> AssemblyException::SeverityName =
+{
     { SEVERITY_Warning, "Warning"     },
     { SEVERITY_Error,   "Error"       }
 };

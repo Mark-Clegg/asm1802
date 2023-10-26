@@ -38,23 +38,23 @@ void ListingFileWriter::Append()
         std::string ErrorFileName;
         switch(Source.getStreamType())
         {
-        case SourceCodeReader::SourceType::SOURCE_FILE:
-            FileName = fs::path(Source.getName()).filename();
-            ErrorFileName = FileName;
-            if(FileName.length() > 20)
-                FileName = FileName.substr(0, 17) + "...";
-            break;
-        case SourceCodeReader::SourceType::SOURCE_LITERAL:
-            FileName = fmt::format("Macro: {Name}", fmt::arg("Name", Source.getName()));
-            ErrorFileName = Source.getName();
-            break;
+            case SourceCodeReader::SourceType::SOURCE_FILE:
+                FileName = fs::path(Source.getName()).filename();
+                ErrorFileName = FileName;
+                if(FileName.length() > 20)
+                    FileName = FileName.substr(0, 17) + "...";
+                break;
+            case SourceCodeReader::SourceType::SOURCE_LITERAL:
+                FileName = fmt::format("Macro: {Name}", fmt::arg("Name", Source.getName()));
+                ErrorFileName = Source.getName();
+                break;
         }
 
         fmt::print(ListStream, "[{filename:22}({linenumber:5})] |                    |  {line}\n",
                    fmt::arg("filename", FileName),
                    fmt::arg("linenumber", Source.getLineNumber()),
                    fmt::arg("line", Source.getLastLine())
-                   );
+                  );
 
         PrintError(ErrorFileName, Source.getLineNumber());
     }
@@ -72,16 +72,16 @@ void ListingFileWriter::Append(const std::uint16_t Address, const std::vector<st
         std::string ErrorFileName;
         switch(Source.getStreamType())
         {
-        case SourceCodeReader::SourceType::SOURCE_FILE:
-            FileName = fs::path(Source.getName()).filename();
-            ErrorFileName = FileName;
-            if(FileName.length() > 20)
-                FileName = FileName.substr(0, 17) + "...";
-            break;
-        case SourceCodeReader::SourceType::SOURCE_LITERAL:
-            FileName = fmt::format("Macro: {Name}", fmt::arg("Name", Source.getName()));
-            ErrorFileName = Source.getName();
-            break;
+            case SourceCodeReader::SourceType::SOURCE_FILE:
+                FileName = fs::path(Source.getName()).filename();
+                ErrorFileName = FileName;
+                if(FileName.length() > 20)
+                    FileName = FileName.substr(0, 17) + "...";
+                break;
+            case SourceCodeReader::SourceType::SOURCE_LITERAL:
+                FileName = fmt::format("Macro: {Name}", fmt::arg("Name", Source.getName()));
+                ErrorFileName = Source.getName();
+                break;
         }
 
         for(int i = 0; i < (Data.size() - 1) / 4 + 1; i++)
@@ -91,7 +91,7 @@ void ListingFileWriter::Append(const std::uint16_t Address, const std::vector<st
                            fmt::arg("filename", FileName),
                            fmt::arg("linenumber", Source.getLineNumber()),
                            fmt::arg("address", Address)
-                );
+                          );
             else
                 fmt::print(ListStream, "{space:32}|{space:8}", fmt::arg("space", " "));
 
@@ -104,7 +104,7 @@ void ListingFileWriter::Append(const std::uint16_t Address, const std::vector<st
             if(i == 0)
                 fmt::print(ListStream, "  {line}", // Initial spaces to pad line start to an 8 character boundary (to align tabs)
                            fmt::arg("line", Source.getLastLine())
-                );
+                          );
             ListStream << std::endl;
         }
 

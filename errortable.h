@@ -9,12 +9,12 @@ class ErrorTable
 {
 public:
     ErrorTable();
-    void Push(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity);
+    void Push(const std::string& FileName, const int LineNumber, const std::string& MacroName, const int MacroLineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity, bool InMacro);
     void Push(const std::string& Message, AssemblyErrorSeverity Severity);
     int count(const std::string& FileName);
     int count(const AssemblyErrorSeverity);
-    bool Contains(const std::string& FileName, const int LineNumber, const std::string& Message, AssemblyErrorSeverity Severity);
-    std::multimap<int, std::pair<std::string, AssemblyErrorSeverity>>& operator[](const std::string FileName);
+    bool Contains(const std::string& FileName, const int LineNumber, const std::string& MacroName, const int MacroLineNumber, const std::string& Message, AssemblyErrorSeverity Severity, bool InMacro);
+    std::multimap<std::pair<int,int>, std::pair<std::string, AssemblyErrorSeverity>>& operator[](const std::string FileName);
 
 private:
     // Error Cache:
@@ -22,7 +22,7 @@ private:
     //                       Error Message / Severity
     //           LineNumber: Error Message / Severity
     // FileName: LineNumber: Error Message / Severity
-    std::map<std::string, std::multimap<int,std::pair<std::string, AssemblyErrorSeverity>>> Table;
+    std::map<std::string, std::multimap<std::pair<int,int>,std::pair<std::string, AssemblyErrorSeverity>>> Table;
 };
 
 #endif // ERRORTABLE_H

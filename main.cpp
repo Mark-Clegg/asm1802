@@ -11,12 +11,12 @@
 #include <getopt.h>
 #include "binarywriter_idiot4.h"
 #include "binarywriter_intelhex.h"
-#include "definemap.h"
 #include "errortable.h"
 #include "assemblyexception.h"
 #include "expressionevaluator.h"
 #include "listingfilewriter.h"
 #include "opcodetable.h"
+#include "preprocessor.h"
 #include "sourcecodereader.h"
 #include "symboltable.h"
 #include "utils.h"
@@ -25,9 +25,24 @@ namespace fs = std::filesystem;
 
 std::string Version("0.1");
 
+enum PreProcessorControlEnum
+{
+    PP_LINE
+};
+
+std::map<std::string, PreProcessorControlEnum> PreProcessorControlLookup =
+{
+    { "line", PP_LINE }
+};
+
 enum SubroutineOptionsEnum
 {
     SUBOPT_ALIGN
+};
+
+std::map<std::string, SubroutineOptionsEnum> SubroutineOptionsLookup =
+{
+    { "ALIGN", SUBOPT_ALIGN      }
 };
 
 enum OutputFormatEnum
@@ -42,15 +57,8 @@ std::map<std::string, OutputFormatEnum> OutputFormatLookup =
     { "IDIOT4",    IDIOT4    }
 };
 
-std::map<std::string, SubroutineOptionsEnum> SubroutineOptionsLookup =
-{
-    { "ALIGN",      SUBOPT_ALIGN      }
-};
-
-DefineMap GlobalDefines;   // global #defines persist for all files following on the command line
-
 bool assemble(const std::string&, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode);
-void PrintError(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity);
+void PrintError(const std::string& FileName, const int LineNumber, const std::string& MacroName, const int MacroLineNumber, const std::string& Line, const std::string& Message, const AssemblyErrorSeverity Severity, const bool InMacro);
 void PrintError(const std::string& Message, AssemblyErrorSeverity Severity);
 void PrintSymbols(const std::string & Name, const SymbolTable& Table);
 bool NoRegisters = false;   // Suppress pre-defined Register equates
@@ -64,38 +72,32 @@ int main(int argc, char **argv)
 {
     option longopts[] =
     {
-        { "define",      required_argument, 0, 'D' }, // Define pre-processor variable
-        { "undefine",    required_argument, 0, 'U' }, // Un-define pre-processor variable
-        { "list",        no_argument,       0, 'l' }, // Create a listing file after pass 3
-        { "symbols",     no_argument,       0, 's' }, // Include Symbol Table in listing file
-        { "noregisters", no_argument,       0, 'r' }, // Do not pre-define labels for Registers (R0-F, R0-15)
-        { "noports",     no_argument,       0, 'p' }, // No not pre-define labels for Ports (P1-7)
-        { "output",      required_argument, 0, 'o' }, // Set output file type (default = Intel Hex)
-        { "version",     no_argument,       0, 'v' }, // Print version number and exit
-        { "help",        no_argument,       0, '?' }, // Print using information
+        { "define",             required_argument,  0, 'D' }, // Define pre-processor variable
+        { "undefine",           required_argument,  0, 'U' }, // Un-define pre-processor variable
+        { "keep-preprocessor",  no_argument,        0, 'k' }, // Keep Pre-Processor intermediate file
+        { "list",               no_argument,        0, 'l' }, // Create a listing file after pass 3
+        { "symbols",            no_argument,        0, 's' }, // Include Symbol Table in listing file
+        { "noregisters",        no_argument,        0, 'r' }, // Do not pre-define labels for Registers (R0-F, R0-15)
+        { "noports",            no_argument,        0, 'p' }, // No not pre-define labels for Ports (P1-7)
+        { "output",             required_argument,  0, 'o' }, // Set output file type (default = Intel Hex)
+        { "version",            no_argument,        0, 'v' }, // Print version number and exit
+        { "help",               no_argument,        0, '?' }, // Print using information
         { 0,0,0,0 }
     };
 
     bool Listing = false;
+    PreProcessor AssemblerPreProcessor;
+    bool KeepPreprocessor = false;
     bool Symbols = false;
     OutputFormatEnum OutputFormat = INTEL_HEX;
     int FileCount = 0;
     int FilesAssembled = 0;
     while (1)
     {
-        const int opt = getopt_long(argc, argv, "D:U:lso:v?", longopts, 0);
+        const int opt = getopt_long(argc, argv, "D:U:klso:v?", longopts, 0);
 
         if (opt == -1)
             break;
-
-        switch (opt)
-        {
-            case 'D':
-            {
-            }
-            default:
-                break;
-        }
 
         switch (opt)
         {
@@ -116,10 +118,7 @@ int main(int argc, char **argv)
                     value = "";
                 }
                 ToUpper(key);
-                ToUpper(value);
-                if(GlobalDefines.contains(key))
-                    fmt::print("** Warning: Macro redeclared: {key}\n", fmt::arg("key", key));
-                GlobalDefines[key] = value;
+                AssemblerPreProcessor.AddDefine(key, value);
                 break;
             }
 
@@ -127,9 +126,13 @@ int main(int argc, char **argv)
             {
                 std::string key = optarg;
                 ToUpper(key);
-                GlobalDefines.erase(optarg);
+                AssemblerPreProcessor.RemoveDefine(optarg);
                 break;
             }
+            case 'k':
+                KeepPreprocessor = true;
+                break;
+
             case 'l':
                 Listing = true;
                 break;
@@ -151,7 +154,7 @@ int main(int argc, char **argv)
                 std::string Mode = optarg;
                 ToUpper(Mode);
                 if(OutputFormatLookup.find(Mode) == OutputFormatLookup.end())
-                    fmt::print("** Unrecognised binary output mode. Defaulting to Intel Hex\n");
+                    fmt::println("** Unrecognised binary output mode. Defaulting to Intel Hex");
                 else
                     OutputFormat = OutputFormatLookup.at(Mode);
                 break;
@@ -170,22 +173,34 @@ int main(int argc, char **argv)
                 fmt::println("asm1802 <options> SourceFile <options>");
                 fmt::println("");
                 fmt::println("Options:");
+                fmt::println("");
                 fmt::println("-D|--define Name{{=value}}");
                 fmt::println("\tDefine preprocessor variable");
+                fmt::println("");
                 fmt::println("-U|--undefine Name");
                 fmt::println("\tUndefine preprocessor variable");
+                fmt::println("");
+                fmt::println("-k|--keep-preprocessor");
+                fmt::println("\tKeep Pre-Processor temporary file {{filename}}.pp");
+                fmt::println("");
                 fmt::println("-l|--list");
                 fmt::println("\tCreate listing file");
+                fmt::println("");
                 fmt::println("-s|--symbols");
                 fmt::println("\tInclude Symbol Tables in listing");
+                fmt::println("");
                 fmt::println("--noregisters");
                 fmt::println("\tDo not predefine R0-RF register symbols");
+                fmt::println("");
                 fmt::println("--noports");
                 fmt::println("\tDo not predefine P1-P7 port symbols");
+                fmt::println("");
                 fmt::println("-o|--output format");
                 fmt::println("\tCreate output file in \"intelhex\" or \"idiiot4\" format");
+                fmt::println("");
                 fmt::println("-v|--version");
                 fmt::println("\tPrint version number and exit");
+                fmt::println("");
                 fmt::println("-?|--help");
                 fmt::println("\tPrint thie help and exit");
                 return 0;
@@ -202,8 +217,21 @@ int main(int argc, char **argv)
     {
         try
         {
-            if(assemble(argv[optind++], Listing, Symbols, OutputFormat))
-                FilesAssembled++;
+
+            std::string PreProcessedInputFile;
+            std::string FileName = argv[optind++];
+            if(AssemblerPreProcessor.Run(FileName, PreProcessedInputFile))
+            {
+                if(KeepPreprocessor)
+                    fmt::println("Pre-Processed input saved to {FileName}\n", fmt::arg("FileName", PreProcessedInputFile));
+                if(assemble(PreProcessedInputFile, Listing, Symbols, OutputFormat))
+                    FilesAssembled++;
+            }
+            else
+                fmt::println("Pre-Procssing Failed, Assmbly Aborted");
+
+            if(!KeepPreprocessor)
+                std::remove(PreProcessedInputFile.c_str());
             FileCount++;
         }
         catch (AssemblyException Error)
@@ -231,18 +259,11 @@ int main(int argc, char **argv)
 bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode)
 {
     fmt::print("Assembling: {filename}\n", fmt::arg("filename", FileName));
-
     SymbolTable MainTable;
     std::map<std::string, SymbolTable> SubTables;
     std::map<uint16_t, std::vector<uint8_t>> Code = {{ 0, {}}};
     std::map<uint16_t, std::vector<uint8_t>>::iterator CurrentCode = Code.begin();
     std::optional<uint16_t> EntryPoint;
-
-    // Pre-Define DEFINES for common alignments
-    GlobalDefines["WORD"]  = "2";
-    GlobalDefines["DWORD"] = "4";
-    GlobalDefines["QWORD"] = "8";
-    GlobalDefines["PAGE"]  = "256";
 
     // Pre-Define LABELS for Registers
     if(!NoRegisters)
@@ -262,11 +283,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     MainTable.Symbols["TRUE"]  = { 1, true };
     MainTable.Symbols["FALSE"] = { 0, true };
 
-    SourceCodeReader Source;
     ErrorTable Errors;
-    ListingFileWriter ListingFile(Source, FileName, Errors, ListingEnabled);
-
-    std::time_t Now = std::time(nullptr);
+    ListingFileWriter ListingFile(FileName, Errors, ListingEnabled);
 
     for(int Pass = 1; Pass <= 3 && Errors.count(SEVERITY_Error) == 0; Pass++)
     {
@@ -274,6 +292,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
         uint16_t ProgramCounter = 0;
         uint16_t SubroutineSize = 0;
         CPUTypeEnum Processor = CPU_1802;
+        std::string CurrentFile = "";
+        int LineNumber = 0;
+        int MacroLineNumber = 0;
         bool InSub = false;
         bool InAutoAlignedSub = false;
         try
@@ -281,13 +302,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
             fmt::print("Pass {pass}\n", fmt::arg("pass", Pass));
 
             // Setup Source File stack
-            Source.IncludeFile(FileName);
-
-            // Initialise Defines from Global Defines
-            DefineMap Defines(GlobalDefines);   // Defines, initialised from Global Defines
-            Defines["__DATE__"] = fmt::format("\"{:%b %d %Y}\"", fmt::localtime(Now));
-            Defines["__TIME__"] = fmt::format("\"{:%H:%M:%S}\"", fmt::localtime(Now));
-            Defines["__TIMESTAMP__"] = fmt::format("\"{:%a %b %d %H:%M:%S %Y}\"", fmt::localtime(Now));
+            SourceCodeReader Source(FileName);
 
             // Setup stack of #if results
             int IfNestingLevel = 0;
@@ -296,125 +311,41 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
             std::string OriginalLine;
             while(Source.getLine(OriginalLine))
             {
-                Defines["__FILE__"] = fmt::format("\"{FileName}\"", fmt::arg("FileName", Source.getName()));
-                Defines["__LINE__"] = fmt::format("{LineNumber}", fmt::arg("LineNumber", Source.getLineNumber()));
-                try
-                {
-                    std::string Line = trim(OriginalLine);
-                    if (Line.size() > 0)
-                    {
-                        PreProcessorDirectiveEnum Directive;
-                        std::string Expression;
+                std::string Line = trim(OriginalLine);
 
-                        if (IsPreProcessorDirective(Line, Directive, Expression)) // Pre-Processor Directive
+                // Check for Pre-Processor Control statement (#control expression...)
+                std::smatch MatchResult;
+                if(regex_match(Line, MatchResult, std::regex(R"-(^#(\w+)(\s+(.*))?$)-")))
+                {
+                    std::string ControlWord = MatchResult[1];
+                    std::string Expression = MatchResult[3];
+                    if(PreProcessorControlLookup.find(ControlWord) != PreProcessorControlLookup.end())
+                    {
+                        switch(PreProcessorControlLookup.at(ControlWord))
                         {
-                            if (Pass == 3)
-                                ListingFile.Append();
-                            switch (Directive)
+                            case PP_LINE:
                             {
-                                case PP_define:
+                                std::smatch MatchResult;
+                                if(regex_match(Expression, MatchResult, std::regex(R"-("(.*)" ([0-9]+)$)-")))
                                 {
-                                    //if(Source.getStreamType() == SourceCodeReader::SOURCE_LITERAL)
-                                    //    throw AssemblyException("Cannot use #define inside a MACRO", SEVERITY_Error);
-                                    std::string key;
-                                    std::string value;
-                                    std::smatch MatchResult;
-                                    if(regex_match(Expression, MatchResult, std::regex(R"(^(\w+)\s+(.*)$)")))
-                                    {
-                                        key = MatchResult[1];
-                                        value = MatchResult[2];
-                                    }
-                                    else
-                                    {
-                                        key = Expression;
-                                        value = "";
-                                    }
-                                    ToUpper(key);
-                                    //if(Defines.contains(key))
-                                    //    throw AssemblyException(fmt::format("Duplicate definition: {Name} is already defined.", fmt::arg("Name", key)), SEVERITY_Warning);
-                                    Defines[key]=value;
-                                    break;
+                                    CurrentFile = MatchResult[1];
+                                    LineNumber = stoi(MatchResult[2]);
                                 }
-                                case PP_undef:
-                                {
-                                    ToUpper(Expression);
-                                    if(Defines.contains(Expression))
-                                        Defines.erase(Expression);
-                                    else
-                                        throw AssemblyException("Not defined", SEVERITY_Warning);
-                                    break;
-                                }
-                                case  PP_if:
-                                {
-                                    IfNestingLevel++;
-                                    throw AssemblyException("Not Implemented - Assuming True", SEVERITY_Warning);
-                                    break;
-                                }
-                                case PP_ifdef:
-                                {
-                                    IfNestingLevel++;
-                                    ToUpper(Expression);
-                                    if(!Defines.contains(Expression))
-                                    {
-                                        if(SkipLines(Source, OriginalLine) == PP_endif)
-                                        {
-                                            if (Pass == 3) // Add terminating directive from skiplines to listing output
-                                                ListingFile.Append();
-                                            IfNestingLevel--;
-                                        }
-                                    }
-                                    break;
-                                }
-                                case PP_ifndef:
-                                {
-                                    IfNestingLevel++;
-                                    ToUpper(Expression);
-                                    if(Defines.contains(Expression))
-                                    {
-                                        if(SkipLines(Source, OriginalLine) == PP_endif)
-                                        {
-                                            if (Pass == 3) // Add terminating directive from skiplines to listing output
-                                                ListingFile.Append();
-                                            IfNestingLevel--;
-                                        }
-                                    }
-                                    break;
-                                }
-                                case PP_else:
-                                {
-                                    if(SkipLines(Source, OriginalLine) == PP_endif)
-                                    {
-                                        if (Pass == 3) // Add terminating directive from skiplines to listing output
-                                            ListingFile.Append();
-                                        IfNestingLevel--;
-                                    }
-                                    break;
-                                }
-                                case PP_endif:
-                                {
-                                    IfNestingLevel--;
-                                    break;
-                                }
-                                case PP_include:
-                                {
-                                    std::smatch MatchResult;
-                                    if(regex_match(Expression, MatchResult, std::regex(R"(^[<\"]([^>\"]+)[>\"]$)")))
-                                        Source.IncludeFile(MatchResult[1]);
-                                    else
-                                        throw AssemblyException("Unable to interpret filename expected <filename> or \"filename\"", SEVERITY_Error);
-                                    break;
-                                }
-                                case PP_error:
-                                    throw AssemblyException(fmt::format("#error: {Message}", fmt::arg("Message", Expression)), SEVERITY_Error);
-                                    break;
+                                break;
                             }
                         }
-                        else // Assembly Source line
+                        continue; // Go back to start of getLine loop - control statements have no further processing and are not included in the listing file.
+                    }
+                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                }
+                else
+                {
+                    try
+                    {
+                        if (Line.size() > 0)
                         {
                             try
                             {
-                                ExpandDefines(Line, Defines);
-
                                 std::string Label;
                                 std::string Mnemonic;
                                 std::vector<std::string>Operands;
@@ -479,6 +410,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         std::string Expansion;
                                                         while(Source.getLine(OriginalLine))
                                                         {
+                                                            LineNumber++;
                                                             std::string Line = trim(OriginalLine);
                                                             std::optional<OpCodeSpec> OpCode;
                                                             try
@@ -507,8 +439,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         break;
                                                     case MACROEXPANSION:
                                                     {
-                                                        auto MacroDefinition = CurrentTable->Macros.find(Mnemonic);
                                                         std::string MacroExpansion;
+                                                        auto MacroDefinition = CurrentTable->Macros.find(Mnemonic);
                                                         if(MacroDefinition != CurrentTable->Macros.end())
                                                             ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                         else if(CurrentTable != &MainTable)
@@ -517,8 +449,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             if(MacroDefinition != MainTable.Macros.end())
                                                                 ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                         }
+                                                        LineNumber++;
                                                         if(!MacroExpansion.empty())
-                                                            Source.IncludeLiteral(Mnemonic, MacroExpansion);
+                                                            Source.InsertMacro(Mnemonic, MacroExpansion);
                                                         else
                                                             throw AssemblyException("Unknown OpCode", SEVERITY_Error);
                                                         break;
@@ -675,6 +608,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     {
                                                         while(Source.getLine(OriginalLine))
                                                         {
+                                                            LineNumber++;
                                                             std::string Line = trim(OriginalLine);
                                                             try
                                                             {
@@ -694,8 +628,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     }
                                                     case MACROEXPANSION:
                                                     {
-                                                        auto MacroDefinition = CurrentTable->Macros.find(Mnemonic);
                                                         std::string MacroExpansion;
+                                                        auto MacroDefinition = CurrentTable->Macros.find(Mnemonic);
                                                         if(MacroDefinition != CurrentTable->Macros.end())
                                                             ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                         else if(CurrentTable != &MainTable)
@@ -704,8 +638,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             if(MacroDefinition != MainTable.Macros.end())
                                                                 ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                         }
+                                                        LineNumber++;
                                                         if(!MacroExpansion.empty())
-                                                            Source.IncludeLiteral(Mnemonic, MacroExpansion);
+                                                            Source.InsertMacro(Mnemonic, MacroExpansion);
                                                         else
                                                             throw AssemblyException("Unknown OpCode", SEVERITY_Error);
                                                         break;
@@ -820,21 +755,22 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                                 }
                                                             }
                                                         }
-                                                        ListingFile.Append();
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                                         break;
                                                     }
                                                     case ENDSUB:
                                                     {
                                                         CurrentTable = &MainTable;
-                                                        ListingFile.Append();
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                                         break;
                                                     }
                                                     case MACRO:
                                                     {
-                                                        ListingFile.Append();
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                                         while(Source.getLine(OriginalLine))
                                                         {
-                                                            ListingFile.Append();
+                                                            LineNumber++;
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                                             std::string Line = trim(OriginalLine);
                                                             try
                                                             {
@@ -854,8 +790,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     }
                                                     case MACROEXPANSION:
                                                     {
-                                                        auto MacroDefinition = CurrentTable->Macros.find(Mnemonic);
                                                         std::string MacroExpansion;
+                                                        auto MacroDefinition = CurrentTable->Macros.find(Mnemonic);
                                                         if(MacroDefinition != CurrentTable->Macros.end())
                                                             ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                         else if(CurrentTable != &MainTable)
@@ -864,9 +800,10 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             if(MacroDefinition != MainTable.Macros.end())
                                                                 ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                         }
-                                                        ListingFile.Append();
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                        LineNumber++;
                                                         if(!MacroExpansion.empty())
-                                                            Source.IncludeLiteral(Mnemonic, MacroExpansion);
+                                                            Source.InsertMacro(Mnemonic, MacroExpansion);
                                                         else
                                                             throw AssemblyException("Unknown OpCode", SEVERITY_Error);
                                                         break;
@@ -878,7 +815,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
                                                         CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
 
-                                                        ListingFile.Append();
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                                         break;
                                                     }
                                                     case DB:
@@ -900,7 +837,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             }
                                                         }
                                                         CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
-                                                        ListingFile.Append(ProgramCounter, Data);
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro(), ProgramCounter, Data);
                                                         ProgramCounter += Data.size();
                                                         break;
                                                     }
@@ -917,14 +854,14 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             Data.push_back(x & 0xFF);
                                                         }
                                                         CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
-                                                        ListingFile.Append(ProgramCounter, Data);
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro(), ProgramCounter, Data);
                                                         ProgramCounter += Data.size();
                                                         break;
                                                     }
                                                     case PROCESSOR:
                                                     {
                                                         Processor = OpCodeTable::CPUTable.at(Operands[0]);
-                                                        ListingFile.Append();
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                                         break;
                                                     }
                                                     case ALIGN:
@@ -935,7 +872,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         int Align = E.Evaluate(Operands[0]);
                                                         ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
                                                         CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
-                                                        ListingFile.Append();
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                                         break;
                                                     }
                                                     case ASSERT:
@@ -948,16 +885,16 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         int Result = E.Evaluate(Operands[0]);
                                                         if (Result == 0)
                                                             throw AssemblyException("ASSERT Failed", SEVERITY_Error);
-                                                        ListingFile.Append();
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                                         break;
                                                     }
                                                     case END:
                                                     {
                                                         ExpressionEvaluator E(MainTable, ProgramCounter);
                                                         EntryPoint = E.Evaluate(Operands[0]);
-                                                        ListingFile.Append();
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                                         while(Source.getLine(OriginalLine))
-                                                            ListingFile.Append();
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                                         break;
                                                     }
                                                     case LIST:
@@ -969,6 +906,12 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             E.AddLocalSymbols(CurrentTable);
                                                         int Result = E.Evaluate(Operands[0]);
 
+                                                        if(Result == 1)
+                                                        {
+                                                            ListingFile.Enabled = true;
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                        }
+
                                                         if(Result == 0)
                                                             ListingFile.Enabled = false;
                                                         else
@@ -977,6 +920,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     }
                                                     case SYMBOLS:
                                                     {
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("LIST Requires a single argument <expression>", SEVERITY_Error);
                                                         ExpressionEvaluator E(MainTable, ProgramCounter);
@@ -1124,28 +1069,27 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
                                                 CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
 
-                                                ListingFile.Append(ProgramCounter, Data);
+                                                ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro(), ProgramCounter, Data);
                                                 ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
                                             }
                                         }
                                         else
-                                            ListingFile.Append();
+                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                     }
                                 }
                             }
                             catch (AssemblyException Ex)
                             {
-                                if(!Errors.Contains(Source.getName(), Source.getLineNumber(), Ex.Message, Ex.Severity))
+                                if(!Errors.Contains(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Ex.Message, Ex.Severity, Source.InMacro()))
                                 {
-                                    PrintError(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-                                    Errors.Push(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                                    PrintError(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.Message, Ex.Severity, Source.InMacro());
+                                    Errors.Push(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.Message, Ex.Severity, Source.InMacro());
                                 }
                                 if(Ex.SkipToOpCode.has_value())
                                 {
                                     while(Source.getLine(OriginalLine))
                                     {
                                         std::string Line = trim(OriginalLine);
-                                        ExpandDefines(Line, Defines);
                                         std::string Label;
                                         std::string Mnemonic;
                                         std::vector<std::string>Operands;
@@ -1156,25 +1100,31 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                 }
                                 if (Pass == 3)
                                 {
-                                    ListingFile.Append();
+                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                 }
                             }
-
                         }
+                        else // Empty line
+                            if (Pass == 3)
+                                ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                     }
-                    else // Empty line
-                        if (Pass == 3)
-                            ListingFile.Append();
-                }
-                catch (AssemblyException Ex)
-                {
-                    if(!Errors.Contains(Source.getName(), Source.getLineNumber(), Ex.Message, Ex.Severity))
+                    catch (AssemblyException Ex)
                     {
-                        PrintError(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
-                        Errors.Push(Source.getName(), Source.getLineNumber(), Source.getLastLine(), Ex.Message, Ex.Severity);
+                        if(!Errors.Contains(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Ex.Message, Ex.Severity, Source.InMacro()))
+                        {
+                            PrintError(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.Message, Ex.Severity, Source.InMacro());
+                            Errors.Push(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.Message, Ex.Severity, Source.InMacro());
+                        }
+                        if(Ex.SkipToOpCode.has_value())
+                            throw; // AssemblyException is only thrown with a SkipToOpcode in an enclosed try / catch so this should never happen
                     }
-                    if(Ex.SkipToOpCode.has_value())
-                        throw; // AssemblyException is only thrown with a SkipToOpcode in an enclosed try / catch so this should never happen
+                }
+                if(Source.InMacro())
+                    MacroLineNumber++;
+                else
+                {
+                    MacroLineNumber = 0;
+                    LineNumber++;
                 }
             } // while(Source.getLine())...
 
@@ -1248,7 +1198,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     fmt::print("{count:4} Errors\n",       fmt::arg("count", TotalErrors));
     fmt::print("\n");
 
-    // If no Errors, then write the binary output
+// If no Errors, then write the binary output
     if(TotalErrors == 0)
     {
         BinaryWriter *Output;
@@ -1311,17 +1261,26 @@ void DumpCode(const std::map<uint16_t, std::vector<uint8_t>>& Code)
 //!
 //! Print the error to StdErr
 //!
-void PrintError(const std::string& SourceFileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity)
+void PrintError(const std::string& FileName, const int LineNumber, const std::string& MacroName, const int MacroLineNumber, const std::string& Line, const std::string& Message, const AssemblyErrorSeverity Severity, const bool InMacro)
 {
+    std::string FileRef;
+    std::string LineRef;
+    if(InMacro)
+    {
+        FileRef = FileName+"::"+MacroName;
+        LineRef = fmt::format("{LineNumber}.{MacroLineNumber:02}", fmt::arg("LineNumber", LineNumber), fmt::arg("MacroLineNumber", MacroLineNumber));
+    }
+    else
+    {
+        FileRef = FileName;
+        LineRef = fmt::format("{LineNumber}", fmt::arg("LineNumber", LineNumber));
+    }
+
     try // Source may not contain anything...
     {
-        std::string FileName = fs::path(SourceFileName);
-        if(FileName.length() > 20)
-            FileName = FileName.substr(0, 17) + "...";
-
-        fmt::print("[{filename:22}({linenumber:5})] {line}\n",
-                   fmt::arg("filename", FileName),
-                   fmt::arg("linenumber", LineNumber),
+        fmt::print("[{filename:22.22}{linenumber:>7}] {line}\n",
+                   fmt::arg("filename", FileRef),
+                   fmt::arg("linenumber", LineRef),
                    fmt::arg("line", Line)
                   );
         fmt::print("***************{severity:*>15}: {message}\n",

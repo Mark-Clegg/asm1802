@@ -15,14 +15,27 @@ ErrorTable::ErrorTable()
 //!
 //! Log the error for output during listing, omitting duplicates
 //!
-void ErrorTable::Push(const std::string& FileName, const int LineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity)
+void ErrorTable::Push(const std::string& FileName, const int LineNumber, const std::string& MacroName, const int MacroLineNumber, const std::string& Line, const std::string& Message, AssemblyErrorSeverity Severity, bool InMacro)
 {
-    if(Table.count(FileName) == 0)
-        Table.insert({FileName, {}});
-
-    if(Table[FileName].count(LineNumber) > 0)
+    std::string FileRef;
+    std::pair<int,int> LineRef;
+    if(InMacro)
     {
-        auto range = Table[FileName].equal_range(LineNumber);
+        FileRef = FileName+"::"+MacroName;
+        LineRef = { LineNumber, MacroLineNumber };
+    }
+    else
+    {
+        FileRef = FileName;
+        LineRef = { LineNumber, 0 };
+    }
+
+    if(Table.count(FileRef) == 0)
+        Table.insert({FileRef, {}});
+
+    if(Table[FileRef].count(LineRef) > 0)
+    {
+        auto range = Table[FileRef].equal_range(LineRef);
         bool match = false;
         for(auto it = range.first; it != range.second; it++)
         {
@@ -30,10 +43,10 @@ void ErrorTable::Push(const std::string& FileName, const int LineNumber, const s
             match = (MsgSevPair.first == Message) && (MsgSevPair.second == Severity);
         }
         if(!match)
-            Table[FileName].insert({ LineNumber, { Message, Severity}});
+            Table[FileRef].insert({ LineRef, { Message, Severity}});
     }
     else
-        Table[FileName].insert({ LineNumber, { Message, Severity}});
+        Table[FileRef].insert({ LineRef, { Message, Severity}});
 }
 
 //!
@@ -48,7 +61,7 @@ void ErrorTable::Push(const std::string& Message, AssemblyErrorSeverity Severity
     if(Table.count("") == 0)
         Table.insert({"", {}});
 
-    Table[""].insert({ 0, { Message, Severity}});
+    Table[""].insert({ {0, 0}, { Message, Severity}});
 }
 
 //!
@@ -91,14 +104,27 @@ int ErrorTable::count(const AssemblyErrorSeverity Severity)
 //!
 //! Check if the error table already contains the specified error
 //!
-bool ErrorTable::Contains(const std::string& FileName, const int LineNumber, const std::string& Message, AssemblyErrorSeverity Severity)
+bool ErrorTable::Contains(const std::string& FileName, const int LineNumber, const std::string& MacroName, const int MacroLineNumber, const std::string& Message, AssemblyErrorSeverity Severity, bool InMacro)
 {
-    auto FileTable = Table.find(FileName);
+    std::string FileRef;
+    std::pair<int,int> LineRef;
+    if(InMacro)
+    {
+        FileRef = FileName+"::"+MacroName;
+        LineRef = { LineNumber, MacroLineNumber };
+    }
+    else
+    {
+        FileRef = FileName;
+        LineRef = { LineNumber, 0 };
+    }
+
+    auto FileTable = Table.find(FileRef);
     if(FileTable == Table.end())
         return false;
 
     auto& LineTable = FileTable->second;
-    auto ErrorTable = LineTable.find(LineNumber);
+    auto ErrorTable = LineTable.find(LineRef);
     if(ErrorTable == LineTable.end())
         return false;
 
@@ -116,7 +142,7 @@ bool ErrorTable::Contains(const std::string& FileName, const int LineNumber, con
 //!
 //! Convenience operator[]
 //!
-std::multimap<int, std::pair<std::string, AssemblyErrorSeverity>>& ErrorTable::operator[](const std::string FileName)
+std::multimap<std::pair<int,int>, std::pair<std::string, AssemblyErrorSeverity>>& ErrorTable::operator[](const std::string FileName)
 {
     return Table[FileName];
 }

@@ -11,8 +11,9 @@ class SourceCodeReader
 public:
     enum SourceType
     {
+        SOURCE_NONE,
         SOURCE_FILE,
-        SOURCE_LITERAL
+        SOURCE_MACRO
     };
 
     class SourceEntry
@@ -22,25 +23,28 @@ public:
     public:
         SourceType Type;
         std::string Name;
-        int LineNumber;
         std::istream* Stream;
 
-        SourceEntry(const std::string& Name);                           // For a File Stream
-        SourceEntry(const std::string& Name, const std::string& Data);  // For a Literal Stream
+        SourceEntry(const std::string& Name);                           // For the top level File Stream
+        SourceEntry(const std::string& Name, const std::string& Data);  // For Macro Expansions
     };
 
 private:
     std::stack<SourceEntry> SourceStreams;
-    std::string LastLine;
+    const std::string Empty = "";
 
 public:
-    void IncludeFile(const std::string& FileName);
-    void IncludeLiteral(const std::string& Name, const std::string& Data);
+    SourceCodeReader(const std::string& FileName);
+    void InsertMacro(const std::string& Name, const std::string& Data);
     bool getLine(std::string& line);
-    const std::string& getLastLine() const;
-    const int getLineNumber() const;
-    const std::string& getName() const;
-    const SourceType getStreamType() const;
+    inline bool InMacro() const
+    {
+        return SourceStreams.size() > 0 ? SourceStreams.top().Type == SOURCE_MACRO : false;
+    };
+    inline const std::string& StreamName() const
+    {
+        return SourceStreams.size() > 0 ? SourceStreams.top().Name : Empty;
+    }
 };
 
 #endif // SOURCECODEREADER_H

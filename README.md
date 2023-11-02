@@ -82,6 +82,20 @@ End of conditional assembly block
 
 Include the contents of the specified file into the input stream.
 
+### Predefined Pre-processor variables
+
+| Variable | Value |
+| --- | --- |
+| WORD | 2 |
+| DWORD | 4 |
+| QWORD | 8 |
+| PAGE | 256 |
+| __DATE__ | Date in "MMM DD YYYY" format |
+| __TIME__ | Time in 24h "hh:mm:ss" format |
+| __TIMESTAMP__ | Date Time in "ddd MMM dd  hh:mm:ss" format |
+| __FILE__ | Current source filename |
+| __LINE__ | Current source line number |
+
 Note that Pre-processor variables are distinct from labels specified 
 during assembly. During pre-processing, any reference to a pre-processor
 variable in the source code, is replaced by it's correspinding value.

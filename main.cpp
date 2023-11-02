@@ -161,7 +161,7 @@ int main(int argc, char **argv)
             }
             case 'v':
             {
-                fmt::print("{version}\n", fmt::arg("version", Version));
+                fmt::println("{version}", fmt::arg("version", Version));
                 return 0;
             }
             case '?':
@@ -207,7 +207,7 @@ int main(int argc, char **argv)
             }
             default:
             {
-                fmt::print("Error\n");
+                fmt::println("Error");
                 return 1;
             }
         }
@@ -223,7 +223,7 @@ int main(int argc, char **argv)
             if(AssemblerPreProcessor.Run(FileName, PreProcessedInputFile))
             {
                 if(KeepPreprocessor)
-                    fmt::println("Pre-Processed input saved to {FileName}\n", fmt::arg("FileName", PreProcessedInputFile));
+                    fmt::println("Pre-Processed input saved to {FileName}", fmt::arg("FileName", PreProcessedInputFile));
                 if(assemble(PreProcessedInputFile, Listing, Symbols, OutputFormat))
                     FilesAssembled++;
             }
@@ -236,12 +236,12 @@ int main(int argc, char **argv)
         }
         catch (AssemblyException Error)
         {
-            fmt::print("** Error opening/reading file: {message}\n", fmt::arg("message", Error.Message));
+            fmt::println("** Error opening/reading file: {message}", fmt::arg("message", Error.Message));
         }
     }
 
-    fmt::print("{count:4} Files Assembled\n", fmt::arg("count", FileCount));
-    fmt::print("{count:4} Files Failed\n",    fmt::arg("count", FileCount - FilesAssembled));
+    fmt::println("{count:4} Files Assembled", fmt::arg("count", FileCount));
+    fmt::println("{count:4} Files Failed",    fmt::arg("count", FileCount - FilesAssembled));
 
     if(FileCount == FilesAssembled)
         return 0;
@@ -258,7 +258,7 @@ int main(int argc, char **argv)
 //!
 bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode)
 {
-    fmt::print("Assembling: {filename}\n", fmt::arg("filename", FileName));
+    fmt::println("Assembling: {filename}", fmt::arg("filename", FileName));
     SymbolTable MainTable;
     std::map<std::string, SymbolTable> SubTables;
     std::map<uint16_t, std::vector<uint8_t>> Code = {{ 0, {}}};
@@ -299,7 +299,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
         bool InAutoAlignedSub = false;
         try
         {
-            fmt::print("Pass {pass}\n", fmt::arg("pass", Pass));
+            fmt::println("Pass {pass}", fmt::arg("pass", Pass));
 
             // Setup Source File stack
             SourceCodeReader Source(FileName);
@@ -407,7 +407,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                                 throw AssemblyException(fmt::format("Invalid argument name: '{Name}'", fmt::arg("Name", Argument)), SEVERITY_Error);
                                                         }
 
-                                                        std::string Expansion;
+                                                        std::ostringstream Expansion;
                                                         while(Source.getLine(OriginalLine))
                                                         {
                                                             LineNumber++;
@@ -428,10 +428,10 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                                 throw AssemblyException("Cannot define a label inside a macro", SEVERITY_Error);
                                                             if(OpCode.has_value() && OpCode.value().OpCode == ENDMACRO)
                                                                 break;
-                                                            Expansion.append(OriginalLine);
-                                                            Expansion.append("\n");
+                                                            fmt::println(Expansion, OriginalLine);
                                                         }
-                                                        MacroDefinition.Expansion = Expansion;
+
+                                                        MacroDefinition.Expansion = Expansion.str();
                                                         break;
                                                     }
                                                     case ENDMACRO:
@@ -1176,7 +1176,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
     if(DumpSymbols)
     {
-        fmt::print("\n");
+        fmt::println("");
 #if DEBUG
         PrintSymbols("Global Symbols", MainTable);
 #endif
@@ -1193,10 +1193,10 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     int TotalWarnings = Errors.count(SEVERITY_Warning);
     int TotalErrors = Errors.count(SEVERITY_Error);
 
-    fmt::print("\n");
-    fmt::print("{count:4} Warnings\n",     fmt::arg("count", TotalWarnings));
-    fmt::print("{count:4} Errors\n",       fmt::arg("count", TotalErrors));
-    fmt::print("\n");
+    fmt::println("");
+    fmt::println("{count:4} Warnings",     fmt::arg("count", TotalWarnings));
+    fmt::println("{count:4} Errors",       fmt::arg("count", TotalErrors));
+    fmt::println("");
 
 // If no Errors, then write the binary output
     if(TotalErrors == 0)
@@ -1229,7 +1229,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 #if DEBUG
 void DumpCode(const std::map<uint16_t, std::vector<uint8_t>>& Code)
 {
-    fmt::print("Code Dump\n");
+    fmt::println("Code Dump");
     for(auto &Segment : Code)
     {
         if(Segment.second.size() > 0)
@@ -1239,14 +1239,17 @@ void DumpCode(const std::map<uint16_t, std::vector<uint8_t>>& Code)
             for(int i = 0; i < Segment.second.size() + skip; i++)
             {
                 if(i % 16 == 0)
-                    fmt::print("\n{Addr:04X}  ", fmt::arg("Addr", StartAddress + i));
+                {
+                    fmt::println("");
+                    fmt::print("{Addr:04X}  ", fmt::arg("Addr", StartAddress + i));
+                }
                 if(i < skip)
                     fmt::print("   ");
                 else
                     fmt::print("{Data:02X} ", fmt::arg("Data", Segment.second.at(i - skip)));
             }
         }
-        fmt::print("\n");
+        fmt::println("");
     }
 }
 #endif
@@ -1278,28 +1281,28 @@ void PrintError(const std::string& FileName, const int LineNumber, const std::st
 
     try // Source may not contain anything...
     {
-        fmt::print("[{filename:22.22}{linenumber:>7}] {line}\n",
-                   fmt::arg("filename", FileRef),
-                   fmt::arg("linenumber", LineRef),
-                   fmt::arg("line", Line)
-                  );
-        fmt::print("***************{severity:*>15}: {message}\n",
-                   fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
-                   fmt::arg("message", Message));
+        fmt::println("[{filename:22.22}{linenumber:>7}] {line}",
+                     fmt::arg("filename", FileRef),
+                     fmt::arg("linenumber", LineRef),
+                     fmt::arg("line", Line)
+                    );
+        fmt::println("***************{severity:*>15}: {message}",
+                     fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
+                     fmt::arg("message", Message));
     }
     catch(...)
     {
-        fmt::print("***************{severity:*>15}: {message}\n",
-                   fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
-                   fmt::arg("message", Message));
+        fmt::println("***************{severity:*>15}: {message}",
+                     fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
+                     fmt::arg("message", Message));
     }
 }
 
 void PrintError(const std::string& Message, AssemblyErrorSeverity Severity)
 {
-    fmt::print("***************{severity:*>15}: {message}\n",
-               fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
-               fmt::arg("message", Message));
+    fmt::println("***************{severity:*>15}: {message}",
+                 fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
+                 fmt::arg("message", Message));
 }
 
 //!
@@ -1311,7 +1314,7 @@ void PrintError(const std::string& Message, AssemblyErrorSeverity Severity)
 //!
 void PrintSymbols(const std::string& Name, const SymbolTable& Blob)
 {
-    fmt::print("{Name:-^116}\n", fmt::arg("Name", Name));
+    fmt::println("{Name:-^116}", fmt::arg("Name", Name));
 
     int c = 0;
     for(auto& Symbol : Blob.Symbols)
@@ -1321,9 +1324,9 @@ void PrintSymbols(const std::string& Name, const SymbolTable& Blob)
             if(Symbol.second.Value.has_value())
                 fmt::print("{Address:04X}", fmt::arg("Address", Symbol.second.Value.value()));
             if(++c % 5 == 0)
-                fmt::print("\n");
+                fmt::println("");
             else
                 fmt::print("    ");
         }
-    fmt::print("\n");
+    fmt::println("");
 }

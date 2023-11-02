@@ -11,7 +11,7 @@ BinaryWriter::BinaryWriter(const std::string& FileName, const std::string& Exten
 
 BinaryWriter::~BinaryWriter()
 {
-    fmt::print(" Done\n");
+    fmt::println(" Done");
     if(Output.is_open())
         Output.close();
 }

@@ -32,7 +32,7 @@ void BinaryWriter_IntelHex::Write(std::map<uint16_t, std::vector<uint8_t>>& Code
                 }
                 DataBlock[0] = DataBlock.size() - 4;
                 AddCheckSum(DataBlock);
-                fmt::print(Output, ":{:02X}\n", fmt::join(DataBlock, ""));
+                fmt::println(Output, ":{:02X}", fmt::join(DataBlock, ""));
             }
         }
     }
@@ -53,7 +53,7 @@ void BinaryWriter_IntelHex::Write(std::map<uint16_t, std::vector<uint8_t>>& Code
             (uint8_t)(StartAddress.value() & 0xFF),          // Low Start Segment Address
         };
         AddCheckSum(Type3Record);
-        fmt::print(Output, ":{:02X}\n", fmt::join(Type3Record, ""));
+        fmt::println(Output, ":{:02X}", fmt::join(Type3Record, ""));
 
         std::vector<uint8_t> Type5Record =
         {
@@ -67,12 +67,12 @@ void BinaryWriter_IntelHex::Write(std::map<uint16_t, std::vector<uint8_t>>& Code
             (uint8_t)(StartAddress.value() & 0xFF),          // Low Start Segment Address
         };
         AddCheckSum(Type5Record);
-        fmt::print(Output, ":{:02X}\n", fmt::join(Type5Record, ""));
+        fmt::println(Output, ":{:02X}", fmt::join(Type5Record, ""));
     }
 
     // End Record
 
-    fmt::print(Output, ":00000001FF\n");
+    fmt::println(Output, ":00000001FF");
 }
 
 void BinaryWriter_IntelHex::AddCheckSum(std::vector<uint8_t>& Data)

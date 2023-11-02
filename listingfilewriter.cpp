@@ -46,17 +46,17 @@ void ListingFileWriter::Append(const std::string& FileName, int LineNumber, cons
             ListStream.open(ListFileName, std::ofstream::out | std::ofstream::trunc);
         }
         if(InMacro)
-            fmt::print(ListStream, "[{filename:22.22}({linenumber:5})] |                    |  {line}\n",
-                       fmt::arg("filename", FileRef),
-                       fmt::arg("linenumber", MacroLineNumber),
-                       fmt::arg("line", Line)
-                      );
+            fmt::println(ListStream, "[{filename:22.22}({linenumber:5})] |                    |  {line}",
+                         fmt::arg("filename", FileRef),
+                         fmt::arg("linenumber", MacroLineNumber),
+                         fmt::arg("line", Line)
+                        );
         else
-            fmt::print(ListStream, "[{filename:22.22}({linenumber:5})] |                    |  {line}\n",
-                       fmt::arg("filename", FileName),
-                       fmt::arg("linenumber", LineNumber),
-                       fmt::arg("line", Line)
-                      );
+            fmt::println(ListStream, "[{filename:22.22}({linenumber:5})] |                    |  {line}",
+                         fmt::arg("filename", FileName),
+                         fmt::arg("linenumber", LineNumber),
+                         fmt::arg("line", Line)
+                        );
 
         PrintError(FileName, LineNumber, MacroName, MacroLineNumber, InMacro);
     }
@@ -141,9 +141,9 @@ void ListingFileWriter::PrintError(const std::string& FileName, const int LineNu
             auto MsgSevPair = it->second;
             std::string Message = MsgSevPair.first;
             AssemblyErrorSeverity Severity = MsgSevPair.second;
-            fmt::print(ListStream, "**************************************{severity:*>15}:  {message}\n",
-                       fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
-                       fmt::arg("message", Message));
+            fmt::println(ListStream, "**************************************{severity:*>15}:  {message}",
+                         fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
+                         fmt::arg("message", Message));
         }
     }
 }
@@ -160,9 +160,9 @@ void ListingFileWriter::AppendGlobalErrors()
                 auto MsgSevPair = it->second;
                 std::string Message = MsgSevPair.first;
                 AssemblyErrorSeverity Severity = MsgSevPair.second;
-                fmt::print(ListStream, "**************************************{severity:*>15}:  {message}\n",
-                           fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
-                           fmt::arg("message", Message));
+                fmt::println(ListStream, "**************************************{severity:*>15}:  {message}",
+                             fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
+                             fmt::arg("message", Message));
             }
         }
     }
@@ -172,7 +172,7 @@ void ListingFileWriter::AppendSymbols(const std::string& Name, const SymbolTable
 {
     if(Enabled)
     {
-        fmt::print(ListStream, "{Name:-^116}\n", fmt::arg("Name", Name));
+        fmt::println(ListStream, "{Name:-^116}", fmt::arg("Name", Name));
 
         int c = 0;
         for(auto& Symbol : Blob.Symbols)
@@ -184,10 +184,10 @@ void ListingFileWriter::AppendSymbols(const std::string& Name, const SymbolTable
                 else
                     fmt::print(ListStream, "----");
                 if(++c % 5 == 0)
-                    fmt::print(ListStream, "\n");
+                    fmt::println(ListStream, "");
                 else
                     fmt::print(ListStream, "    ");
             }
-        fmt::print(ListStream, "\n");
+        fmt::println(ListStream, "");
     }
 }

@@ -12,7 +12,7 @@ find_package(fmt)
 add_executable(asm1802 main.cpp
     sourcecodereader.h sourcecodereader.cpp
     assemblyexception.h assemblyexception.cpp
-    definemap.h definemap.cpp
+
     utils.h utils.cpp
     listingfilewriter.h listingfilewriter.cpp
     opcodetable.h opcodetable.cpp

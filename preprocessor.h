@@ -5,7 +5,6 @@
 #include <map>
 #include <stack>
 #include <string>
-#include "definemap.h"
 
 class PreProcessor
 {
@@ -44,7 +43,7 @@ private:
     std::ofstream OutputStream;
     inline void WriteLineMarker(std::ofstream& Output, const std::string& FileName, const int LineNumber);
 
-    DefineMap Defines;
+    std::map<std::string, std::string> Defines;
 
     static const std::map<std::string, PreProcessor::DirectiveEnum> Directives;
     bool IsDirective(const std::string& Line, DirectiveEnum& Directive, std::string& Expression);

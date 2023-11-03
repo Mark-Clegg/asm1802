@@ -134,8 +134,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         case PP_undef:
                         {
                             ToUpper(Expression);
-                            if(Defines.contains(Expression))
-                                Defines.erase(Expression);
+                            Defines.erase(Expression);
                             break;
                         }
                         case  PP_if:
@@ -155,7 +154,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         {
                             IfNestingLevel.top()++;
                             ToUpper(Expression);
-                            if(!Defines.contains(Expression))
+                            if(Defines.find(Expression) == Defines.end())
                             {
                                 if(SkipLines() == PP_endif)
                                 {
@@ -168,7 +167,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         {
                             IfNestingLevel.top()++;
                             ToUpper(Expression);
-                            if(Defines.contains(Expression))
+                            if(Defines.find(Expression) == Defines.end())
                             {
                                 if(SkipLines() == PP_endif)
                                 {
@@ -348,7 +347,7 @@ void PreProcessor::ExpandDefines(std::string& Line)
                         if(regex_match(Line, MatchResult, std::regex(R"(^(\w+).*)")))
                         {
                             FirstWord = MatchResult[1];
-                            if(FirstWord == Define)
+                            if(FirstWord == Define.first)
                             {
                                 out += Defines[FirstWord];
                             }

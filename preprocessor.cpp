@@ -141,7 +141,14 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         case  PP_if:
                         {
                             IfNestingLevel.top()++;
-                            throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Not Implemented - Assuming True");
+                            ToUpper(Expression);
+                            if(!Evaluate(Expression))
+                            {
+                                if(SkipLines() == PP_endif)
+                                {
+                                    IfNestingLevel.top()--;
+                                }
+                            }
                             break;
                         }
                         case PP_ifdef:
@@ -411,4 +418,9 @@ PreProcessor::DirectiveEnum PreProcessor::SkipLines()
         }
     }
     throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unterminated #if/#ifdef/#ifndef");
+}
+
+bool PreProcessor::Evaluate(std::string& Expression)
+{
+    return true;
 }

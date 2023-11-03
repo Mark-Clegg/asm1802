@@ -9,7 +9,6 @@ ExpressionTokenizer::ExpressionTokenizer()
 void ExpressionTokenizer::Initialize(const std::string& Expression)
 {
     InputStream.str(Expression);
-//    InputStream.exceptions(std::istringstream::eofbit);
     InputStream.seekg(0);
     InputStream.clear();
 }

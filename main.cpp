@@ -258,7 +258,6 @@ int main(int argc, char **argv)
 //!
 bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode)
 {
-    fmt::println("Assembling: {filename}", fmt::arg("filename", FileName));
     SymbolTable MainTable;
     std::map<std::string, SymbolTable> SubTables;
     std::map<uint16_t, std::vector<uint8_t>> Code = {{ 0, {}}};

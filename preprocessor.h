@@ -25,7 +25,6 @@ class PreProcessor
     class SourceEntry
     {
     private:
-
     public:
         const std::string Name;
         int LineNumber;
@@ -51,6 +50,7 @@ private:
     bool IsDirective(const std::string& Line, DirectiveEnum& Directive, std::string& Expression);
     void ExpandDefines(std::string& Line);
     DirectiveEnum SkipLines();
+    int ErrorCount = 0;
 };
 
 #endif // PREPROCESSOR_H

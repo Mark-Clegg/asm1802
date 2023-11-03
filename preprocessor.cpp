@@ -5,6 +5,7 @@
 #include <fstream>
 #include <regex>
 #include "preprocessor.h"
+#include "preprocessorexception.h"
 #include "utils.h"
 
 namespace fs = std::filesystem;
@@ -93,130 +94,152 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
         Defines["__FILE__"] = fmt::format("\"{FileName}\"", fmt::arg("FileName", SourceStreams.top().Name));
         while(std::getline(*SourceStreams.top().Stream, Line))
         {
-            Defines["__LINE__"] = fmt::format("{LineNumber}", fmt::arg("LineNumber", SourceStreams.top().LineNumber));
-            SourceStreams.top().LineNumber++;
-            ExpandDefines(Line);
-
-            // remove last character if blank (<cr>/<lf>/<space>/<tab>
-            while(Line.size() > 0 && (Line[Line.size()-1] == '\r' || Line[Line.size()-1] == '\n' || Line[Line.size()-1] == ' ' || Line[Line.size()-1] == '\t'))
-                Line.pop_back();
-
-            DirectiveEnum Directive;
-            std::string Expression;
-
-            if(IsDirective(Line, Directive, Expression))
+            try
             {
-                fmt::println(OutputStream, "{Line}", fmt::arg("Line", Line));
-                switch(Directive)
-                {
-                    case PP_define:
-                    {
-                        std::string key;
-                        std::string value;
-                        std::smatch MatchResult;
-                        if(regex_match(Expression, MatchResult, std::regex(R"(^(\w+)\s+(.*)$)")))
-                        {
-                            key = MatchResult[1];
-                            value = MatchResult[2];
-                        }
-                        else
-                        {
-                            key = Expression;
-                            value = "1";
-                        }
-                        ToUpper(key);
-                        Defines[key]=value;
-                        break;
-                    }
-                    case PP_undef:
-                    {
-                        ToUpper(Expression);
-                        if(Defines.contains(Expression))
-                            Defines.erase(Expression);
-                        break;
-                    }
-                    case  PP_if:
-                    {
-                        IfNestingLevel.top()++;
-                        //throw AssemblyException("Not Implemented - Assuming True", SEVERITY_Warning);
-                        break;
-                    }
-                    case PP_ifdef:
-                    {
-                        IfNestingLevel.top()++;
-                        ToUpper(Expression);
-                        if(!Defines.contains(Expression))
-                        {
-                            if(SkipLines() == PP_endif)
-                            {
-                                IfNestingLevel.top()--;
-                            }
-                        }
-                        break;
-                    }
-                    case PP_ifndef:
-                    {
-                        IfNestingLevel.top()++;
-                        ToUpper(Expression);
-                        if(Defines.contains(Expression))
-                        {
-                            if(SkipLines() == PP_endif)
-                            {
-                                IfNestingLevel.top()--;
-                            }
-                        }
-                        break;
-                    }
-                    case PP_else:
-                    {
-                        if(SkipLines() == PP_endif)
-                        {
-                            IfNestingLevel.top()--;
-                        }
-                        break;
-                    }
-                    case PP_endif:
-                    {
-                        IfNestingLevel.top()--;
-                        break;
-                    }
-                    case PP_error:
-                        throw;// AssemblyException(fmt::format("#error: {Message}", fmt::arg("Message", Expression)), SEVERITY_Error);
-                        break;
+                Defines["__LINE__"] = fmt::format("{LineNumber}", fmt::arg("LineNumber", SourceStreams.top().LineNumber));
+                SourceStreams.top().LineNumber++;
+                ExpandDefines(Line);
 
-                    case PP_include:
+                // remove last character if blank (<cr>/<lf>/<space>/<tab>
+                while(Line.size() > 0 && (Line[Line.size()-1] == '\r' || Line[Line.size()-1] == '\n' || Line[Line.size()-1] == ' ' || Line[Line.size()-1] == '\t'))
+                    Line.pop_back();
+
+                DirectiveEnum Directive;
+                std::string Expression;
+
+                if(IsDirective(Line, Directive, Expression))
+                {
+                    fmt::println(OutputStream, "{Line}", fmt::arg("Line", Line));
+                    switch(Directive)
                     {
-                        std::smatch MatchResult;
-                        if(regex_match(Expression, MatchResult, std::regex(R"(^[<\"]([^>\"]+)[>\"]$)")))
+                        case PP_define:
                         {
-                            if(SourceStreams.size() > 100)
-                                throw;//AssemblyException("Source File Nesting limit exceeded", SEVERITY_Error);
-                            SourceEntry Entry(MatchResult[1]);
-                            SourceStreams.push(Entry);
-                            WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
-                            IfNestingLevel.push(0);
+                            std::string key;
+                            std::string value;
+                            std::smatch MatchResult;
+                            if(regex_match(Expression, MatchResult, std::regex(R"(^(\w+)\s+(.*)$)")))
+                            {
+                                key = MatchResult[1];
+                                value = MatchResult[2];
+                            }
+                            else
+                            {
+                                key = Expression;
+                                value = "1";
+                            }
+                            ToUpper(key);
+                            Defines[key]=value;
+                            break;
                         }
-                        else
-                            throw; //AssemblyException("Unable to interpret filename expected <filename> or \"filename\"", SEVERITY_Error);
-                        break;
+                        case PP_undef:
+                        {
+                            ToUpper(Expression);
+                            if(Defines.contains(Expression))
+                                Defines.erase(Expression);
+                            break;
+                        }
+                        case  PP_if:
+                        {
+                            IfNestingLevel.top()++;
+                            throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Not Implemented - Assuming True");
+                            break;
+                        }
+                        case PP_ifdef:
+                        {
+                            IfNestingLevel.top()++;
+                            ToUpper(Expression);
+                            if(!Defines.contains(Expression))
+                            {
+                                if(SkipLines() == PP_endif)
+                                {
+                                    IfNestingLevel.top()--;
+                                }
+                            }
+                            break;
+                        }
+                        case PP_ifndef:
+                        {
+                            IfNestingLevel.top()++;
+                            ToUpper(Expression);
+                            if(Defines.contains(Expression))
+                            {
+                                if(SkipLines() == PP_endif)
+                                {
+                                    IfNestingLevel.top()--;
+                                }
+                            }
+                            break;
+                        }
+                        case PP_else:
+                        {
+                            if(IfNestingLevel.top() <= 0)
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#else without preceeding #if");
+                            if(SkipLines() == PP_endif)
+                            {
+                                IfNestingLevel.top()--;
+                            }
+                            break;
+                        }
+                        case PP_endif:
+                        {
+                            if(IfNestingLevel.top() <= 0)
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#endif without preceeding #if");
+                            IfNestingLevel.top()--;
+                            break;
+                        }
+                        case PP_error:
+                            throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, fmt::format("#error: {Message}", fmt::arg("Message", Expression)));
+                            break;
+
+                        case PP_include:
+                        {
+                            std::smatch MatchResult;
+                            if(regex_match(Expression, MatchResult, std::regex(R"(^[<\"]([^>\"]+)[>\"]$)")))
+                            {
+                                if(SourceStreams.size() > 100)
+                                    throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Source File Nesting limit exceeded");
+                                SourceEntry Entry(MatchResult[1]);
+                                SourceStreams.push(Entry);
+                                WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
+                                IfNestingLevel.push(0);
+                            }
+                            else
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unable to interpret filename expected <filename> or \"filename\"");
+                            break;
+                        }
                     }
                 }
+                else
+                    fmt::println(OutputStream, "{Line}", fmt::arg("Line", Line));
             }
-            else
-                fmt::println(OutputStream, "{Line}", fmt::arg("Line", Line));
-            //fmt::println(OutputStream, "{LineNumber:-5}: {Line}", fmt::arg("LineNumber", SourceStreams.top().LineNumber-1), fmt::arg("Line", Line));
+            catch (PreProcessorException Ex)
+            {
+                fmt::println("PreProcessor Error: {FileName}:{LineNumber} - {Message}", fmt::arg("FileName", Ex.FileName), fmt::arg("LineNumber", Ex.LineNumber), fmt::arg("Message", Ex.Message));
+                ErrorCount++;
+            }
         }
+
+        try
+        {
+            if(IfNestingLevel.top() != 0)
+            {
+                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, fmt::format("PreProcessor Error: {FileName} - Unterminated #if/#ifdef/#ifndef", fmt::arg("FileName", SourceStreams.top().Name)));
+                ErrorCount++;
+            }
+        }
+        catch (PreProcessorException Ex)
+        {
+            fmt::println("PreProcessor Error: {FileName}:{LineNumber} - {Message}", fmt::arg("FileName", Ex.FileName), fmt::arg("LineNumber", Ex.LineNumber), fmt::arg("Message", Ex.Message));
+            ErrorCount++;
+        }
+        IfNestingLevel.pop();
         SourceStreams.top().Stream->close();
         delete SourceStreams.top().Stream;
         SourceStreams.pop();
-
-        if(IfNestingLevel.top() != 0)
-            throw;
-        IfNestingLevel.pop();
     }
 
     OutputStream.close();
-    return true;
+    return ErrorCount == 0;
 }
 
 void PreProcessor::WriteLineMarker(std::ofstream& Output, const std::string& FileName, const int LineNumber)
@@ -239,7 +262,7 @@ bool PreProcessor::IsDirective(const std::string& Line, DirectiveEnum& Directive
             Directive = Directives.at(FirstToken);
             return true;
         }
-        //throw AssemblyException("Unrecognised PreProcessor directive", SEVERITY_Warning);
+        throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unrecognised PreProcessor directive");
     }
     return false;
 }
@@ -387,5 +410,5 @@ PreProcessor::DirectiveEnum PreProcessor::SkipLines()
             }
         }
     }
-    throw;// AssemblyException("Unterminated #if/#ifdef/#ifndef", SEVERITY_Warning);
+    throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unterminated #if/#ifdef/#ifndef");
 }

@@ -1,5 +1,5 @@
 #include "preprocessorexpressionevaluator.h"
-#include "preprocessorexception.h"
+#include "preprocessorexpressionexception.h"
 
 const std::map<std::string, PreProcessorExpressionEvaluator::FunctionSpec> PreProcessorExpressionEvaluator::FunctionTable =
 {

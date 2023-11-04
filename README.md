@@ -60,7 +60,7 @@ Remove the definition of a variable
 
 - #if {condition}
 
-Conditional assembly if \<condition\> evaluates to true
+Conditional assembly if \<condition\> evaluates to true (non-zero)
 
 - #ifdef variable
 

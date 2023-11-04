@@ -30,6 +30,7 @@ add_executable(asm1802 main.cpp
     preprocessorexpressiontokenizer.h preprocessorexpressiontokenizer.cpp
     expressiontokens.h
     preprocessorexpressionevaluator.h preprocessorexpressionevaluator.cpp
+    preprocessorexpressionexception.h preprocessorexpressionexception.cpp
     )
 
 install(TARGETS asm1802

@@ -7,6 +7,7 @@
 #include "preprocessor.h"
 #include "preprocessorexception.h"
 #include "preprocessorexpressionevaluator.h"
+#include "preprocessorexpressionexception.h"
 #include "utils.h"
 
 namespace fs = std::filesystem;

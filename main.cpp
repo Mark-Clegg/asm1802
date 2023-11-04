@@ -236,7 +236,7 @@ int main(int argc, char **argv)
         }
         catch (AssemblyException Error)
         {
-            fmt::println("** Error opening/reading file: {message}", fmt::arg("message", Error.Message));
+            fmt::println("** Error opening/reading file: {message}", fmt::arg("message", Error.what()));
         }
     }
 
@@ -1079,10 +1079,10 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                             }
                             catch (AssemblyException Ex)
                             {
-                                if(!Errors.Contains(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Ex.Message, Ex.Severity, Source.InMacro()))
+                                if(!Errors.Contains(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Ex.what(), Ex.Severity, Source.InMacro()))
                                 {
-                                    PrintError(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.Message, Ex.Severity, Source.InMacro());
-                                    Errors.Push(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.Message, Ex.Severity, Source.InMacro());
+                                    PrintError(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.what(), Ex.Severity, Source.InMacro());
+                                    Errors.Push(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.what(), Ex.Severity, Source.InMacro());
                                 }
                                 if(Ex.SkipToOpCode.has_value())
                                 {
@@ -1109,10 +1109,10 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                     }
                     catch (AssemblyException Ex)
                     {
-                        if(!Errors.Contains(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Ex.Message, Ex.Severity, Source.InMacro()))
+                        if(!Errors.Contains(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Ex.what(), Ex.Severity, Source.InMacro()))
                         {
-                            PrintError(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.Message, Ex.Severity, Source.InMacro());
-                            Errors.Push(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.Message, Ex.Severity, Source.InMacro());
+                            PrintError(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.what(), Ex.Severity, Source.InMacro());
+                            Errors.Push(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.what(), Ex.Severity, Source.InMacro());
                         }
                         if(Ex.SkipToOpCode.has_value())
                             throw; // AssemblyException is only thrown with a SkipToOpcode in an enclosed try / catch so this should never happen
@@ -1164,8 +1164,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
         }
         catch (AssemblyException Ex)
         {
-            PrintError(Ex.Message, Ex.Severity);
-            Errors.Push(Ex.Message, Ex.Severity);
+            PrintError(Ex.what(), Ex.Severity);
+            Errors.Push(Ex.what(), Ex.Severity);
             if(Ex.SkipToOpCode.has_value())
                 throw; // AssemblyException is only thrown with a SkipToOpcode in an enclosed try / catch so this should never happen
         }

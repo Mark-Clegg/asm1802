@@ -6,3 +6,8 @@ PreProcessorException::PreProcessorException(const std::string& FileName, const 
     Message(Message)
 {
 }
+
+const char *PreProcessorException::what() const throw()
+{
+    return Message.c_str();
+}

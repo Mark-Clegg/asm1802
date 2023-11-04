@@ -27,6 +27,9 @@ add_executable(asm1802 main.cpp
     macro.h macro.cpp
     preprocessor.h preprocessor.cpp
     preprocessorexception.h preprocessorexception.cpp
+    preprocessorexpressiontokenizer.h preprocessorexpressiontokenizer.cpp
+    expressiontokens.h
+    preprocessorexpressionevaluator.h preprocessorexpressionevaluator.cpp
     )
 
 install(TARGETS asm1802

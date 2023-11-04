@@ -6,23 +6,23 @@
 #include "expressiontokenizer.h"
 #include "symboltable.h"
 
-enum FunctionEnum
-{
-    FN_HIGH,
-    FN_LOW,
-    FN_ISDEF,
-    FN_ISUNDEF
-};
-
-struct FunctionSpec
-{
-    FunctionEnum ID;
-    int Arguments;
-};
-
 class ExpressionEvaluator
 {
 public:
+    enum FunctionEnum
+    {
+        FN_HIGH,
+        FN_LOW,
+        FN_ISDEF,
+        FN_ISUNDEF
+    };
+
+    struct FunctionSpec
+    {
+        FunctionEnum ID;
+        int Arguments;
+    };
+
     ExpressionEvaluator(const SymbolTable& Global, uint16_t ProgramCounter);
     void AddLocalSymbols(const SymbolTable* Local);
     int Evaluate(std::string& Expression);

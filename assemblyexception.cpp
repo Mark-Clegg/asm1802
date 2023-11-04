@@ -19,3 +19,8 @@ AssemblyException::AssemblyException(const std::string& Message, AssemblyErrorSe
     this->Severity = Severity;
     this->SkipToOpCode = SkipToOpCode;
 }
+
+const char* AssemblyException::what() const throw()
+{
+    return Message.c_str();
+}

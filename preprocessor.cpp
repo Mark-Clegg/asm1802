@@ -6,6 +6,7 @@
 #include <regex>
 #include "preprocessor.h"
 #include "preprocessorexception.h"
+#include "preprocessorexpressionevaluator.h"
 #include "utils.h"
 
 namespace fs = std::filesystem;
@@ -141,7 +142,18 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         {
                             IfNestingLevel.top()++;
                             ToUpper(Expression);
-                            if(!Evaluate(Expression))
+                            PreProcessorExpressionEvaluator E;
+                            int Result;
+                            try
+                            {
+                                Result = E.Evaluate(Expression);
+                            }
+                            catch (std::string Message)
+                            {
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, Message);
+                            }
+
+                            if(Result == 0)
                             {
                                 if(SkipLines() == PP_endif)
                                 {
@@ -220,7 +232,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
             }
             catch (PreProcessorException Ex)
             {
-                fmt::println("PreProcessor Error: {FileName}:{LineNumber} - {Message}", fmt::arg("FileName", Ex.FileName), fmt::arg("LineNumber", Ex.LineNumber), fmt::arg("Message", Ex.Message));
+                fmt::println("PreProcessor Error: {FileName}:{LineNumber} - {Message}", fmt::arg("FileName", Ex.FileName), fmt::arg("LineNumber", Ex.LineNumber), fmt::arg("Message", Ex.what()));
                 ErrorCount++;
             }
         }
@@ -235,7 +247,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
         }
         catch (PreProcessorException Ex)
         {
-            fmt::println("PreProcessor Error: {FileName}:{LineNumber} - {Message}", fmt::arg("FileName", Ex.FileName), fmt::arg("LineNumber", Ex.LineNumber), fmt::arg("Message", Ex.Message));
+            fmt::println("PreProcessor Error: {FileName}:{LineNumber} - {Message}", fmt::arg("FileName", Ex.FileName), fmt::arg("LineNumber", Ex.LineNumber), fmt::arg("Message", Ex.what()));
             ErrorCount++;
         }
         IfNestingLevel.pop();
@@ -417,9 +429,4 @@ PreProcessor::DirectiveEnum PreProcessor::SkipLines()
         }
     }
     throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unterminated #if/#ifdef/#ifndef");
-}
-
-bool PreProcessor::Evaluate(std::string& Expression)
-{
-    return true;
 }

@@ -49,7 +49,6 @@ private:
     bool IsDirective(const std::string& Line, DirectiveEnum& Directive, std::string& Expression);
     void ExpandDefines(std::string& Line);
     DirectiveEnum SkipLines();
-    bool Evaluate(std::string& Expression);
     int ErrorCount = 0;
 };
 

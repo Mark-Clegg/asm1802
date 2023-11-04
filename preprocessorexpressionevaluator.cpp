@@ -1,56 +1,33 @@
-#include "assemblyexception.h"
-#include "expressionevaluator.h"
+#include "preprocessorexpressionevaluator.h"
 
-const std::map<std::string, ExpressionEvaluator::FunctionSpec> ExpressionEvaluator::FunctionTable =
+const std::map<std::string, PreProcessorExpressionEvaluator::FunctionSpec> PreProcessorExpressionEvaluator::FunctionTable =
 {
     { "HIGH",        { FN_HIGH,    1 }},
-    { "LOW",         { FN_LOW,     1 }},
-    { "ISDEFINED",   { FN_ISDEF,   1 }},
-    { "ISDEF",       { FN_ISDEF,   1 }},
-    { "ISUNDEFINED", { FN_ISUNDEF, 1 }},
-    { "ISUNDEF",     { FN_ISUNDEF, 1 }}
+    { "LOW",         { FN_LOW,     1 }}
 };
 
-ExpressionEvaluator::ExpressionEvaluator(const SymbolTable& Global, uint16_t ProgramCounter) : Global(&Global), ProgramCounter(ProgramCounter)
+PreProcessorExpressionEvaluator::PreProcessorExpressionEvaluator()
 {
-    LocalSymbols = false;
+
 }
 
-//!
-//! \brief ExpressionEvaluator::AddLocalSymbols
-//! Add local symbols table to scope for lable lookups
-//! \param Local
-//!
-void ExpressionEvaluator::AddLocalSymbols(const SymbolTable* Local)
-{
-    this->Local = Local;
-    LocalSymbols = true;
-}
-
-//!
-//! \brief ExpressionEvaluator::Evaluate
-//! Evaluate the given expression
-//! \param Expression
-//! \return
-//!
-int ExpressionEvaluator::Evaluate(std::string& Expression)
+int PreProcessorExpressionEvaluator::Evaluate(std::string& Expression)
 {
     TokenStream.Initialize(Expression);
-
     int Result = SubExp0();
     auto Token = TokenStream.Peek();
-    if(Token != TOKEN_END && Token != TOKEN_COMMA && Token != TOKEN_CLOSE_BRACE)
-        throw AssemblyException("Extra Characters at end of expression", SEVERITY_Error);
+    if(Token != TOKEN_END && Token != TOKEN_CLOSE_BRACE)
+        throw std::string("Extra Characters at end of expression");
     return Result;
 }
 
 //!
-//! \brief ExpressionEvaluator::SubExp0
+//! \brief SubExp0
 //! Lowest Precedence
 //! Logical OR
 //! \return
 //!
-int ExpressionEvaluator::SubExp0()
+int PreProcessorExpressionEvaluator::SubExp0()
 {
     int Result = SubExp1();
     while(TokenStream.Peek() == TOKEN_LOGICAL_OR)
@@ -67,7 +44,7 @@ int ExpressionEvaluator::SubExp0()
 //! Logical AND
 //! \return
 //!
-int ExpressionEvaluator::SubExp1()
+int PreProcessorExpressionEvaluator::SubExp1()
 {
     int Result = SubExp2();
     while(TokenStream.Peek() == TOKEN_LOGICAL_AND)
@@ -84,7 +61,7 @@ int ExpressionEvaluator::SubExp1()
 //! Bitwise OR
 //! \return
 //!
-int ExpressionEvaluator::SubExp2()
+int PreProcessorExpressionEvaluator::SubExp2()
 {
     int Result = SubExp3();
     while(TokenStream.Peek() == TOKEN_BITWISE_OR)
@@ -100,7 +77,7 @@ int ExpressionEvaluator::SubExp2()
 //! Bitwise XOR
 //! \return
 //!
-int ExpressionEvaluator::SubExp3()
+int PreProcessorExpressionEvaluator::SubExp3()
 {
     int Result = SubExp4();
     while(TokenStream.Peek() == TOKEN_BITWISE_XOR)
@@ -116,7 +93,7 @@ int ExpressionEvaluator::SubExp3()
 //! Bitwise AND
 //! \return
 //!
-int ExpressionEvaluator::SubExp4()
+int PreProcessorExpressionEvaluator::SubExp4()
 {
     int Result = SubExp5();
     while(TokenStream.Peek() == TOKEN_BITWISE_AND)
@@ -132,7 +109,7 @@ int ExpressionEvaluator::SubExp4()
 //! EQUAL / NOT EQUAL
 //! \return
 //!
-int ExpressionEvaluator::SubExp5()
+int PreProcessorExpressionEvaluator::SubExp5()
 {
     int Result = SubExp6();
     while(TokenStream.Peek() == TOKEN_EQUAL || TokenStream.Peek() == TOKEN_NOT_EQUAL)
@@ -158,7 +135,7 @@ int ExpressionEvaluator::SubExp5()
 //! LESS / LESS or EQUAL / GREATER / GREATER or EQUAL
 //! \return
 //!
-int ExpressionEvaluator::SubExp6()
+int PreProcessorExpressionEvaluator::SubExp6()
 {
     int Result = SubExp7();
     while(TokenStream.Peek() == TOKEN_LESS || TokenStream.Peek() == TOKEN_LESS_OR_EQUAL || TokenStream.Peek() == TOKEN_GREATER || TokenStream.Peek() == TOKEN_GREATER_OR_EQUAL)
@@ -190,7 +167,7 @@ int ExpressionEvaluator::SubExp6()
 //! Shift LEFT / RIGHT
 //! \return
 //!
-int ExpressionEvaluator::SubExp7()
+int PreProcessorExpressionEvaluator::SubExp7()
 {
     int Result = SubExp8();
     while(TokenStream.Peek() == TOKEN_SHIFT_LEFT || TokenStream.Peek() == TOKEN_SHIFT_RIGHT)
@@ -216,7 +193,7 @@ int ExpressionEvaluator::SubExp7()
 //! ADDITION / SUPTRACTION
 //! \return
 //!
-int ExpressionEvaluator::SubExp8()
+int PreProcessorExpressionEvaluator::SubExp8()
 {
     int Result = SubExp9();
     while(TokenStream.Peek() == TOKEN_PLUS || TokenStream.Peek() == TOKEN_MINUS)
@@ -242,7 +219,7 @@ int ExpressionEvaluator::SubExp8()
 //! MULTIPLY / DIVIDE / REMAINDER
 //! \return
 //!
-int ExpressionEvaluator::SubExp9()
+int PreProcessorExpressionEvaluator::SubExp9()
 {
     int Result = SubExp10();
     while(TokenStream.Peek() == TOKEN_MULTIPLY || TokenStream.Peek() == TOKEN_DIVIDE || TokenStream.Peek() == TOKEN_REMAINDER)
@@ -257,7 +234,7 @@ int ExpressionEvaluator::SubExp9()
             {
                 int Operand = SubExp10();
                 if(Operand == 0)
-                    throw AssemblyException("Divide by zero", SEVERITY_Error);
+                    throw std::string("Divide by zero");
                 Result /= Operand;
                 break;
             }
@@ -265,7 +242,7 @@ int ExpressionEvaluator::SubExp9()
             {
                 int Operand = SubExp10();
                 if(Operand == 0)
-                    throw AssemblyException("Divide by zero", SEVERITY_Error);
+                    throw std::string("Divide by zero");
                 Result %= Operand;
                 break;
             }
@@ -281,7 +258,7 @@ int ExpressionEvaluator::SubExp9()
 //! . Postfix operator - select Low ot High byte
 //! \return
 //!
-int ExpressionEvaluator::SubExp10()
+int PreProcessorExpressionEvaluator::SubExp10()
 {
     int Result = SubExp11();
     if(TokenStream.Peek() == TOKEN_DOT)
@@ -297,7 +274,7 @@ int ExpressionEvaluator::SubExp10()
                 Result = (Result >> 8) & 0xFF;
                 break;
             default:
-                throw AssemblyException("Expected .0 or .1 High/Low selector", SEVERITY_Error);
+                throw std::string("Expected .0 or .1 High/Low selector");
         }
     }
     return Result;
@@ -308,7 +285,7 @@ int ExpressionEvaluator::SubExp10()
 //! Unary PLUS / MINUS / Bitwise NOT / Logical NOT
 //! \return
 //!
-int ExpressionEvaluator::SubExp11()
+int PreProcessorExpressionEvaluator::SubExp11()
 {
     int Result;
     auto Token = TokenStream.Peek();
@@ -342,7 +319,7 @@ int ExpressionEvaluator::SubExp11()
 //! Constant / Label / Function Call / Bracketed Expression
 //! \return
 //!
-int ExpressionEvaluator::SubExp12()
+int PreProcessorExpressionEvaluator::SubExp12()
 {
     int Result = 0;
     auto Token = TokenStream.Get();
@@ -352,15 +329,10 @@ int ExpressionEvaluator::SubExp12()
             Result = TokenStream.IntegerValue;
             break;
 
-        case TOKEN_DOLLAR:
-        case TOKEN_DOT:
-            Result = ProgramCounter;
-            break;
-
         case TOKEN_OPEN_BRACE: // Bracketed Expression
             Result = SubExp0();
             if (TokenStream.Peek() != TOKEN_CLOSE_BRACE)
-                throw AssemblyException("Expected ')'", SEVERITY_Error);
+                throw std::string("Expected ')'");
             else
                 TokenStream.Get();
             break;
@@ -374,69 +346,29 @@ int ExpressionEvaluator::SubExp12()
 
                 auto FunctionSpec = FunctionTable.find(Label);
                 if(FunctionSpec == FunctionTable.end())
-                    throw AssemblyException("Unknown function call", SEVERITY_Error);
+                    throw std::string("Unknown function call");
 
                 std::vector<int> Arguments = { };
                 switch(FunctionSpec->second.ID)
                 {
                     case FN_LOW:
                         if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
-                            throw AssemblyException("Incorrect number of arguments: LOW expects 1 argument", SEVERITY_Error);
+                            throw std::string("Incorrect number of arguments: LOW expects 1 argument");
                         Result = Arguments[0] & 0xFF;
                         break;
                     case FN_HIGH:
                         if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
-                            throw AssemblyException("Incorrect number of arguments: HIGH expects 1 argument", SEVERITY_Error);
+                            throw std::string("Incorrect number of arguments: HIGH expects 1 argument");
                         Result = (Arguments[0] >> 8) & 0xFF;
-                        break;
-                    case FN_ISDEF:
-                        if(TokenStream.Peek() == TOKEN_LABEL)
-                        {
-                            Result = 0;
-                            TokenStream.Get();
-                            std::string Label = TokenStream.StringValue;
-                            if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
-                            {
-                                TokenStream.Get();
-                                if (LocalSymbols && Local->Symbols.find(Label) != Local->Symbols.end())
-                                    Result = 1;
-                                if (Global->Symbols.find(Label) != Global->Symbols.end())
-                                    Result = 1;
-                            }
-                            else
-                                throw AssemblyException("')' Expected", SEVERITY_Error);
-                        }
-                        else
-                            throw AssemblyException("ISDEF expects a single LABEL argument", SEVERITY_Error);
-                        break;
-                    case FN_ISUNDEF:
-                        if(TokenStream.Peek() == TOKEN_LABEL)
-                        {
-                            Result = 1;
-                            TokenStream.Get();
-                            std::string Label = TokenStream.StringValue;
-                            if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
-                            {
-                                TokenStream.Get();
-                                if (LocalSymbols && Local->Symbols.find(Label) != Local->Symbols.end())
-                                    Result = 0;
-                                if (Global->Symbols.find(Label) != Global->Symbols.end())
-                                    Result = 0;
-                            }
-                            else
-                                throw AssemblyException("')' Expected", SEVERITY_Error);
-                        }
-                        else
-                            throw AssemblyException("ISNDEF expects a single LABEL argument", SEVERITY_Error);
                         break;
                 }
             }
             else
-                Result = SymbolValue(Label);
+                Result = 0; // Undefined Variable Name has value 0
             break;
         }
         default: // Should never happen
-            throw AssemblyException("Current Token Not Yet Implemented", SEVERITY_Error);
+            throw std::string("Unsuppoerted operation in expression");
     }
     return Result;
 }
@@ -448,7 +380,7 @@ int ExpressionEvaluator::SubExp12()
 //! \param Count
 //! \return True if correct number of arguments were found
 //!
-bool ExpressionEvaluator::GetFunctionArguments(std::vector<int> &Arguments, int Count)
+bool PreProcessorExpressionEvaluator::GetFunctionArguments(std::vector<int> &Arguments, int Count)
 {
     if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
         TokenStream.Get();
@@ -463,39 +395,7 @@ bool ExpressionEvaluator::GetFunctionArguments(std::vector<int> &Arguments, int 
         if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
             TokenStream.Get();
         else
-            throw AssemblyException("Syntax error in argument list", SEVERITY_Error);
+            throw std::string("Syntax error in argument list");
     }
     return Arguments.size() == Count;
-}
-
-//!
-//! \brief ExpressionEvaluator::SymbolValue
-//! Lookup the given Label in the local and global symbol tables
-//! Local Table takes precedence.
-//! \param Label
-//! \return
-//!
-uint16_t ExpressionEvaluator::SymbolValue(std::string Label)
-{
-    if(LocalSymbols)
-    {
-        auto Symbol = Local->Symbols.find(Label);
-        if(Symbol != Local->Symbols.end())
-        {
-            if(Symbol->second.Value.has_value())
-                return Symbol->second.Value.value();
-            else
-                throw AssemblyException(fmt::format("Label '{Label}' is not yet assigned", fmt::arg("Label", Label)), SEVERITY_Error);
-        }
-    }
-
-    auto Symbol = Global->Symbols.find(Label);
-    if(Symbol != Global->Symbols.end())
-    {
-        if(Symbol->second.Value.has_value())
-            return Symbol->second.Value.value();
-        else
-            throw AssemblyException(fmt::format("Label '{Label}' is not yet assigned", fmt::arg("Label", Label)), SEVERITY_Error);
-    }
-    throw AssemblyException(fmt::format("Label '{Label}' not found", fmt::arg("Label", Label)), SEVERITY_Error);
 }

@@ -21,11 +21,15 @@ class AssemblyException : public std::exception
 public:
     AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity);
     AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity, OpCodeEnum SkipToOpCode);
-    std::string Message;
     AssemblyErrorSeverity Severity;
+
+    const char* what() const throw();
 
     static const std::map<AssemblyErrorSeverity, std::string> SeverityName;
     std::optional<OpCodeEnum> SkipToOpCode;
+private:
+    std::string Message;
+
 };
 
 #endif // ASSEMBLYEXCEPTION_H

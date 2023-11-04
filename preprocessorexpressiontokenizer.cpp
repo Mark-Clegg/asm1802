@@ -1,4 +1,5 @@
 #include "preprocessorexpressiontokenizer.h"
+#include "preprocessorexception.h"
 #include "utils.h"
 
 PreProcessorExpressionTokenizer::PreProcessorExpressionTokenizer()
@@ -36,6 +37,8 @@ TokenEnum PreProcessorExpressionTokenizer::Get()
             return TOKEN_OPEN_BRACE;
         case ')':
             return TOKEN_CLOSE_BRACE;
+        case '.':
+            return TOKEN_DOT;
         case '+':
             return TOKEN_PLUS;
         case '-':
@@ -78,7 +81,7 @@ TokenEnum PreProcessorExpressionTokenizer::Get()
         case '$':
             IntegerValue = 0;
             if(!isxdigit(InputStream.peek()))
-                throw std::string("Expected Hexadecimal digit");
+                throw PreProcessorExpressionException("Expected Hexadecimal digit");
             while(!InputStream.eof() && !InputStream.fail() && isxdigit(InputStream.peek()))
             {
                 char c = InputStream.get();
@@ -119,21 +122,21 @@ TokenEnum PreProcessorExpressionTokenizer::Get()
             break;
         case '\'':
             if(InputStream.eof() || InputStream.fail())
-                throw std::string("Unterminated character constant");
+                throw PreProcessorExpressionException("Unterminated character constant");
 
             if(InputStream.peek() == '\'')
-                throw std::string("Empty Character constant");
+                throw PreProcessorExpressionException("Empty Character constant");
 
             if(InputStream.peek() == '\\')
             {
                 InputStream.ignore();
                 if(InputStream.eof() || InputStream.fail())
-                    throw std::string("Unterminated character constant");
+                    throw PreProcessorExpressionException("Unterminated character constant");
                 int EscapedChar = InputStream.get();
                 if(InputStream.eof() || InputStream.fail())
-                    throw std::string("Unterminated character constant");
+                    throw PreProcessorExpressionException("Unterminated character constant");
                 if(InputStream.get() != '\'')
-                    throw std::string("Character constant too long");
+                    throw PreProcessorExpressionException("Character constant too long");
                 switch(EscapedChar)
                 {
                     case '\'':
@@ -170,23 +173,23 @@ TokenEnum PreProcessorExpressionTokenizer::Get()
                         IntegerValue = 0x0B;
                         break;
                     default:
-                        throw std::string("Unrecognised escape sequence");
+                        throw PreProcessorExpressionException("Unrecognised escape sequence");
                         break;
                 }
             }
             else
             {
                 if(InputStream.eof() || InputStream.fail())
-                    throw std::string("Unterminated character constant");
+                    throw PreProcessorExpressionException("Unterminated character constant");
                 IntegerValue = InputStream.get();
                 if(InputStream.eof() || InputStream.fail())
-                    throw std::string("Unterminated character constant");
+                    throw PreProcessorExpressionException("Unterminated character constant");
                 if(InputStream.get() != '\'')
                 {
                     if(InputStream.eof() || InputStream.fail())
-                        throw std::string("Unterminated character constant");
+                        throw PreProcessorExpressionException("Unterminated character constant");
                     else
-                        throw std::string("Character constant too long");
+                        throw PreProcessorExpressionException("Character constant too long");
                 }
             }
             return TOKEN_NUMBER;
@@ -223,7 +226,7 @@ TokenEnum PreProcessorExpressionTokenizer::Get()
                             char c = InputStream.get();
                             int v = c - '0';
                             if(v > 7)
-                                throw std::string("Invalid digit in Octal constant");
+                                throw PreProcessorExpressionException("Invalid digit in Octal constant");
                             IntegerValue = (IntegerValue << 3) + v;
                         }
                         return TOKEN_NUMBER;
@@ -243,7 +246,7 @@ TokenEnum PreProcessorExpressionTokenizer::Get()
             }
             if(InputStream.eof() || InputStream.fail())
                 return TOKEN_END;
-            throw std::string("Unrecognised token in expression");
+            throw PreProcessorExpressionException("Unrecognised token in expression");
         }
     }
 

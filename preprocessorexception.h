@@ -15,4 +15,13 @@ private:
     const std::string Message = "";
 };
 
+class PreProcessorExpressionException : public std::exception
+{
+public:
+    PreProcessorExpressionException(const std::string& Message);
+    const char* what() const throw();
+private:
+    const std::string Message = "";
+};
+
 #endif // PREPROCESSOREXCEPTION_H

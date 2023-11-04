@@ -148,9 +148,9 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             {
                                 Result = E.Evaluate(Expression);
                             }
-                            catch (std::string Message)
+                            catch (PreProcessorExpressionException Message)
                             {
-                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, Message);
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, Message.what());
                             }
 
                             if(Result == 0)

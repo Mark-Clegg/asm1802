@@ -1,4 +1,5 @@
 #include "preprocessorexpressionevaluator.h"
+#include "preprocessorexception.h"
 
 const std::map<std::string, PreProcessorExpressionEvaluator::FunctionSpec> PreProcessorExpressionEvaluator::FunctionTable =
 {
@@ -17,7 +18,7 @@ int PreProcessorExpressionEvaluator::Evaluate(std::string& Expression)
     int Result = SubExp0();
     auto Token = TokenStream.Peek();
     if(Token != TOKEN_END && Token != TOKEN_CLOSE_BRACE)
-        throw std::string("Extra Characters at end of expression");
+        throw PreProcessorExpressionException("Extra Characters at end of expression");
     return Result;
 }
 
@@ -234,7 +235,7 @@ int PreProcessorExpressionEvaluator::SubExp9()
             {
                 int Operand = SubExp10();
                 if(Operand == 0)
-                    throw std::string("Divide by zero");
+                    throw PreProcessorExpressionException("Divide by zero");
                 Result /= Operand;
                 break;
             }
@@ -242,7 +243,7 @@ int PreProcessorExpressionEvaluator::SubExp9()
             {
                 int Operand = SubExp10();
                 if(Operand == 0)
-                    throw std::string("Divide by zero");
+                    throw PreProcessorExpressionException("Divide by zero");
                 Result %= Operand;
                 break;
             }
@@ -274,7 +275,7 @@ int PreProcessorExpressionEvaluator::SubExp10()
                 Result = (Result >> 8) & 0xFF;
                 break;
             default:
-                throw std::string("Expected .0 or .1 High/Low selector");
+                throw PreProcessorExpressionException("Expected .0 or .1 High/Low selector");
         }
     }
     return Result;
@@ -332,7 +333,7 @@ int PreProcessorExpressionEvaluator::SubExp12()
         case TOKEN_OPEN_BRACE: // Bracketed Expression
             Result = SubExp0();
             if (TokenStream.Peek() != TOKEN_CLOSE_BRACE)
-                throw std::string("Expected ')'");
+                throw PreProcessorExpressionException("Expected ')'");
             else
                 TokenStream.Get();
             break;
@@ -346,19 +347,19 @@ int PreProcessorExpressionEvaluator::SubExp12()
 
                 auto FunctionSpec = FunctionTable.find(Label);
                 if(FunctionSpec == FunctionTable.end())
-                    throw std::string("Unknown function call");
+                    throw PreProcessorExpressionException("Unknown function call");
 
                 std::vector<int> Arguments = { };
                 switch(FunctionSpec->second.ID)
                 {
                     case FN_LOW:
                         if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
-                            throw std::string("Incorrect number of arguments: LOW expects 1 argument");
+                            throw PreProcessorExpressionException("Incorrect number of arguments: LOW expects 1 argument");
                         Result = Arguments[0] & 0xFF;
                         break;
                     case FN_HIGH:
                         if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
-                            throw std::string("Incorrect number of arguments: HIGH expects 1 argument");
+                            throw PreProcessorExpressionException("Incorrect number of arguments: HIGH expects 1 argument");
                         Result = (Arguments[0] >> 8) & 0xFF;
                         break;
                 }
@@ -368,7 +369,7 @@ int PreProcessorExpressionEvaluator::SubExp12()
             break;
         }
         default: // Should never happen
-            throw std::string("Unsuppoerted operation in expression");
+            throw PreProcessorExpressionException("Unsuppoerted operation in expression");
     }
     return Result;
 }
@@ -395,7 +396,7 @@ bool PreProcessorExpressionEvaluator::GetFunctionArguments(std::vector<int> &Arg
         if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
             TokenStream.Get();
         else
-            throw std::string("Syntax error in argument list");
+            throw PreProcessorExpressionException("Syntax error in argument list");
     }
     return Arguments.size() == Count;
 }

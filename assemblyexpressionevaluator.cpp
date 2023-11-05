@@ -1,7 +1,7 @@
 #include "assemblyexception.h"
-#include "expressionevaluator.h"
+#include "assemblyexpressionevaluator.h"
 
-const std::map<std::string, ExpressionEvaluator::FunctionSpec> ExpressionEvaluator::FunctionTable =
+const std::map<std::string, AssemblyExpressionEvaluator::FunctionSpec> AssemblyExpressionEvaluator::FunctionTable =
 {
     { "HIGH",        { FN_HIGH,    1 }},
     { "LOW",         { FN_LOW,     1 }},
@@ -11,7 +11,7 @@ const std::map<std::string, ExpressionEvaluator::FunctionSpec> ExpressionEvaluat
     { "ISUNDEF",     { FN_ISUNDEF, 1 }}
 };
 
-ExpressionEvaluator::ExpressionEvaluator(const SymbolTable& Global, uint16_t ProgramCounter) : Global(&Global), ProgramCounter(ProgramCounter)
+AssemblyExpressionEvaluator::AssemblyExpressionEvaluator(const SymbolTable& Global, uint16_t ProgramCounter) : Global(&Global), ProgramCounter(ProgramCounter)
 {
     LocalSymbols = false;
 }
@@ -21,7 +21,7 @@ ExpressionEvaluator::ExpressionEvaluator(const SymbolTable& Global, uint16_t Pro
 //! Add local symbols table to scope for lable lookups
 //! \param Local
 //!
-void ExpressionEvaluator::AddLocalSymbols(const SymbolTable* Local)
+void AssemblyExpressionEvaluator::AddLocalSymbols(const SymbolTable* Local)
 {
     this->Local = Local;
     LocalSymbols = true;
@@ -33,7 +33,7 @@ void ExpressionEvaluator::AddLocalSymbols(const SymbolTable* Local)
 //! \param Expression
 //! \return
 //!
-int ExpressionEvaluator::Evaluate(std::string& Expression)
+int AssemblyExpressionEvaluator::Evaluate(std::string& Expression)
 {
     TokenStream.Initialize(Expression);
 
@@ -50,7 +50,7 @@ int ExpressionEvaluator::Evaluate(std::string& Expression)
 //! Logical OR
 //! \return
 //!
-int ExpressionEvaluator::SubExp0()
+int AssemblyExpressionEvaluator::SubExp0()
 {
     int Result = SubExp1();
     while(TokenStream.Peek() == TOKEN_LOGICAL_OR)
@@ -67,7 +67,7 @@ int ExpressionEvaluator::SubExp0()
 //! Logical AND
 //! \return
 //!
-int ExpressionEvaluator::SubExp1()
+int AssemblyExpressionEvaluator::SubExp1()
 {
     int Result = SubExp2();
     while(TokenStream.Peek() == TOKEN_LOGICAL_AND)
@@ -84,7 +84,7 @@ int ExpressionEvaluator::SubExp1()
 //! Bitwise OR
 //! \return
 //!
-int ExpressionEvaluator::SubExp2()
+int AssemblyExpressionEvaluator::SubExp2()
 {
     int Result = SubExp3();
     while(TokenStream.Peek() == TOKEN_BITWISE_OR)
@@ -100,7 +100,7 @@ int ExpressionEvaluator::SubExp2()
 //! Bitwise XOR
 //! \return
 //!
-int ExpressionEvaluator::SubExp3()
+int AssemblyExpressionEvaluator::SubExp3()
 {
     int Result = SubExp4();
     while(TokenStream.Peek() == TOKEN_BITWISE_XOR)
@@ -116,7 +116,7 @@ int ExpressionEvaluator::SubExp3()
 //! Bitwise AND
 //! \return
 //!
-int ExpressionEvaluator::SubExp4()
+int AssemblyExpressionEvaluator::SubExp4()
 {
     int Result = SubExp5();
     while(TokenStream.Peek() == TOKEN_BITWISE_AND)
@@ -132,7 +132,7 @@ int ExpressionEvaluator::SubExp4()
 //! EQUAL / NOT EQUAL
 //! \return
 //!
-int ExpressionEvaluator::SubExp5()
+int AssemblyExpressionEvaluator::SubExp5()
 {
     int Result = SubExp6();
     while(TokenStream.Peek() == TOKEN_EQUAL || TokenStream.Peek() == TOKEN_NOT_EQUAL)
@@ -158,7 +158,7 @@ int ExpressionEvaluator::SubExp5()
 //! LESS / LESS or EQUAL / GREATER / GREATER or EQUAL
 //! \return
 //!
-int ExpressionEvaluator::SubExp6()
+int AssemblyExpressionEvaluator::SubExp6()
 {
     int Result = SubExp7();
     while(TokenStream.Peek() == TOKEN_LESS || TokenStream.Peek() == TOKEN_LESS_OR_EQUAL || TokenStream.Peek() == TOKEN_GREATER || TokenStream.Peek() == TOKEN_GREATER_OR_EQUAL)
@@ -190,7 +190,7 @@ int ExpressionEvaluator::SubExp6()
 //! Shift LEFT / RIGHT
 //! \return
 //!
-int ExpressionEvaluator::SubExp7()
+int AssemblyExpressionEvaluator::SubExp7()
 {
     int Result = SubExp8();
     while(TokenStream.Peek() == TOKEN_SHIFT_LEFT || TokenStream.Peek() == TOKEN_SHIFT_RIGHT)
@@ -216,7 +216,7 @@ int ExpressionEvaluator::SubExp7()
 //! ADDITION / SUPTRACTION
 //! \return
 //!
-int ExpressionEvaluator::SubExp8()
+int AssemblyExpressionEvaluator::SubExp8()
 {
     int Result = SubExp9();
     while(TokenStream.Peek() == TOKEN_PLUS || TokenStream.Peek() == TOKEN_MINUS)
@@ -242,7 +242,7 @@ int ExpressionEvaluator::SubExp8()
 //! MULTIPLY / DIVIDE / REMAINDER
 //! \return
 //!
-int ExpressionEvaluator::SubExp9()
+int AssemblyExpressionEvaluator::SubExp9()
 {
     int Result = SubExp10();
     while(TokenStream.Peek() == TOKEN_MULTIPLY || TokenStream.Peek() == TOKEN_DIVIDE || TokenStream.Peek() == TOKEN_REMAINDER)
@@ -281,7 +281,7 @@ int ExpressionEvaluator::SubExp9()
 //! . Postfix operator - select Low ot High byte
 //! \return
 //!
-int ExpressionEvaluator::SubExp10()
+int AssemblyExpressionEvaluator::SubExp10()
 {
     int Result = SubExp11();
     if(TokenStream.Peek() == TOKEN_DOT)
@@ -308,7 +308,7 @@ int ExpressionEvaluator::SubExp10()
 //! Unary PLUS / MINUS / Bitwise NOT / Logical NOT
 //! \return
 //!
-int ExpressionEvaluator::SubExp11()
+int AssemblyExpressionEvaluator::SubExp11()
 {
     int Result;
     auto Token = TokenStream.Peek();
@@ -342,7 +342,7 @@ int ExpressionEvaluator::SubExp11()
 //! Constant / Label / Function Call / Bracketed Expression
 //! \return
 //!
-int ExpressionEvaluator::SubExp12()
+int AssemblyExpressionEvaluator::SubExp12()
 {
     int Result = 0;
     auto Token = TokenStream.Get();
@@ -448,7 +448,7 @@ int ExpressionEvaluator::SubExp12()
 //! \param Count
 //! \return True if correct number of arguments were found
 //!
-bool ExpressionEvaluator::GetFunctionArguments(std::vector<int> &Arguments, int Count)
+bool AssemblyExpressionEvaluator::GetFunctionArguments(std::vector<int> &Arguments, int Count)
 {
     if(TokenStream.Peek() == TOKEN_CLOSE_BRACE)
         TokenStream.Get();
@@ -475,7 +475,7 @@ bool ExpressionEvaluator::GetFunctionArguments(std::vector<int> &Arguments, int 
 //! \param Label
 //! \return
 //!
-uint16_t ExpressionEvaluator::SymbolValue(std::string Label)
+uint16_t AssemblyExpressionEvaluator::SymbolValue(std::string Label)
 {
     if(LocalSymbols)
     {

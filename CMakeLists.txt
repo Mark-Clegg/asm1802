@@ -19,8 +19,8 @@ add_executable(asm1802 main.cpp
     symboltable.h symboltable.cpp
     errortable.h errortable.cpp
     README.md
-    expressionevaluator.h expressionevaluator.cpp
-    expressiontokenizer.h expressiontokenizer.cpp
+    assemblyexpressionevaluator.h assemblyexpressionevaluator.cpp
+    assemblyexpressiontokenizer.h assemblyexpressiontokenizer.cpp
     binarywriter.h binarywriter.cpp
     binarywriter_intelhex.h binarywriter_intelhex.cpp
     binarywriter_idiot4.h binarywriter_idiot4.cpp

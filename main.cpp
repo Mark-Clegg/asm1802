@@ -13,7 +13,7 @@
 #include "binarywriter_intelhex.h"
 #include "errortable.h"
 #include "assemblyexception.h"
-#include "expressionevaluator.h"
+#include "assemblyexpressionevaluator.h"
 #include "listingfilewriter.h"
 #include "opcodetable.h"
 #include "preprocessor.h"
@@ -533,7 +533,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("EQU Requires a single argument <value>", SEVERITY_Error);
 
-                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                         if(CurrentTable != &MainTable)
                                                             E.AddLocalSymbols(CurrentTable);
                                                         int Value = E.Evaluate(Operands[0]);
@@ -566,7 +566,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                                         }
                                                                         else
                                                                         {
-                                                                            ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                                             Align = E.Evaluate(SubOptions[1]);
                                                                             if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
                                                                                 throw AssemblyException("SUBROUTINE ALIGN must be 2,4,8,16,32,64,128,256 or AUTO", SEVERITY_Error);
@@ -592,7 +592,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                                 break;
                                                             case 1:
                                                             {
-                                                                ExpressionEvaluator E(*CurrentTable, ProgramCounter);
+                                                            AssemblyExpressionEvaluator E(*CurrentTable, ProgramCounter);
                                                                 auto EntryPoint = E.Evaluate(Operands[0]);
                                                                 MainTable.Symbols[CurrentTable->Name].Value = EntryPoint;
                                                                 break;
@@ -652,7 +652,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("ORG Requires a single argument <address>", SEVERITY_Error);
 
-                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                         int x;
                                                         if((x = E.Evaluate(Operands[0])) < 0x10000)
                                                             ProgramCounter = x;
@@ -695,7 +695,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             throw AssemblyException("ALIGN cannot be used inside an AUTO Aligned SUBROUTINE", SEVERITY_Error);
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("ALIGN Requires a single argument <alignment>", SEVERITY_Error);
-                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                         if(CurrentTable != &MainTable)
                                                             E.AddLocalSymbols(CurrentTable);
                                                         int Align = E.Evaluate(Operands[0]);
@@ -745,7 +745,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                                         Align = AlignFromSize(CurrentTable->CodeSize);
                                                                     else
                                                                     {
-                                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                                         Align = E.Evaluate(SubOptions[1]);
                                                                     }
                                                                     ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
@@ -809,7 +809,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     }
                                                     case ORG:
                                                     {
-                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                    AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                         ProgramCounter = E.Evaluate(Operands[0]);
 
                                                         CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
@@ -820,7 +820,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     case DB:
                                                     {
                                                         std::vector<std::uint8_t> Data;
-                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                         if(CurrentTable != &MainTable)
                                                             E.AddLocalSymbols(CurrentTable);
                                                         for(auto& Operand : Operands)
@@ -843,7 +843,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     case DW:
                                                     {
                                                         std::vector<std::uint8_t> Data;
-                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                         if(CurrentTable != &MainTable)
                                                             E.AddLocalSymbols(CurrentTable);
                                                         for(auto& Operand : Operands)
@@ -865,7 +865,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     }
                                                     case ALIGN:
                                                     {
-                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                    AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                         if(CurrentTable != &MainTable)
                                                             E.AddLocalSymbols(CurrentTable);
                                                         int Align = E.Evaluate(Operands[0]);
@@ -878,7 +878,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     {
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("ASSERT Requires a single argument <expression>", SEVERITY_Error);
-                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                         if(CurrentTable != &MainTable)
                                                             E.AddLocalSymbols(CurrentTable);
                                                         int Result = E.Evaluate(Operands[0]);
@@ -889,7 +889,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     }
                                                     case END:
                                                     {
-                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                    AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                         EntryPoint = E.Evaluate(Operands[0]);
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                                         while(Source.getLine(OriginalLine))
@@ -900,7 +900,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     {
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("LIST Requires a single argument <expression>", SEVERITY_Error);
-                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                         if(CurrentTable != &MainTable)
                                                             E.AddLocalSymbols(CurrentTable);
                                                         int Result = E.Evaluate(Operands[0]);
@@ -923,7 +923,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
 
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("LIST Requires a single argument <expression>", SEVERITY_Error);
-                                                        ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                         if(CurrentTable != &MainTable)
                                                             E.AddLocalSymbols(CurrentTable);
                                                         int Result = E.Evaluate(Operands[0]);
@@ -941,7 +941,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                             else
                                             {
                                                 std::vector<std::uint8_t> Data;
-                                                ExpressionEvaluator E(MainTable, ProgramCounter);
+                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                 if(CurrentTable != &MainTable)
                                                     E.AddLocalSymbols(CurrentTable);
 

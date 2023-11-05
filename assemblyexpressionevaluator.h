@@ -1,12 +1,12 @@
-#ifndef EXPRESSIONEVALUATOR_H
-#define EXPRESSIONEVALUATOR_H
+#ifndef ASSEMBLYEXPRESSIONEVALUATOR_H
+#define ASSEMBLYEXPRESSIONEVALUATOR_H
 
 #include <fmt/core.h>
 #include <string>
-#include "expressiontokenizer.h"
+#include "assemblyexpressiontokenizer.h"
 #include "symboltable.h"
 
-class ExpressionEvaluator
+class AssemblyExpressionEvaluator
 {
 public:
     enum FunctionEnum
@@ -23,7 +23,7 @@ public:
         int Arguments;
     };
 
-    ExpressionEvaluator(const SymbolTable& Global, uint16_t ProgramCounter);
+    AssemblyExpressionEvaluator(const SymbolTable& Global, uint16_t ProgramCounter);
     void AddLocalSymbols(const SymbolTable* Local);
     int Evaluate(std::string& Expression);
 
@@ -36,7 +36,7 @@ private:
     const uint16_t ProgramCounter;
     uint16_t SymbolValue(std::string Label);
     bool GetFunctionArguments(std::vector<int>& Arguments, int Count);
-    ExpressionTokenizer TokenStream;
+    AssemblyExpressionTokenizer TokenStream;
 
     int SubExp0();
     int SubExp1();
@@ -53,4 +53,4 @@ private:
     int SubExp12();
 };
 
-#endif // EXPRESSIONEVALUATOR_H
+#endif // ASSEMBLYEXPRESSIONEVALUATOR_H

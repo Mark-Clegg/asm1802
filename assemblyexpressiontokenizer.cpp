@@ -1,19 +1,19 @@
 #include "assemblyexception.h"
-#include "expressiontokenizer.h"
+#include "assemblyexpressiontokenizer.h"
 #include "utils.h"
 
-ExpressionTokenizer::ExpressionTokenizer()
+AssemblyExpressionTokenizer::AssemblyExpressionTokenizer()
 {
 }
 
-void ExpressionTokenizer::Initialize(const std::string& Expression)
+void AssemblyExpressionTokenizer::Initialize(const std::string& Expression)
 {
     InputStream.str(Expression);
     InputStream.seekg(0);
     InputStream.clear();
 }
 
-TokenEnum ExpressionTokenizer::Peek()
+TokenEnum AssemblyExpressionTokenizer::Peek()
 {
     std::streampos SavedPos = InputStream.tellg();
     Get();
@@ -22,7 +22,7 @@ TokenEnum ExpressionTokenizer::Peek()
     return ID;
 }
 
-TokenEnum ExpressionTokenizer::Get()
+TokenEnum AssemblyExpressionTokenizer::Get()
 {
     while(!InputStream.eof() && !InputStream.fail() && isspace(InputStream.peek()))
         InputStream.ignore();

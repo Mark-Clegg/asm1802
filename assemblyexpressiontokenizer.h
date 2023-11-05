@@ -1,14 +1,14 @@
-#ifndef EXPRESSIONTOKENIZER_H
-#define EXPRESSIONTOKENIZER_H
+#ifndef ASSEMBLYEXPRESSIONTOKENIZER_H
+#define ASSEMBLYEXPRESSIONTOKENIZER_H
 
 #include <string>
 #include <sstream>
 #include "expressiontokens.h"
 
-class ExpressionTokenizer
+class AssemblyExpressionTokenizer
 {
 public:
-    ExpressionTokenizer();
+    AssemblyExpressionTokenizer();
     void Initialize(const std::string& Expression);
     TokenEnum Peek();
     TokenEnum Get();
@@ -21,4 +21,4 @@ private:
     std::istringstream InputStream;
 };
 
-#endif // EXPRESSIONTOKENIZER_H
+#endif // ASSEMBLYEXPRESSIONTOKENIZER_H

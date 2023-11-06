@@ -50,7 +50,6 @@ private:
     std::istringstream InputStream;
     bool PeekValid = false;
     TokenEnum LastPeek;
-    static const std::map<TokenEnum, std::string> TokenNames;
 };
 
 #endif // EXPRESSIONTOKENIZER_H

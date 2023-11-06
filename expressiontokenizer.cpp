@@ -2,38 +2,6 @@
 #include "expressionexception.h"
 #include "utils.h"
 
-const std::map<ExpressionTokenizer::TokenEnum, std::string> ExpressionTokenizer::TokenNames =
-{
-    { ExpressionTokenizer::TOKEN_CLOSE_BRACE,      "TOKEN_CLOSE_BRACE"     },
-    { ExpressionTokenizer::TOKEN_OPEN_BRACE,       "TOKEN_OPEN_BRACE"      },
-    { ExpressionTokenizer::TOKEN_LABEL,            "TOKEN_LABEL"           },
-    { ExpressionTokenizer::TOKEN_NUMBER,           "TOKEN_NUMBER"          },
-    { ExpressionTokenizer::TOKEN_DOT,              "TOKEN_DOT"             },
-    { ExpressionTokenizer::TOKEN_DOLLAR,           "TOKEN_DOLLAR"          },
-    { ExpressionTokenizer::TOKEN_PLUS,             "TOKEN_PLUS"            },
-    { ExpressionTokenizer::TOKEN_MINUS,            "TOKEN_MINUS"           },
-    { ExpressionTokenizer::TOKEN_MULTIPLY,         "TOKEN_MULTIPLY"        },
-    { ExpressionTokenizer::TOKEN_DIVIDE,           "TOKEN_DIVIDE"          },
-    { ExpressionTokenizer::TOKEN_REMAINDER,        "TOKEN_REMAINDER"       },
-    { ExpressionTokenizer::TOKEN_SHIFT_LEFT,       "TOKEN_SHIFT_LEFT"      },
-    { ExpressionTokenizer::TOKEN_SHIFT_RIGHT,      "TOKEN_SHIFT_RIGHT"     },
-    { ExpressionTokenizer::TOKEN_BITWISE_AND,      "TOKEN_BITWISE_AND"     },
-    { ExpressionTokenizer::TOKEN_BITWISE_OR,       "TOKEN_BITWISE_OR"      },
-    { ExpressionTokenizer::TOKEN_BITWISE_XOR,      "TOKEN_BITWISE_XOR"     },
-    { ExpressionTokenizer::TOKEN_BITWISE_NOT,      "TOKEN_BITWISE_NOT"     },
-    { ExpressionTokenizer::TOKEN_LOGICAL_AND,      "TOKEN_LOGICAL_AND"     },
-    { ExpressionTokenizer::TOKEN_LOGICAL_OR,       "TOKEN_LOGICAL_OR"      },
-    { ExpressionTokenizer::TOKEN_LOGICAL_NOT,      "TOKEN_LOGICAL_NOT"     },
-    { ExpressionTokenizer::TOKEN_EQUAL,            "TOKEN_EQUAL"           },
-    { ExpressionTokenizer::TOKEN_NOT_EQUAL,        "TOKEN_NOT_EQUAL"       },
-    { ExpressionTokenizer::TOKEN_GREATER,          "TOKEN_GREATER"         },
-    { ExpressionTokenizer::TOKEN_GREATER_OR_EQUAL, "TOKEN_GREATER_OR_EQUAL"},
-    { ExpressionTokenizer::TOKEN_LESS,             "TOKEN_LESS"            },
-    { ExpressionTokenizer::TOKEN_LESS_OR_EQUAL,    "TOKEN_LESS_OR_EQUAL"   },
-    { ExpressionTokenizer::TOKEN_COMMA,            "TOKEN_COMMA"           },
-    { ExpressionTokenizer::TOKEN_END,              "TOKEN_END"             }
-};
-
 ExpressionTokenizer::ExpressionTokenizer()
 {
 }

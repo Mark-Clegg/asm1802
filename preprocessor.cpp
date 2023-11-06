@@ -33,7 +33,7 @@ const std::map<std::string, PreProcessor::DirectiveEnum> PreProcessor::Directive
 //!
 PreProcessor::SourceEntry::SourceEntry(const std::string& Name) :
     Name(Name),
-    LineNumber(1)
+    LineNumber(0)
 {
     Stream = new std::ifstream(Name);
 }
@@ -92,14 +92,14 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
     std::string Line;
     while(SourceStreams.size() > 0)
     {
-        WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
+        WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber + 1);
         Defines["__FILE__"] = fmt::format("\"{FileName}\"", fmt::arg("FileName", SourceStreams.top().Name));
         while(std::getline(*SourceStreams.top().Stream, Line))
         {
+            SourceStreams.top().LineNumber++;
             try
             {
                 Defines["__LINE__"] = fmt::format("{LineNumber}", fmt::arg("LineNumber", SourceStreams.top().LineNumber));
-                SourceStreams.top().LineNumber++;
                 ExpandDefines(Line);
 
                 // remove last character if blank (<cr>/<lf>/<space>/<tab>
@@ -219,7 +219,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                                     throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Source File Nesting limit exceeded");
                                 SourceEntry Entry(MatchResult[1]);
                                 SourceStreams.push(Entry);
-                                WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
+                                WriteLineMarker(OutputStream, SourceStreams.top().Name, 1);
                                 IfNestingLevel.push(0);
                             }
                             else
@@ -386,7 +386,7 @@ void PreProcessor::ExpandDefines(std::string& Line)
 //! \param Source
 //! \return
 //!
-//! Read and ignore lines between #if/#else/#end directives. Returns last directive read (#else or #end)
+//! Read and ignore lines between #if/#else/#endif directives. Returns last directive read (#else or #end)
 //!
 PreProcessor::DirectiveEnum PreProcessor::SkipLines()
 {
@@ -418,7 +418,6 @@ PreProcessor::DirectiveEnum PreProcessor::SkipLines()
                 case PP_endif:
                     if (Level == 0)
                     {
-                        SourceStreams.top().LineNumber--;
                         WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
                         fmt::println(OutputStream, "{Line}", fmt::arg("Line", RawLine));
                         return PP_endif;

@@ -7,7 +7,7 @@
 #include "preprocessor.h"
 #include "preprocessorexception.h"
 #include "preprocessorexpressionevaluator.h"
-#include "preprocessorexpressionexception.h"
+#include "expressionexception.h"
 #include "utils.h"
 
 namespace fs = std::filesystem;
@@ -149,7 +149,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             {
                                 Result = E.Evaluate(Expression);
                             }
-                            catch (PreProcessorExpressionException Message)
+                            catch (ExpressionException Message)
                             {
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, Message.what());
                             }
@@ -180,7 +180,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         {
                             IfNestingLevel.top()++;
                             ToUpper(Expression);
-                            if(Defines.find(Expression) == Defines.end())
+                            if(Defines.find(Expression) != Defines.end())
                             {
                                 if(SkipLines() == PP_endif)
                                 {
@@ -410,6 +410,7 @@ PreProcessor::DirectiveEnum PreProcessor::SkipLines()
                 case PP_else:
                     if (Level == 0)
                     {
+                        WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
                         fmt::println(OutputStream, "{Line}", fmt::arg("Line", RawLine));
                         return PP_else;
                     }
@@ -417,6 +418,8 @@ PreProcessor::DirectiveEnum PreProcessor::SkipLines()
                 case PP_endif:
                     if (Level == 0)
                     {
+                        SourceStreams.top().LineNumber--;
+                        WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
                         fmt::println(OutputStream, "{Line}", fmt::arg("Line", RawLine));
                         return PP_endif;
                     }

@@ -14,6 +14,7 @@
 #include "errortable.h"
 #include "assemblyexception.h"
 #include "assemblyexpressionevaluator.h"
+#include "expressionexception.h"
 #include "listingfilewriter.h"
 #include "opcodetable.h"
 #include "preprocessor.h"
@@ -228,7 +229,7 @@ int main(int argc, char **argv)
                     FilesAssembled++;
             }
             else
-                fmt::println("Pre-Procssing Failed, Assmbly Aborted");
+                fmt::println("Pre-Procssing Failed, Assembly Aborted");
 
             if(!KeepPreprocessor)
                 std::remove(PreProcessedInputFile.c_str());
@@ -533,11 +534,18 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("EQU Requires a single argument <value>", SEVERITY_Error);
 
-                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
-                                                        if(CurrentTable != &MainTable)
-                                                            E.AddLocalSymbols(CurrentTable);
-                                                        int Value = E.Evaluate(Operands[0]);
-                                                        CurrentTable->Symbols[Label].Value = Value;
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            int Value = E.Evaluate(Operands[0]);
+                                                            CurrentTable->Symbols[Label].Value = Value;
+                                                        }
+                                                        catch (ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
                                                         break;
                                                     }
                                                     case SUB:
@@ -566,10 +574,17 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                                         }
                                                                         else
                                                                         {
-                                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
-                                                                            Align = E.Evaluate(SubOptions[1]);
-                                                                            if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
-                                                                                throw AssemblyException("SUBROUTINE ALIGN must be 2,4,8,16,32,64,128,256 or AUTO", SEVERITY_Error);
+                                                                            try
+                                                                            {
+                                                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                                                Align = E.Evaluate(SubOptions[1]);
+                                                                                if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
+                                                                                    throw AssemblyException("SUBROUTINE ALIGN must be 2,4,8,16,32,64,128,256 or AUTO", SEVERITY_Error);
+                                                                            }
+                                                                            catch (ExpressionException Ex)
+                                                                            {
+                                                                                throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                                            }
                                                                         }
                                                                         ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
                                                                         MainTable.Symbols[Label].Value = ProgramCounter;
@@ -591,12 +606,18 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             case 0:
                                                                 break;
                                                             case 1:
-                                                            {
-                                                            AssemblyExpressionEvaluator E(*CurrentTable, ProgramCounter);
-                                                                auto EntryPoint = E.Evaluate(Operands[0]);
-                                                                MainTable.Symbols[CurrentTable->Name].Value = EntryPoint;
-                                                                break;
-                                                            }
+                                                                try
+                                                                {
+                                                                    AssemblyExpressionEvaluator E(*CurrentTable, ProgramCounter);
+                                                                    auto EntryPoint = E.Evaluate(Operands[0]);
+                                                                    MainTable.Symbols[CurrentTable->Name].Value = EntryPoint;
+                                                                    break;
+                                                                }
+                                                                catch (ExpressionException Ex)
+                                                                {
+                                                                    throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                                }
+
                                                             default:
                                                                 throw AssemblyException("Incorrect number of arguments", SEVERITY_Error);
                                                         }
@@ -652,13 +673,19 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("ORG Requires a single argument <address>", SEVERITY_Error);
 
-                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
-                                                        int x;
-                                                        if((x = E.Evaluate(Operands[0])) < 0x10000)
-                                                            ProgramCounter = x;
-                                                        else
-                                                            throw AssemblyException("Overflow: Address must be in range 0-FFFF", SEVERITY_Error);
-
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            int x = E.Evaluate(Operands[0]);
+                                                            if(x > 0 && x < 0x10000)
+                                                                ProgramCounter = x;
+                                                            else
+                                                                throw AssemblyException("Overflow: Address must be in range 0-FFFF", SEVERITY_Error);
+                                                        }
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
                                                         if(!Label.empty())
                                                             CurrentTable->Symbols[Label].Value = ProgramCounter;
 
@@ -695,13 +722,21 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             throw AssemblyException("ALIGN cannot be used inside an AUTO Aligned SUBROUTINE", SEVERITY_Error);
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("ALIGN Requires a single argument <alignment>", SEVERITY_Error);
-                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
-                                                        if(CurrentTable != &MainTable)
-                                                            E.AddLocalSymbols(CurrentTable);
-                                                        int Align = E.Evaluate(Operands[0]);
-                                                        if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
-                                                            throw AssemblyException("ALIGN must be 2,4,8,16,32,64,128 or 256", SEVERITY_Error);
-                                                        ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            int Align = E.Evaluate(Operands[0]);
+                                                            if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
+                                                                throw AssemblyException("ALIGN must be 2,4,8,16,32,64,128 or 256", SEVERITY_Error);
+                                                            ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                        }
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
+
                                                         if(!Label.empty())
                                                             CurrentTable->Symbols[Label].Value = ProgramCounter;
                                                         break;
@@ -739,19 +774,24 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             switch(Option->second)
                                                             {
                                                                 case SUBOPT_ALIGN:
-                                                                {
-                                                                    int Align;
-                                                                    if(SubOptions[1] == "AUTO")
-                                                                        Align = AlignFromSize(CurrentTable->CodeSize);
-                                                                    else
+                                                                    try
                                                                     {
-                                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
-                                                                        Align = E.Evaluate(SubOptions[1]);
+                                                                        int Align;
+                                                                        if(SubOptions[1] == "AUTO")
+                                                                            Align = AlignFromSize(CurrentTable->CodeSize);
+                                                                        else
+                                                                        {
+                                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                                            Align = E.Evaluate(SubOptions[1]);
+                                                                        }
+                                                                        ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                                        CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
+                                                                        break;
                                                                     }
-                                                                    ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
-                                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
-                                                                    break;
-                                                                }
+                                                                    catch(ExpressionException Ex)
+                                                                    {
+                                                                        throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                                    }
                                                             }
                                                         }
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
@@ -808,15 +848,21 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         break;
                                                     }
                                                     case ORG:
-                                                    {
-                                                    AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
-                                                        ProgramCounter = E.Evaluate(Operands[0]);
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            ProgramCounter = E.Evaluate(Operands[0]);
 
-                                                        CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
+                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
 
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
-                                                        break;
-                                                    }
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                            break;
+                                                        }
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
+
                                                     case DB:
                                                     {
                                                         std::vector<std::uint8_t> Data;
@@ -828,12 +874,17 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             if(Operand[0] == '\"')
                                                                 StringToByteVector(Operand, Data);
                                                             else
-                                                            {
-                                                                int x = E.Evaluate(Operand);
-                                                                if(x > 255)
-                                                                    throw AssemblyException("Operand out of range (0-FF)", SEVERITY_Error);
-                                                                Data.push_back(x & 0xFF);
-                                                            }
+                                                                try
+                                                                {
+                                                                    int x = E.Evaluate(Operand);
+                                                                    if(x > 255)
+                                                                        throw AssemblyException("Operand out of range (0-FF)", SEVERITY_Error);
+                                                                    Data.push_back(x & 0xFF);
+                                                                }
+                                                                catch(ExpressionException Ex)
+                                                                {
+                                                                    throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                                }
                                                         }
                                                         CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro(), ProgramCounter, Data);
@@ -847,11 +898,16 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         if(CurrentTable != &MainTable)
                                                             E.AddLocalSymbols(CurrentTable);
                                                         for(auto& Operand : Operands)
-                                                        {
-                                                            int x = E.Evaluate(Operand);
-                                                            Data.push_back((x >> 8) & 0xFF);
-                                                            Data.push_back(x & 0xFF);
-                                                        }
+                                                            try
+                                                            {
+                                                                int x = E.Evaluate(Operand);
+                                                                Data.push_back((x >> 8) & 0xFF);
+                                                                Data.push_back(x & 0xFF);
+                                                            }
+                                                            catch(ExpressionException Ex)
+                                                            {
+                                                                throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                            }
                                                         CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro(), ProgramCounter, Data);
                                                         ProgramCounter += Data.size();
@@ -864,213 +920,245 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         break;
                                                     }
                                                     case ALIGN:
-                                                    {
-                                                    AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
-                                                        if(CurrentTable != &MainTable)
-                                                            E.AddLocalSymbols(CurrentTable);
-                                                        int Align = E.Evaluate(Operands[0]);
-                                                        ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
-                                                        CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
-                                                        break;
-                                                    }
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            int Align = E.Evaluate(Operands[0]);
+                                                            ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                            break;
+                                                        }
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
                                                     case ASSERT:
                                                     {
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("ASSERT Requires a single argument <expression>", SEVERITY_Error);
-                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
-                                                        if(CurrentTable != &MainTable)
-                                                            E.AddLocalSymbols(CurrentTable);
-                                                        int Result = E.Evaluate(Operands[0]);
-                                                        if (Result == 0)
-                                                            throw AssemblyException("ASSERT Failed", SEVERITY_Error);
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            int Result = E.Evaluate(Operands[0]);
+                                                            if (Result == 0)
+                                                                throw AssemblyException("ASSERT Failed", SEVERITY_Error);
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                        }
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
                                                         break;
                                                     }
                                                     case END:
-                                                    {
-                                                    AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
-                                                        EntryPoint = E.Evaluate(Operands[0]);
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
-                                                        while(Source.getLine(OriginalLine))
-                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
-                                                        break;
-                                                    }
-                                                    case LIST:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("LIST Requires a single argument <expression>", SEVERITY_Error);
-                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
-                                                        if(CurrentTable != &MainTable)
-                                                            E.AddLocalSymbols(CurrentTable);
-                                                        int Result = E.Evaluate(Operands[0]);
-
-                                                        if(Result == 1)
+                                                        try
                                                         {
-                                                            ListingFile.Enabled = true;
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            EntryPoint = E.Evaluate(Operands[0]);
                                                             ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                            while(Source.getLine(OriginalLine))
+                                                                ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                                         }
-
-                                                        if(Result == 0)
-                                                            ListingFile.Enabled = false;
-                                                        else
-                                                            ListingFile.Enabled = true;
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
                                                         break;
-                                                    }
+                                                    case LIST:
+                                                        try
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("LIST Requires a single argument <expression>", SEVERITY_Error);
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            int Result = E.Evaluate(Operands[0]);
+
+                                                            if(Result == 1)
+                                                            {
+                                                                ListingFile.Enabled = true;
+                                                                ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                            }
+
+                                                            if(Result == 0)
+                                                                ListingFile.Enabled = false;
+                                                            else
+                                                                ListingFile.Enabled = true;
+                                                        }
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
+                                                        break;
                                                     case SYMBOLS:
-                                                    {
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                        try
+                                                        {
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
 
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("LIST Requires a single argument <expression>", SEVERITY_Error);
-                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
-                                                        if(CurrentTable != &MainTable)
-                                                            E.AddLocalSymbols(CurrentTable);
-                                                        int Result = E.Evaluate(Operands[0]);
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("LIST Requires a single argument <expression>", SEVERITY_Error);
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            int Result = E.Evaluate(Operands[0]);
 
-                                                        if(Result == 0)
-                                                            DumpSymbols = false;
-                                                        else
-                                                            DumpSymbols = true;
+                                                            if(Result == 0)
+                                                                DumpSymbols = false;
+                                                            else
+                                                                DumpSymbols = true;
+                                                        }
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
                                                         break;
-                                                    }
                                                     default:
                                                         break;
                                                 }
                                             }
                                             else
-                                            {
-                                                std::vector<std::uint8_t> Data;
-                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
-                                                if(CurrentTable != &MainTable)
-                                                    E.AddLocalSymbols(CurrentTable);
-
-                                                switch(OpCode->OpCodeType)
+                                                try
                                                 {
-                                                    case BASIC:
-                                                    {
-                                                        Data.push_back(OpCode->OpCode);
-                                                        break;
-                                                    }
-                                                    case REGISTER:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Register", SEVERITY_Error);
+                                                    std::vector<std::uint8_t> Data;
+                                                    AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                    if(CurrentTable != &MainTable)
+                                                        E.AddLocalSymbols(CurrentTable);
 
-                                                        uint16_t Register = E.Evaluate(Operands[0]);
-                                                        if(Register > 15)
-                                                            throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode | Register);
-                                                        break;
-                                                    }
-                                                    case IMMEDIATE:
+                                                    switch(OpCode->OpCodeType)
                                                     {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
-                                                        uint16_t Byte = E.Evaluate(Operands[0]);
-                                                        if(Byte > 0xFF && Byte < 0xFF80)
-                                                            throw AssemblyException("Operand out of range (0-FF)", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode);
-                                                        Data.push_back(Byte & 0xFF);
-                                                        break;
-                                                    }
-                                                    case SHORT_BRANCH:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Short Branch expected single operand", SEVERITY_Error);
-                                                        uint16_t Address = E.Evaluate(Operands[0]);
-                                                        if(((ProgramCounter + 1) & 0xFF00) != (Address & 0xFF00))
-                                                            throw AssemblyException("Short Branch out of range", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode);
-                                                        Data.push_back(Address & 0xFF);
-                                                        break;
-                                                    }
-                                                    case LONG_BRANCH:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Long Branch expected single operand", SEVERITY_Error);
-                                                        uint16_t Address = E.Evaluate(Operands[0]);
-                                                        Data.push_back(OpCode->OpCode);
-                                                        Data.push_back(Address >> 8);
-                                                        Data.push_back(Address & 0xFF);
-                                                        break;
-                                                    }
-                                                    case INPUT_OUTPUT:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Port", SEVERITY_Error);
+                                                        case BASIC:
+                                                        {
+                                                            Data.push_back(OpCode->OpCode);
+                                                            break;
+                                                        }
+                                                        case REGISTER:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Expected single operand of type Register", SEVERITY_Error);
 
-                                                        uint16_t Port = E.Evaluate(Operands[0]);
-                                                        if(Port == 0 || Port > 7)
-                                                            throw AssemblyException("Port out of range (1-7)", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode | Port);
-                                                        break;
-                                                    }
-                                                    case EXTENDED:
-                                                    {
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF);
-                                                        break;
-                                                    }
-                                                    case EXTENDED_REGISTER:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Register", SEVERITY_Error);
+                                                            uint16_t Register = E.Evaluate(Operands[0]);
+                                                            if(Register > 15)
+                                                                throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
+                                                            Data.push_back(OpCode->OpCode | Register);
+                                                            break;
+                                                        }
+                                                        case IMMEDIATE:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
+                                                            uint16_t Byte = E.Evaluate(Operands[0]);
+                                                            if(Byte > 0xFF && Byte < 0xFF80)
+                                                                throw AssemblyException("Operand out of range (0-FF)", SEVERITY_Error);
+                                                            Data.push_back(OpCode->OpCode);
+                                                            Data.push_back(Byte & 0xFF);
+                                                            break;
+                                                        }
+                                                        case SHORT_BRANCH:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Short Branch expected single operand", SEVERITY_Error);
+                                                            uint16_t Address = E.Evaluate(Operands[0]);
+                                                            if(((ProgramCounter + 1) & 0xFF00) != (Address & 0xFF00))
+                                                                throw AssemblyException("Short Branch out of range", SEVERITY_Error);
+                                                            Data.push_back(OpCode->OpCode);
+                                                            Data.push_back(Address & 0xFF);
+                                                            break;
+                                                        }
+                                                        case LONG_BRANCH:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Long Branch expected single operand", SEVERITY_Error);
+                                                            uint16_t Address = E.Evaluate(Operands[0]);
+                                                            Data.push_back(OpCode->OpCode);
+                                                            Data.push_back(Address >> 8);
+                                                            Data.push_back(Address & 0xFF);
+                                                            break;
+                                                        }
+                                                        case INPUT_OUTPUT:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Expected single operand of type Port", SEVERITY_Error);
 
-                                                        uint16_t Register = E.Evaluate(Operands[0]);
-                                                        if(Register > 15)
-                                                            throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF | Register);
-                                                        break;
+                                                            uint16_t Port = E.Evaluate(Operands[0]);
+                                                            if(Port == 0 || Port > 7)
+                                                                throw AssemblyException("Port out of range (1-7)", SEVERITY_Error);
+                                                            Data.push_back(OpCode->OpCode | Port);
+                                                            break;
+                                                        }
+                                                        case EXTENDED:
+                                                        {
+                                                            Data.push_back(OpCode->OpCode >> 8);
+                                                            Data.push_back(OpCode->OpCode & 0xFF);
+                                                            break;
+                                                        }
+                                                        case EXTENDED_REGISTER:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Expected single operand of type Register", SEVERITY_Error);
+
+                                                            uint16_t Register = E.Evaluate(Operands[0]);
+                                                            if(Register > 15)
+                                                                throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
+                                                            Data.push_back(OpCode->OpCode >> 8);
+                                                            Data.push_back(OpCode->OpCode & 0xFF | Register);
+                                                            break;
+                                                        }
+                                                        case EXTENDED_IMMEDIATE:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
+                                                            uint16_t Byte = E.Evaluate(Operands[0]);
+                                                            if(Byte > 0xFF && Byte < 0xFF80)
+                                                                throw AssemblyException("Immediate operand out of range (0-FF)", SEVERITY_Error);
+                                                            Data.push_back(OpCode->OpCode >> 8);
+                                                            Data.push_back(OpCode->OpCode & 0xFF);
+                                                            Data.push_back(Byte & 0xFF);
+                                                            break;
+                                                        }
+                                                        case EXTENDED_SHORT_BRANCH:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Short Branch expected single operand", SEVERITY_Error);
+                                                            uint16_t Address = E.Evaluate(Operands[0]);
+                                                            if(((ProgramCounter + 2) & 0xFF00) != (Address & 0xFF00))
+                                                                throw AssemblyException("Short Branch out of range", SEVERITY_Error);
+                                                            Data.push_back(OpCode->OpCode >> 8);
+                                                            Data.push_back(OpCode->OpCode & 0xFF);
+                                                            Data.push_back(Address & 0xFF);
+                                                            break;
+                                                        }
+                                                        case EXTENDED_REGISTER_IMMEDIATE16:
+                                                        {
+                                                            if(Operands.size() != 2)
+                                                                throw AssemblyException("Expected Register and Immediate operands", SEVERITY_Error);
+                                                            uint16_t Register = E.Evaluate(Operands[0]);
+                                                            uint16_t Word = E.Evaluate(Operands[1]);
+                                                            if(Register > 15)
+                                                                throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
+                                                            Data.push_back(OpCode->OpCode >> 8);
+                                                            Data.push_back(OpCode->OpCode & 0xFF | Register);
+                                                            Data.push_back(Word >> 8);
+                                                            Data.push_back(Word & 0xFF);
+                                                            break;
+                                                        }
+                                                        default:
+                                                            break;
                                                     }
-                                                    case EXTENDED_IMMEDIATE:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
-                                                        uint16_t Byte = E.Evaluate(Operands[0]);
-                                                        if(Byte > 0xFF && Byte < 0xFF80)
-                                                            throw AssemblyException("Immediate operand out of range (0-FF)", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF);
-                                                        Data.push_back(Byte & 0xFF);
-                                                        break;
-                                                    }
-                                                    case EXTENDED_SHORT_BRANCH:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Short Branch expected single operand", SEVERITY_Error);
-                                                        uint16_t Address = E.Evaluate(Operands[0]);
-                                                        if(((ProgramCounter + 2) & 0xFF00) != (Address & 0xFF00))
-                                                            throw AssemblyException("Short Branch out of range", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF);
-                                                        Data.push_back(Address & 0xFF);
-                                                        break;
-                                                    }
-                                                    case EXTENDED_REGISTER_IMMEDIATE16:
-                                                    {
-                                                        if(Operands.size() != 2)
-                                                            throw AssemblyException("Expected Register and Immediate operands", SEVERITY_Error);
-                                                        uint16_t Register = E.Evaluate(Operands[0]);
-                                                        uint16_t Word = E.Evaluate(Operands[1]);
-                                                        if(Register > 15)
-                                                            throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF | Register);
-                                                        Data.push_back(Word >> 8);
-                                                        Data.push_back(Word & 0xFF);
-                                                        break;
-                                                    }
-                                                    default:
-                                                        break;
+
+                                                    CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
+
+                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro(), ProgramCounter, Data);
+                                                    ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
                                                 }
-
-                                                CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
-
-                                                ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro(), ProgramCounter, Data);
-                                                ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
-                                            }
+                                                catch(ExpressionException Ex)
+                                                {
+                                                    throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                }
                                         }
                                         else
                                             ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());

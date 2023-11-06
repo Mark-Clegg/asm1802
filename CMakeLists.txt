@@ -20,17 +20,18 @@ add_executable(asm1802 main.cpp
     errortable.h errortable.cpp
     README.md
     assemblyexpressionevaluator.h assemblyexpressionevaluator.cpp
-    assemblyexpressiontokenizer.h assemblyexpressiontokenizer.cpp
+
     binarywriter.h binarywriter.cpp
     binarywriter_intelhex.h binarywriter_intelhex.cpp
     binarywriter_idiot4.h binarywriter_idiot4.cpp
     macro.h macro.cpp
     preprocessor.h preprocessor.cpp
     preprocessorexception.h preprocessorexception.cpp
-    preprocessorexpressiontokenizer.h preprocessorexpressiontokenizer.cpp
-    expressiontokens.h
+    expressiontokenizer.h expressiontokenizer.cpp
+
     preprocessorexpressionevaluator.h preprocessorexpressionevaluator.cpp
-    preprocessorexpressionexception.h preprocessorexpressionexception.cpp
+    expressionexception.h expressionexception.cpp
+    expressionevaluatorbase.h expressionevaluatorbase.cpp
     )
 
 install(TARGETS asm1802

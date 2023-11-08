@@ -62,13 +62,23 @@ bool assemble(const std::string&, bool ListingEnabled, bool DumpSymbols, OutputF
 void PrintError(const std::string& FileName, const int LineNumber, const std::string& MacroName, const int MacroLineNumber, const std::string& Line, const std::string& Message, const AssemblyErrorSeverity Severity, const bool InMacro);
 void PrintError(const std::string& Message, AssemblyErrorSeverity Severity);
 void PrintSymbols(const std::string & Name, const SymbolTable& Table);
+void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operands, std::string& Output);
+void StringToByteVector(const std::string& Operand, std::vector<uint8_t>& Data);
+void StringListToVector(std::string& Input, std::vector<std::string>& Output, char Delimiter);
+int AlignFromSize(int Size);
+const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCode, std::vector<std::string>& Operands);
+
 bool NoRegisters = false;   // Suppress pre-defined Register equates
 bool NoPorts     = false;   // Suppress pre-defined Port equates
 
-#if DEBUG
-void DumpCode(const std::map<uint16_t, std::vector<uint8_t>>& Code);
-#endif
-
+//!
+//! \brief main
+//! \param argc
+//! \param argv
+//! \return
+//!
+//! MAIN
+//!
 int main(int argc, char **argv)
 {
     option longopts[] =
@@ -878,7 +888,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                                 {
                                                                     int x = E.Evaluate(Operand);
                                                                     if(x > 255)
-                                                                        throw AssemblyException("Operand out of range (0-FF)", SEVERITY_Error);
+                                                                        throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got: ${value:X})", fmt::arg("value", x)), SEVERITY_Error);
                                                                     Data.push_back(x & 0xFF);
                                                                 }
                                                                 catch(ExpressionException Ex)
@@ -1041,8 +1051,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             if(Operands.size() != 1)
                                                                 throw AssemblyException("Expected single operand of type Register", SEVERITY_Error);
 
-                                                            uint16_t Register = E.Evaluate(Operands[0]);
-                                                            if(Register > 15)
+                                                            int Register = E.Evaluate(Operands[0]);
+                                                            if(Register < 0 || Register > 15)
                                                                 throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
                                                             Data.push_back(OpCode->OpCode | Register);
                                                             break;
@@ -1051,9 +1061,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         {
                                                             if(Operands.size() != 1)
                                                                 throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
-                                                            uint16_t Byte = E.Evaluate(Operands[0]);
+                                                            int Byte = E.Evaluate(Operands[0]);
                                                             if(Byte > 0xFF && Byte < 0xFF80)
-                                                                throw AssemblyException("Operand out of range (0-FF)", SEVERITY_Error);
+                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got: ${value:X})", fmt::arg("value", Byte)), SEVERITY_Error);
                                                             Data.push_back(OpCode->OpCode);
                                                             Data.push_back(Byte & 0xFF);
                                                             break;
@@ -1062,7 +1072,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         {
                                                             if(Operands.size() != 1)
                                                                 throw AssemblyException("Short Branch expected single operand", SEVERITY_Error);
-                                                            uint16_t Address = E.Evaluate(Operands[0]);
+                                                            int Address = E.Evaluate(Operands[0]);
                                                             if(((ProgramCounter + 1) & 0xFF00) != (Address & 0xFF00))
                                                                 throw AssemblyException("Short Branch out of range", SEVERITY_Error);
                                                             Data.push_back(OpCode->OpCode);
@@ -1073,7 +1083,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         {
                                                             if(Operands.size() != 1)
                                                                 throw AssemblyException("Long Branch expected single operand", SEVERITY_Error);
-                                                            uint16_t Address = E.Evaluate(Operands[0]);
+                                                            int Address = E.Evaluate(Operands[0]);
+                                                            if(Address < 0 || Address > 0xFFFF)
+                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FFFF, got: ${value:X})", fmt::arg("value", Address)), SEVERITY_Error);
                                                             Data.push_back(OpCode->OpCode);
                                                             Data.push_back(Address >> 8);
                                                             Data.push_back(Address & 0xFF);
@@ -1084,7 +1096,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             if(Operands.size() != 1)
                                                                 throw AssemblyException("Expected single operand of type Port", SEVERITY_Error);
 
-                                                            uint16_t Port = E.Evaluate(Operands[0]);
+                                                            int Port = E.Evaluate(Operands[0]);
                                                             if(Port == 0 || Port > 7)
                                                                 throw AssemblyException("Port out of range (1-7)", SEVERITY_Error);
                                                             Data.push_back(OpCode->OpCode | Port);
@@ -1101,8 +1113,8 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             if(Operands.size() != 1)
                                                                 throw AssemblyException("Expected single operand of type Register", SEVERITY_Error);
 
-                                                            uint16_t Register = E.Evaluate(Operands[0]);
-                                                            if(Register > 15)
+                                                            int Register = E.Evaluate(Operands[0]);
+                                                            if(Register < 0 || Register > 15)
                                                                 throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
                                                             Data.push_back(OpCode->OpCode >> 8);
                                                             Data.push_back(OpCode->OpCode & 0xFF | Register);
@@ -1112,9 +1124,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         {
                                                             if(Operands.size() != 1)
                                                                 throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
-                                                            uint16_t Byte = E.Evaluate(Operands[0]);
+                                                            int Byte = E.Evaluate(Operands[0]);
                                                             if(Byte > 0xFF && Byte < 0xFF80)
-                                                                throw AssemblyException("Immediate operand out of range (0-FF)", SEVERITY_Error);
+                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got :${value:X})", fmt::arg("value", Byte)), SEVERITY_Error);
                                                             Data.push_back(OpCode->OpCode >> 8);
                                                             Data.push_back(OpCode->OpCode & 0xFF);
                                                             Data.push_back(Byte & 0xFF);
@@ -1124,7 +1136,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         {
                                                             if(Operands.size() != 1)
                                                                 throw AssemblyException("Short Branch expected single operand", SEVERITY_Error);
-                                                            uint16_t Address = E.Evaluate(Operands[0]);
+                                                            int Address = E.Evaluate(Operands[0]);
                                                             if(((ProgramCounter + 2) & 0xFF00) != (Address & 0xFF00))
                                                                 throw AssemblyException("Short Branch out of range", SEVERITY_Error);
                                                             Data.push_back(OpCode->OpCode >> 8);
@@ -1136,14 +1148,16 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         {
                                                             if(Operands.size() != 2)
                                                                 throw AssemblyException("Expected Register and Immediate operands", SEVERITY_Error);
-                                                            uint16_t Register = E.Evaluate(Operands[0]);
-                                                            uint16_t Word = E.Evaluate(Operands[1]);
+                                                            int Register = E.Evaluate(Operands[0]);
                                                             if(Register > 15)
                                                                 throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
+                                                            int Address = E.Evaluate(Operands[1]);
+                                                            if(Address < -32768 || Address > 0xFFFF)
+                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FFFF, got :${value:X})", fmt::arg("value", Address)), SEVERITY_Error);
                                                             Data.push_back(OpCode->OpCode >> 8);
                                                             Data.push_back(OpCode->OpCode & 0xFF | Register);
-                                                            Data.push_back(Word >> 8);
-                                                            Data.push_back(Word & 0xFF);
+                                                            Data.push_back(Address >> 8);
+                                                            Data.push_back(Address & 0xFF);
                                                             break;
                                                         }
                                                         default:
@@ -1264,17 +1278,9 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
     if(DumpSymbols)
     {
         fmt::println("");
-#if DEBUG
-        PrintSymbols("Global Symbols", MainTable);
-#endif
         ListingFile.AppendSymbols("Global Symbols", MainTable);
         for(auto& Table : SubTables)
-        {
-#if DEBUG
-            PrintSymbols(Table.first, Table.second);
-#endif
             ListingFile.AppendSymbols(Table.first, Table.second);
-        }
     }
 
     int TotalWarnings = Errors.count(SEVERITY_Warning);
@@ -1306,40 +1312,247 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
         delete Output;
     }
 
-#if DEBUG
-    DumpCode(Code);
-#endif
-
     return TotalErrors == 0 && TotalWarnings == 0;
 }
 
-#if DEBUG
-void DumpCode(const std::map<uint16_t, std::vector<uint8_t>>& Code)
+//!
+//! \brief ExpandMacro
+//! Apply the Operands to the Macro Arguments, and return the Expanded string with the operands replaced.
+//! \param Definition
+//! \param Operands
+//! \return
+//!
+void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operands, std::string& Output)
 {
-    fmt::println("Code Dump");
-    for(auto &Segment : Code)
+    if(Definition.Arguments.size() != Operands.size())
+        throw AssemblyException(fmt::format("Incorrect number of arguments passed to macro. Received {In}, Expected {Out}", fmt::arg("In", Operands.size()), fmt::arg("Out", Definition.Arguments.size())), SEVERITY_Error);
+
+    std::map<std::string, std::string> Parameters;
+    for(int i=0; i < Definition.Arguments.size(); i++)
+        Parameters[Definition.Arguments[i]] = Operands[i];
+
+    std::string Input = Definition.Expansion;
+    std::regex IdentifierRegex(R"(^([A-Za-z_][A-Za-z0-9_]*).*$)", std::regex::extended);
+    std::smatch MatchResult;
+
+    while(Input.size() > 0)
     {
-        if(Segment.second.size() > 0)
+        if(regex_match(Input, MatchResult, IdentifierRegex))
         {
-            uint16_t StartAddress = Segment.first & 0xFFF0;
-            int skip = Segment.first & 0x000F;
-            for(int i = 0; i < Segment.second.size() + skip; i++)
-            {
-                if(i % 16 == 0)
-                {
-                    fmt::println("");
-                    fmt::print("{Addr:04X}  ", fmt::arg("Addr", StartAddress + i));
-                }
-                if(i < skip)
-                    fmt::print("   ");
-                else
-                    fmt::print("{Data:02X} ", fmt::arg("Data", Segment.second.at(i - skip)));
-            }
+            std::string Identifier = MatchResult[1];
+            std::string UCIdentifier = Identifier;
+            ToUpper(UCIdentifier);
+            if(Parameters.find(UCIdentifier) != Parameters.end())
+                Output += Parameters[UCIdentifier];
+            else
+                Output += Identifier;
+            Input.erase(0, Identifier.size());
         }
-        fmt::println("");
+        else
+        {
+            Output += Input[0];
+            Input.erase(0, 1);
+        }
     }
 }
-#endif
+
+//!
+//! \brief StringToByteVector
+//! Scan the passed quoted string, return a byte array, resolving escaped special characters
+//! Assumes first character is double quote, and skips it.
+//! \param Operand
+//! \param Data
+//!
+void StringToByteVector(const std::string& Operand, std::vector<uint8_t>& Data)
+{
+    int Len = 0;
+    bool QuoteClosed = false;
+    for(int i = 1; i< Operand.size(); i++)
+    {
+        if(Operand[i] == '\"')
+        {
+            if(i != Operand.size() - 1)
+                throw AssemblyException("Error parsing string constant", SEVERITY_Error);
+            else
+            {
+                QuoteClosed = true;
+                break;
+            }
+        }
+        if(Operand[i] == '\\')
+        {
+            if(i >= Operand.size() - 2)
+                throw AssemblyException("Incomplete escape sequence at end of string constant", SEVERITY_Error);
+            i++;
+            switch(Operand[i])
+            {
+                case '\'':
+                    Data.push_back(0x27);
+                    break;
+                case '\"':
+                    Data.push_back(0x22);
+                    break;
+                case '\?':
+                    Data.push_back(0x3F);
+                    break;
+                case '\\':
+                    Data.push_back(0x5C);
+                    break;
+                case 'a':
+                    Data.push_back(0x07);
+                    break;
+                case 'b':
+                    Data.push_back(0x08);
+                    break;
+                case 'f':
+                    Data.push_back(0x0C);
+                    break;
+                case 'n':
+                    Data.push_back(0x0A);
+                    break;
+                case 'r':
+                    Data.push_back(0x0D);
+                    break;
+                case 't':
+                    Data.push_back(0x09);
+                    break;
+                case 'v':
+                    Data.push_back(0x0B);
+                    break;
+                default:
+                    throw AssemblyException("Unrecognised escape sequence in string constant", SEVERITY_Error);
+                    break;
+            }
+        }
+        else
+            Data.push_back(Operand[i]);
+        Len++;
+    }
+    if(Len == 0)
+        throw AssemblyException("String constant is empty", SEVERITY_Error);
+    if(!QuoteClosed)
+        throw AssemblyException("unterminated string constant", SEVERITY_Error);
+}
+
+//!
+//! \brief ExpandTokens
+//! \param Line
+//! \param Label
+//! \param OpCode
+//! \param Operands
+//!
+//! Expand the source line into Label, OpCode, Operands
+const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& Mnemonic, std::vector<std::string>& OperandList)
+{
+    std::smatch MatchResult;
+    if(regex_match(Line, MatchResult, std::regex(R"(^(((\w+):?\s*)|\s+)((\w+)(\s+(.*))?)?$)"))) // Label{:} OpCode Operands
+    {
+        // Extract Label, OpCode and Operands
+        std::string Operands;
+        Label = MatchResult[3];
+        ToUpper(Label);
+        if(!Label.empty() && !regex_match(Label, std::regex(R"(^[A-Z_][A-Z0-9_]*$)")))
+            throw AssemblyException(fmt::format("Invalid Label: '{Label}'", fmt::arg("Label", Label)), SEVERITY_Error);
+        Mnemonic = MatchResult[5];
+
+        if(Mnemonic.length() == 0)
+            return {};
+        ToUpper(Mnemonic);
+
+        Operands = MatchResult[7];
+
+        StringListToVector(Operands, OperandList, ',');
+
+        OpCodeSpec OpCode;
+        try
+        {
+            OpCode = OpCodeTable::OpCode.at(Mnemonic);
+        }
+        catch (std::out_of_range Ex)  // If Mnemonic wasn't found in the OpCode table, it's possibly a Macro so return MACROEXPANSION
+        {
+            OpCode = { MACROEXPANSION, PSEUDO_OP, CPU_1802 };
+        }
+        return OpCode;
+    }
+    else
+        throw AssemblyException("Unable to parse line", SEVERITY_Error);
+}
+
+//!
+//! \brief StringListToVector
+//! \param Input
+//! \param Output
+//! \param Delimiter
+//!
+void StringListToVector(std::string& Input, std::vector<std::string>& Output, char Delimiter)
+{
+    bool inSingleQuote = false;
+    bool inDoubleQuote = false;
+    bool inBrackets = false;
+    bool inEscape = false;
+    bool SkipSpaces = false;
+    std::string out;
+    for(auto ch : Input)
+    {
+        if(SkipSpaces && (ch == ' ' || ch == '\t'))
+            continue;
+        SkipSpaces = false;
+        if(inEscape)
+        {
+            out.push_back(ch);
+            inEscape = false;
+            continue;
+        }
+        if(!inSingleQuote && !inDoubleQuote && !inEscape && !inBrackets && ch == Delimiter)
+        {
+            Output.push_back(regex_replace(out, std::regex(R"(\s+$)"), ""));
+            out="";
+            SkipSpaces = true;
+            continue;
+        }
+        switch(ch)
+        {
+            case '\'':
+                if(!inDoubleQuote)
+                    inSingleQuote = !inSingleQuote;
+                break;
+            case '\"':
+                if(!inSingleQuote)
+                    inDoubleQuote = !inDoubleQuote;
+                break;
+            case '(':
+                inBrackets = true;
+                break;
+            case ')':
+                inBrackets = false;
+                break;
+            case '\\':
+                inEscape = true;
+                break;
+        }
+        out.push_back(ch);
+    }
+    if(out.size() > 0)
+        Output.push_back(regex_replace(out, std::regex(R"(\s+$)"), ""));
+}
+
+//!
+//! \brief AlignFromSize
+//! Calculate the lowest power of two greater or equal to the given sixe
+//! \param Size
+//! \return
+//!
+int AlignFromSize(int Size)
+{
+    Size--;
+    int Result = 1;
+    while(Size > 0 && Result < 0x100)
+    {
+        Result <<= 1;
+        Size >>= 1;
+    }
+    return Result;
+}
 
 //!
 //! \brief PrintError
@@ -1358,7 +1571,7 @@ void PrintError(const std::string& FileName, const int LineNumber, const std::st
     if(InMacro)
     {
         FileRef = FileName+"::"+MacroName;
-        LineRef = fmt::format("{LineNumber}.{MacroLineNumber:02}", fmt::arg("LineNumber", LineNumber), fmt::arg("MacroLineNumber", MacroLineNumber));
+        LineRef = fmt::format("{LineNumber}.{MacroLineNumber:02}", fmt::arg("LineNumber", LineNumber-1), fmt::arg("MacroLineNumber", MacroLineNumber));
     }
     else
     {

@@ -172,6 +172,7 @@ void ListingFileWriter::AppendSymbols(const std::string& Name, const SymbolTable
 {
     if(Enabled)
     {
+        fmt::println(ListStream, "");
         fmt::println(ListStream, "{Name:-^116}", fmt::arg("Name", Name));
 
         int c = 0;

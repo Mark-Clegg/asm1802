@@ -321,7 +321,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
             std::string OriginalLine;
             while(Source.getLine(OriginalLine))
             {
-                std::string Line = trim(OriginalLine);
+                std::string Line = Trim(OriginalLine);
 
                 // Check for Pre-Processor Control statement (#control expression...)
                 std::smatch MatchResult;
@@ -421,7 +421,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         while(Source.getLine(OriginalLine))
                                                         {
                                                             LineNumber++;
-                                                            std::string Line = trim(OriginalLine);
+                                                            std::string Line = Trim(OriginalLine);
                                                             std::optional<OpCodeSpec> OpCode;
                                                             try
                                                             {
@@ -639,7 +639,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         while(Source.getLine(OriginalLine))
                                                         {
                                                             LineNumber++;
-                                                            std::string Line = trim(OriginalLine);
+                                                            std::string Line = Trim(OriginalLine);
                                                             try
                                                             {
                                                                 OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
@@ -820,7 +820,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         {
                                                             LineNumber++;
                                                             ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
-                                                            std::string Line = trim(OriginalLine);
+                                                            std::string Line = Trim(OriginalLine);
                                                             try
                                                             {
                                                                 OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
@@ -1190,7 +1190,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                 {
                                     while(Source.getLine(OriginalLine))
                                     {
-                                        std::string Line = trim(OriginalLine);
+                                        std::string Line = Trim(OriginalLine);
                                         std::string Label;
                                         std::string Mnemonic;
                                         std::vector<std::string>Operands;

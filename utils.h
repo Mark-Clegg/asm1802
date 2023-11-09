@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <string>
 
-std::string trim(const std::string &);
+std::string Trim(const std::string &);
 
 inline void ToUpper(std::string& In)
 {

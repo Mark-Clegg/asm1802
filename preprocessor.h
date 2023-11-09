@@ -5,6 +5,7 @@
 #include <map>
 #include <stack>
 #include <string>
+#include <set>
 
 class PreProcessor
 {
@@ -48,7 +49,7 @@ private:
     static const std::map<std::string, PreProcessor::DirectiveEnum> Directives;
     bool IsDirective(const std::string& Line, DirectiveEnum& Directive, std::string& Expression);
     void ExpandDefines(std::string& Line);
-    DirectiveEnum SkipLines();
+    DirectiveEnum SkipTo(const std::set<DirectiveEnum>& Directives);
     int ErrorCount = 0;
 };
 

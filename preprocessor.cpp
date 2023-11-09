@@ -156,7 +156,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
 
                             if(Result == 0)
                             {
-                                if(SkipLines() == PP_endif)
+                                if(SkipTo({ PP_else, PP_endif }) == PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
@@ -169,7 +169,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             ToUpper(Expression);
                             if(Defines.find(Expression) == Defines.end())
                             {
-                                if(SkipLines() == PP_endif)
+                                if(SkipTo({ PP_else, PP_endif }) == PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
@@ -182,7 +182,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             ToUpper(Expression);
                             if(Defines.find(Expression) != Defines.end())
                             {
-                                if(SkipLines() == PP_endif)
+                                if(SkipTo({ PP_else, PP_endif }) == PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
@@ -193,7 +193,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         {
                             if(IfNestingLevel.top() <= 0)
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#else without preceeding #if");
-                            if(SkipLines() == PP_endif)
+                            if(SkipTo({ PP_endif }) == PP_endif)
                             {
                                 IfNestingLevel.top()--;
                             }
@@ -269,7 +269,7 @@ void PreProcessor::WriteLineMarker(std::ofstream& Output, const std::string& Fil
 bool PreProcessor::IsDirective(const std::string& Line, DirectiveEnum& Directive, std::string& Expression)
 {
     std::smatch MatchResult;
-    std::string TrimmedLine = trim(Line);
+    std::string TrimmedLine = Trim(Line);
     if(regex_match(TrimmedLine, MatchResult, std::regex(R"(^#(\w+)(\s+(.*))?$)")))
     {
         std::string FirstToken = MatchResult[1];
@@ -388,7 +388,7 @@ void PreProcessor::ExpandDefines(std::string& Line)
 //!
 //! Read and ignore lines between #if/#else/#endif directives. Returns last directive read (#else or #end)
 //!
-PreProcessor::DirectiveEnum PreProcessor::SkipLines()
+PreProcessor::DirectiveEnum PreProcessor::SkipTo(const std::set<DirectiveEnum>& Directives)
 {
     std::string RawLine;
     DirectiveEnum Directive;
@@ -397,7 +397,7 @@ PreProcessor::DirectiveEnum PreProcessor::SkipLines()
     while (std::getline(*SourceStreams.top().Stream, RawLine))
     {
         SourceStreams.top().LineNumber++;
-        std::string Line = trim(RawLine);
+        std::string Line = Trim(RawLine);
         if (Line.size() > 0 && IsDirective(Line, Directive, Expression))
         {
             switch (Directive)
@@ -412,7 +412,6 @@ PreProcessor::DirectiveEnum PreProcessor::SkipLines()
                     {
                         WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
                         fmt::println(OutputStream, "{Line}", fmt::arg("Line", RawLine));
-                        return PP_else;
                     }
                     break;
                 case PP_endif:
@@ -420,7 +419,6 @@ PreProcessor::DirectiveEnum PreProcessor::SkipLines()
                     {
                         WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
                         fmt::println(OutputStream, "{Line}", fmt::arg("Line", RawLine));
-                        return PP_endif;
                     }
                     else
                         Level--;
@@ -429,6 +427,8 @@ PreProcessor::DirectiveEnum PreProcessor::SkipLines()
                 default:
                     break;
             }
+            if(Directives.find(Directive) != Directives.cend())
+                return Directive;
         }
     }
     throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unterminated #if/#ifdef/#ifndef");

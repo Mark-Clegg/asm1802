@@ -7,7 +7,7 @@
 //!
 //! Strip trailing spaces and comments from the line
 //!
-std::string trim(const std::string& in)
+std::string Trim(const std::string& in)
 {
     bool inSingleQuote = false;
     bool inDoubleQuote = false;

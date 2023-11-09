@@ -20,6 +20,7 @@ const std::map<std::string, PreProcessor::DirectiveEnum> PreProcessor::Directive
     { "IFDEF",       PP_ifdef   },
     { "IFNDEF",      PP_ifndef  },
     { "ELSE",        PP_else    },
+    { "ELSEIF",      PP_elseif  },
     { "ENDIF",       PP_endif   },
     { "INCLUDE",     PP_include },
     { "ERROR",       PP_error   }
@@ -142,6 +143,8 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         case  PP_if:
                         {
                             IfNestingLevel.top()++;
+                            if(Expression.empty())
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected Espression");
                             ToUpper(Expression);
                             PreProcessorExpressionEvaluator E;
                             int Result;
@@ -156,7 +159,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
 
                             if(Result == 0)
                             {
-                                if(SkipTo({ PP_else, PP_endif }) == PP_endif)
+                                if(SkipTo({ PP_else, PP_elseif, PP_endif }) == PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
@@ -166,10 +169,12 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         case PP_ifdef:
                         {
                             IfNestingLevel.top()++;
+                            if(Expression.empty())
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected Espression");
                             ToUpper(Expression);
                             if(Defines.find(Expression) == Defines.end())
                             {
-                                if(SkipTo({ PP_else, PP_endif }) == PP_endif)
+                                if(SkipTo({ PP_else, PP_elseif, PP_endif }) == PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
@@ -179,10 +184,12 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         case PP_ifndef:
                         {
                             IfNestingLevel.top()++;
+                            if(Expression.empty())
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected Espression");
                             ToUpper(Expression);
                             if(Defines.find(Expression) != Defines.end())
                             {
-                                if(SkipTo({ PP_else, PP_endif }) == PP_endif)
+                                if(SkipTo({ PP_else, PP_elseif, PP_endif }) == PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
@@ -190,6 +197,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             break;
                         }
                         case PP_else:
+                        case PP_elseif:
                         {
                             if(IfNestingLevel.top() <= 0)
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#else without preceeding #if");
@@ -423,6 +431,30 @@ PreProcessor::DirectiveEnum PreProcessor::SkipTo(const std::set<DirectiveEnum>& 
                     else
                         Level--;
                     break;
+                case PP_elseif:
+                    if (Level == 0)
+                    {
+                        WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
+                        fmt::println(OutputStream, "{Line}", fmt::arg("Line", RawLine));
+
+                        if(Expression.empty())
+                            throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected Espression");
+                        ToUpper(Expression);
+                        PreProcessorExpressionEvaluator E;
+                        int Result;
+                        try
+                        {
+                            Result = E.Evaluate(Expression);
+                        }
+                        catch (ExpressionException Message)
+                        {
+                            throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, Message.what());
+                        }
+
+                        if(Result == 0)
+                            return SkipTo({ PP_else, PP_elseif, PP_endif });
+                        break;
+                    }
                 // The remaining directives have no effect on if/else/end processing
                 default:
                     break;

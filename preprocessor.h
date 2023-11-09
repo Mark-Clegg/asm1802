@@ -17,6 +17,7 @@ class PreProcessor
         PP_ifdef,
         PP_ifndef,
         PP_else,
+        PP_elseif,
         PP_endif,
         PP_include,
         PP_error

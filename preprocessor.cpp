@@ -20,7 +20,7 @@ const std::map<std::string, PreProcessor::DirectiveEnum> PreProcessor::Directive
     { "IFDEF",       PP_ifdef   },
     { "IFNDEF",      PP_ifndef  },
     { "ELSE",        PP_else    },
-    { "ELSEIF",      PP_elseif  },
+    { "ELIF",        PP_elif    },
     { "ENDIF",       PP_endif   },
     { "INCLUDE",     PP_include },
     { "ERROR",       PP_error   }
@@ -142,6 +142,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         }
                         case  PP_if:
                         {
+                            ElseCounters.push(0);
                             IfNestingLevel.top()++;
                             if(Expression.empty())
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected Espression");
@@ -159,7 +160,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
 
                             if(Result == 0)
                             {
-                                if(SkipTo({ PP_else, PP_elseif, PP_endif }) == PP_endif)
+                                if(SkipTo({ PP_else, PP_elif, PP_endif }) == PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
@@ -168,13 +169,14 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         }
                         case PP_ifdef:
                         {
+                            ElseCounters.push(0);
                             IfNestingLevel.top()++;
                             if(Expression.empty())
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected Espression");
                             ToUpper(Expression);
                             if(Defines.find(Expression) == Defines.end())
                             {
-                                if(SkipTo({ PP_else, PP_elseif, PP_endif }) == PP_endif)
+                                if(SkipTo({ PP_else, PP_elif, PP_endif }) == PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
@@ -183,13 +185,14 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         }
                         case PP_ifndef:
                         {
+                            ElseCounters.push(0);
                             IfNestingLevel.top()++;
                             if(Expression.empty())
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected Espression");
                             ToUpper(Expression);
                             if(Defines.find(Expression) != Defines.end())
                             {
-                                if(SkipTo({ PP_else, PP_elseif, PP_endif }) == PP_endif)
+                                if(SkipTo({ PP_else, PP_elif, PP_endif }) == PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
@@ -197,10 +200,22 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             break;
                         }
                         case PP_else:
-                        case PP_elseif:
-                        {
+                            if(ElseCounters.top() != 0)
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Too many #else statements");
+                            ElseCounters.top()++;
                             if(IfNestingLevel.top() <= 0)
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#else without preceeding #if");
+                            if(SkipTo({ PP_endif }) == PP_endif)
+                            {
+                                IfNestingLevel.top()--;
+                            }
+                            break;
+                        case PP_elif:
+                        {
+                            if(ElseCounters.top() != 0)
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#elif must come before #else");
+                            if(IfNestingLevel.top() <= 0)
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#elif without preceeding #if");
                             if(SkipTo({ PP_endif }) == PP_endif)
                             {
                                 IfNestingLevel.top()--;
@@ -211,6 +226,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         {
                             if(IfNestingLevel.top() <= 0)
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#endif without preceeding #if");
+                            ElseCounters.pop();
                             IfNestingLevel.top()--;
                             break;
                         }
@@ -418,6 +434,9 @@ PreProcessor::DirectiveEnum PreProcessor::SkipTo(const std::set<DirectiveEnum>& 
                 case PP_else:
                     if (Level == 0)
                     {
+                        if(ElseCounters.top() != 0)
+                            throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Too many #else statements");
+                        ElseCounters.top()++;
                         WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
                         fmt::println(OutputStream, "{Line}", fmt::arg("Line", RawLine));
                     }
@@ -427,13 +446,16 @@ PreProcessor::DirectiveEnum PreProcessor::SkipTo(const std::set<DirectiveEnum>& 
                     {
                         WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
                         fmt::println(OutputStream, "{Line}", fmt::arg("Line", RawLine));
+                        ElseCounters.pop();
                     }
                     else
                         Level--;
                     break;
-                case PP_elseif:
+                case PP_elif:
                     if (Level == 0)
                     {
+                        if(ElseCounters.top() != 0)
+                            throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#elif must come before #else");
                         WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
                         fmt::println(OutputStream, "{Line}", fmt::arg("Line", RawLine));
 
@@ -452,7 +474,7 @@ PreProcessor::DirectiveEnum PreProcessor::SkipTo(const std::set<DirectiveEnum>& 
                         }
 
                         if(Result == 0)
-                            return SkipTo({ PP_else, PP_elseif, PP_endif });
+                            return SkipTo({ PP_else, PP_elif, PP_endif });
                         break;
                     }
                 // The remaining directives have no effect on if/else/end processing

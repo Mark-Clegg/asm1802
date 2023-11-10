@@ -17,7 +17,7 @@ class PreProcessor
         PP_ifdef,
         PP_ifndef,
         PP_else,
-        PP_elseif,
+        PP_elif,
         PP_endif,
         PP_include,
         PP_error
@@ -41,6 +41,7 @@ public:
     void RemoveDefine(const std::string& Identifier);
 private:
     std::stack<SourceEntry> SourceStreams;
+    std::stack<int> ElseCounters;
 
     std::ofstream OutputStream;
     inline void WriteLineMarker(std::ofstream& Output, const std::string& FileName, const int LineNumber);

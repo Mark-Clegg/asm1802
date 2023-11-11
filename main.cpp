@@ -67,6 +67,7 @@ void StringToByteVector(const std::string& Operand, std::vector<uint8_t>& Data);
 void StringListToVector(std::string& Input, std::vector<std::string>& Output, char Delimiter);
 int AlignFromSize(int Size);
 const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCode, std::vector<std::string>& Operands);
+bool SetAlignFromKeyword(std::string Alignment, int& Align);
 
 bool NoRegisters = false;   // Suppress pre-defined Register equates
 bool NoPorts     = false;   // Suppress pre-defined Port equates
@@ -582,7 +583,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                                             Align = AlignFromSize(CurrentTable->CodeSize);
                                                                             InAutoAlignedSub = true;
                                                                         }
-                                                                        else
+                                                                        else if(!SetAlignFromKeyword(SubOptions[1], Align))
                                                                         {
                                                                             try
                                                                             {
@@ -734,12 +735,16 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                             throw AssemblyException("ALIGN Requires a single argument <alignment>", SEVERITY_Error);
                                                         try
                                                         {
-                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
-                                                            if(CurrentTable != &MainTable)
-                                                                E.AddLocalSymbols(CurrentTable);
-                                                            int Align = E.Evaluate(Operands[0]);
-                                                            if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
-                                                                throw AssemblyException("ALIGN must be 2,4,8,16,32,64,128 or 256", SEVERITY_Error);
+                                                            int Align;
+                                                            if(!SetAlignFromKeyword(Operands[0], Align))
+                                                            {
+                                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                                if(CurrentTable != &MainTable)
+                                                                    E.AddLocalSymbols(CurrentTable);
+                                                                Align = E.Evaluate(Operands[0]);
+                                                                if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
+                                                                    throw AssemblyException("ALIGN must be 2,4,8,16,32,64,128 or 256", SEVERITY_Error);
+                                                            }
                                                             ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
                                                         }
                                                         catch(ExpressionException Ex)
@@ -789,7 +794,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                                         int Align;
                                                                         if(SubOptions[1] == "AUTO")
                                                                             Align = AlignFromSize(CurrentTable->CodeSize);
-                                                                        else
+                                                                        else if(!SetAlignFromKeyword(SubOptions[1], Align))
                                                                         {
                                                                             AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                                             Align = E.Evaluate(SubOptions[1]);
@@ -932,10 +937,14 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     case ALIGN:
                                                         try
                                                         {
-                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
-                                                            if(CurrentTable != &MainTable)
-                                                                E.AddLocalSymbols(CurrentTable);
-                                                            int Align = E.Evaluate(Operands[0]);
+                                                            int Align;
+                                                            if(!SetAlignFromKeyword(Operands[0], Align))
+                                                            {
+                                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                                if(CurrentTable != &MainTable)
+                                                                    E.AddLocalSymbols(CurrentTable);
+                                                                int Align = E.Evaluate(Operands[0]);
+                                                            }
                                                             ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
                                                             CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
                                                             ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
@@ -1629,4 +1638,25 @@ void PrintSymbols(const std::string& Name, const SymbolTable& Blob)
                 fmt::print("    ");
         }
     fmt::println("");
+}
+
+bool SetAlignFromKeyword(std::string Alignment, int& Align)
+{
+    static std::map<std::string, int> Lookup =
+    {
+        { "WORD",   2 },
+        { "DWORD",  4 },
+        { "QWORD",  8 },
+        { "PARA",  16 },
+        { "PAGE", 256 }
+    };
+    ToUpper(Alignment);
+    auto i = Lookup.find(Alignment);
+    if(i == Lookup.end())
+        return false;
+    else
+    {
+        Align = i->second;
+        return true;
+    }
 }

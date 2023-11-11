@@ -70,6 +70,10 @@ Conditional assembly if variable is defined
 
 Conditional assembly if variable is nto defined
 
+- #elif {condition}
+
+Alternative IF clause as part of an #if sequence
+
 - #else
 
 Alternate branch for #if... directives
@@ -86,15 +90,11 @@ Include the contents of the specified file into the input stream.
 
 | Variable | Value |
 | --- | --- |
-| WORD | 2 |
-| DWORD | 4 |
-| QWORD | 8 |
-| PAGE | 256 |
-| __DATE__ | Date in "MMM DD YYYY" format |
-| __TIME__ | Time in 24h "hh:mm:ss" format |
-| __TIMESTAMP__ | Date Time in "ddd MMM dd  hh:mm:ss" format |
-| __FILE__ | Current source filename |
-| __LINE__ | Current source line number |
+| \_\_DATE\_\_ | Date in "MMM DD YYYY" format |
+| \_\_TIME\_\_ | Time in 24h "hh:mm:ss" format |
+| \_\_TIMESTAMP\_\_ | Date Time in "ddd MMM dd  hh:mm:ss" format |
+| \_\_FILE\_\_ | Current source filename |
+| \_\_LINE\_\_ | Current source line number |
 
 Note that Pre-processor variables are distinct from labels specified 
 during assembly. During pre-processing, any reference to a pre-processor
@@ -189,7 +189,9 @@ For Logical operators, 0 = false, 1 = true.
 | ALIGN arg | align to boundary (arg = 2,4,8,16,32,64,128 or 256) |
 | ASSERT expression | Throw an error if expression evaluates to false (0) |
 | DB value list | Define Bytes, each value can be numeric or "string" |
+| BYTE value list | Pseudonym for DB |
 | DW value list | Define double bytes |
+| WORD value list | Pseudonym for DW |
 | EQU value | Assign value to label |
 | ISDEF/ISDEFINED label | Return true if label is defined |
 | ISUNDEF/ISUNDEFINED label | Return true if lable is not defined |
@@ -198,9 +200,9 @@ For Logical operators, 0 = false, 1 = true.
 | SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO } | Define a Subroutine, optionally aligned to boundary |
 | ENDSUB | End of Subroutine Definition |
 | MACRO parameters | Define a Macro |
+| ENDM | End of Macro Definition |
 | LIST value | Turn Listing output on (1) or off (0) |
 | SYMBOLS value | Turn on symbol table dump (1) or off (0) |
-| ENDM | End of Macro Definition |
 
 ## Subroutines
 

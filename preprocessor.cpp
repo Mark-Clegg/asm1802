@@ -48,17 +48,10 @@ PreProcessor::SourceEntry::SourceEntry(const std::string& Name) :
 //!
 PreProcessor::PreProcessor()
 {
-    // Pre-Define DEFINES for common alignments
-    Defines["WORD"]  = "2";
-    Defines["DWORD"] = "4";
-    Defines["QWORD"] = "8";
-    Defines["PAGE"]  = "256";
-
     std::time_t Now = std::time(nullptr);
     Defines["__DATE__"] = fmt::format("\"{:%b %d %Y}\"", fmt::localtime(Now));
     Defines["__TIME__"] = fmt::format("\"{:%H:%M:%S}\"", fmt::localtime(Now));
     Defines["__TIMESTAMP__"] = fmt::format("\"{:%a %b %d %H:%M:%S %Y}\"", fmt::localtime(Now));
-
 }
 
 //!

@@ -11,6 +11,7 @@ class PreProcessor
 {
     enum DirectiveEnum
     {
+        PP_processor,
         PP_define,
         PP_undef,
         PP_if,
@@ -49,6 +50,7 @@ private:
     std::map<std::string, std::string> Defines;
 
     static const std::map<std::string, PreProcessor::DirectiveEnum> Directives;
+    static const std::set<std::string> CPUTable;
     bool IsDirective(const std::string& Line, DirectiveEnum& Directive, std::string& Expression);
     void ExpandDefines(std::string& Line);
     DirectiveEnum SkipTo(const std::set<DirectiveEnum>& Directives);

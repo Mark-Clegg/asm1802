@@ -50,6 +50,10 @@ Pre-processor directives are denoted be a line with '#' in column 1.
 
 The following Pre-processor directives are supported
 
+- #processor {cputype}
+
+Specify the CPU model. 1802, 1804/5/6, 1804/5/6A
+
 - #define variable{=value}
 
 Define a preprocessor variable and optionally assign a value
@@ -196,7 +200,6 @@ For Logical operators, 0 = false, 1 = true.
 | ISDEF/ISDEFINED label | Return true if label is defined |
 | ISUNDEF/ISUNDEFINED label | Return true if lable is not defined |
 | ORG arg | Set Address |
-| PROCESSOR model | Set Processor architecture, 1802\|1806\|1806A |
 | SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO } | Define a Subroutine, optionally aligned to boundary |
 | ENDSUB | End of Subroutine Definition |
 | MACRO parameters | Define a Macro |

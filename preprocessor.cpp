@@ -14,16 +14,35 @@ namespace fs = std::filesystem;
 
 const std::map<std::string, PreProcessor::DirectiveEnum> PreProcessor::Directives =
 {
-    { "DEFINE",      PP_define  },
-    { "UNDEF",       PP_undef   },
-    { "IF",          PP_if      },
-    { "IFDEF",       PP_ifdef   },
-    { "IFNDEF",      PP_ifndef  },
-    { "ELSE",        PP_else    },
-    { "ELIF",        PP_elif    },
-    { "ENDIF",       PP_endif   },
-    { "INCLUDE",     PP_include },
-    { "ERROR",       PP_error   }
+    { "PROCESSOR",   PP_processor },
+    { "DEFINE",      PP_define    },
+    { "UNDEF",       PP_undef     },
+    { "IF",          PP_if        },
+    { "IFDEF",       PP_ifdef     },
+    { "IFNDEF",      PP_ifndef    },
+    { "ELSE",        PP_else      },
+    { "ELIF",        PP_elif      },
+    { "ENDIF",       PP_endif     },
+    { "INCLUDE",     PP_include   },
+    { "ERROR",       PP_error     }
+};
+
+const std::set<std::string> PreProcessor::CPUTable =
+{
+    "1802",
+    "1804",
+    "1805",
+    "1806",
+    "1804A",
+    "1805A",
+    "1806A",
+    "CDP1802",
+    "CDP1804",
+    "CDP1805",
+    "CDP1806",
+    "CDP1804A"
+    "CDP1805A",
+    "CDP1806A"
 };
 
 //!
@@ -103,34 +122,49 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                 DirectiveEnum Directive;
                 std::string Expression;
 
+                fmt::println(OutputStream, "{Line}", fmt::arg("Line", Line));
                 if(IsDirective(Line, Directive, Expression))
                 {
-                    fmt::println(OutputStream, "{Line}", fmt::arg("Line", Line));
                     switch(Directive)
                     {
+                        case PP_processor:
+                            if(CPUTable.find(Expression) != CPUTable.end())
+                                fmt::println(OutputStream, "#setcpu \"{CPUID}\"", fmt::arg("CPUID", Expression));
+                            else
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unknown processor specification");
+                            break;
                         case PP_define:
                         {
                             std::string key;
                             std::string value;
                             std::smatch MatchResult;
-                            if(regex_match(Expression, MatchResult, std::regex(R"(^(\w+)\s+(.*)$)")))
+                            if(regex_match(Expression, MatchResult, std::regex(R"(^([_.[:alnum:]]+)\s+(.*)$)")))
                             {
                                 key = MatchResult[1];
                                 value = MatchResult[2];
                             }
-                            else
+                            else if(regex_match(Expression, MatchResult, std::regex(R"(^([_.[:alnum:]]+)$)")))
                             {
                                 key = Expression;
                                 value = "1";
                             }
+                            else
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected #define key {value}");
                             ToUpper(key);
                             Defines[key]=value;
                             break;
                         }
                         case PP_undef:
                         {
-                            ToUpper(Expression);
-                            Defines.erase(Expression);
+                            std::smatch MatchResult;
+                            if(regex_match(Expression, MatchResult, std::regex(R"(^([_.[:alnum:]]+)$)")))
+                            {
+                                std::string Key = MatchResult[1];
+                                ToUpper(Key);
+                                Defines.erase(Key);
+                            }
+                            else
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Invalid variable name");
                             break;
                         }
                         case  PP_if:
@@ -198,6 +232,8 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             if(ElseCounters.top() != 0)
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Too many #else statements");
                             ElseCounters.top()++;
+                            if(!Expression.empty())
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Extra characters after #else");
                             if(SkipTo({ PP_endif }) == PP_endif)
                             {
                                 IfNestingLevel.top()--;
@@ -219,6 +255,8 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         {
                             if(IfNestingLevel.top() <= 0)
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#endif without preceeding #if");
+                            if(!Expression.empty())
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Extra characters after #endif");
                             ElseCounters.pop();
                             IfNestingLevel.top()--;
                             break;
@@ -245,8 +283,6 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         }
                     }
                 }
-                else
-                    fmt::println(OutputStream, "{Line}", fmt::arg("Line", Line));
             }
             catch (PreProcessorException Ex)
             {

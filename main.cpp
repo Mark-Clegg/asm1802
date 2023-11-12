@@ -28,12 +28,14 @@ std::string Version("0.1");
 
 enum PreProcessorControlEnum
 {
-    PP_LINE
+    PP_LINE,
+    PP_SETCPU
 };
 
 std::map<std::string, PreProcessorControlEnum> PreProcessorControlLookup =
 {
-    { "line", PP_LINE }
+    { "line",   PP_LINE   },
+    { "setcpu", PP_SETCPU }
 };
 
 enum SubroutineOptionsEnum
@@ -240,7 +242,10 @@ int main(int argc, char **argv)
                     FilesAssembled++;
             }
             else
+            {
                 fmt::println("Pre-Procssing Failed, Assembly Aborted");
+                fmt::println("");
+            }
 
             if(!KeepPreprocessor)
                 std::remove(PreProcessedInputFile.c_str());
@@ -337,17 +342,29 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                             case PP_LINE:
                             {
                                 std::smatch MatchResult;
-                                if(regex_match(Expression, MatchResult, std::regex(R"-("(.*)" ([0-9]+)$)-")))
+                                if(regex_match(Expression, MatchResult, std::regex(R"-(^"(.*)" ([0-9]+)$)-")))
                                 {
                                     CurrentFile = MatchResult[1];
                                     LineNumber = stoi(MatchResult[2]);
                                 }
+                                else
+                                    throw AssemblyException("Bad line directive received from Pre-Processor", SEVERITY_Error);
+                                break;
+                            }
+                            case PP_SETCPU:
+                            {
+                                std::smatch MatchResult;
+                                if(regex_match(Expression, MatchResult, std::regex(R"-(^"(.*)"$)-")) && OpCodeTable::CPUTable.find(MatchResult[1]) != OpCodeTable::CPUTable.end())
+                                    Processor = OpCodeTable::CPUTable.at(MatchResult[1]);
+                                else
+                                    throw AssemblyException("Bad setcpu directive received from Pre-Processor", SEVERITY_Error);
                                 break;
                             }
                         }
                         continue; // Go back to start of getLine loop - control statements have no further processing and are not included in the listing file.
                     }
-                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                    if(Pass == 3)
+                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                 }
                 else
                 {
@@ -485,15 +502,6 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                     case DW:
                                                     {
                                                         SubroutineSize += Operands.size() * 2;
-                                                        break;
-                                                    }
-                                                    case PROCESSOR:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("PROCESSOR requires a single argument", SEVERITY_Error);
-                                                        if(OpCodeTable::CPUTable.find(Operands[0]) == OpCodeTable::CPUTable.end())
-                                                            throw AssemblyException("Unknown Processor type specification", SEVERITY_Error);
-                                                        Processor = OpCodeTable::CPUTable.at(Operands[0]);
                                                         break;
                                                     }
                                                     case END:
@@ -722,11 +730,6 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         ProgramCounter += Operands.size() * 2;
                                                         break;
                                                     }
-                                                    case PROCESSOR:
-                                                    {
-                                                        Processor = OpCodeTable::CPUTable.at(Operands[0]);
-                                                        break;
-                                                    }
                                                     case ALIGN:
                                                     {
                                                         if(InAutoAlignedSub)
@@ -928,12 +931,6 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                         ProgramCounter += Data.size();
                                                         break;
                                                     }
-                                                    case PROCESSOR:
-                                                    {
-                                                        Processor = OpCodeTable::CPUTable.at(Operands[0]);
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
-                                                        break;
-                                                    }
                                                     case ALIGN:
                                                         try
                                                         {
@@ -943,7 +940,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
                                                                 AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                                 if(CurrentTable != &MainTable)
                                                                     E.AddLocalSymbols(CurrentTable);
-                                                                int Align = E.Evaluate(Operands[0]);
+                                                                Align = E.Evaluate(Operands[0]);
                                                             }
                                                             ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
                                                             CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;

@@ -66,12 +66,11 @@ Remove the definition of a variable
 
 Conditional assembly if \<condition\> evaluates to true (non-zero). In addition to arithmetic, the following functions are available:
 
-    - HIGH(expression)
-    Returns the high byte of expression
-    - LOW(expression)
-    Returns the low byte of expression
-    - PROCESSOR("designation")
-    Returns true(1) if designation is the currently selected processor model
+| Function | Meaning |
+| --- | --- |
+| HIGH(expression) | Returns the high byte of expression |
+| LOW(expression) | Returns the low byte of expression |
+| PROCESSOR("designation") | Returns true(1) if designation is the currently selected processor model |
 
 - #ifdef variable
 
@@ -188,10 +187,12 @@ For Logical operators, 0 = false, 1 = true.
 
 ### Functions
 
- | Function | Parameters | Meaning |
- | --- | --- | --- |
- | HIGH(expression) | value | HIGH order 8 bits of value |
- | LOW(expression) | value | LOW order 8 bits of value |
+ | Function | Meaning |
+ | --- | --- |
+ | HIGH(expression) | HIGH order 8 bits of value |
+ | LOW(expression) | LOW order 8 bits of value |
+ | ISDEF(label) | True if label is defined |
+ | ISNDEF(label) | True if label is not defined |
 
 ## Pseudo Operators
 

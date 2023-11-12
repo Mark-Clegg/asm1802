@@ -5,10 +5,8 @@ const std::map<std::string, AssemblyExpressionEvaluator::FunctionSpec> AssemblyE
 {
     { "HIGH",        { FN_HIGH,    1 }},
     { "LOW",         { FN_LOW,     1 }},
-    { "ISDEFINED",   { FN_ISDEF,   1 }},
     { "ISDEF",       { FN_ISDEF,   1 }},
-    { "ISUNDEFINED", { FN_ISUNDEF, 1 }},
-    { "ISUNDEF",     { FN_ISUNDEF, 1 }}
+    { "ISNDEF",      { FN_ISNDEF,  1 }}
 };
 
 AssemblyExpressionEvaluator::AssemblyExpressionEvaluator(const SymbolTable& Global, uint16_t ProgramCounter) :
@@ -100,7 +98,7 @@ int AssemblyExpressionEvaluator::AtomValue()
                         else
                             throw ExpressionException("ISDEF expects a single LABEL argument");
                         break;
-                    case FN_ISUNDEF:
+                    case FN_ISNDEF:
                         if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_LABEL)
                         {
                             Result = 1;

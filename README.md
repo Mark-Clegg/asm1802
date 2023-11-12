@@ -50,7 +50,7 @@ Pre-processor directives are denoted be a line with '#' in column 1.
 
 The following Pre-processor directives are supported
 
-- #processor {cputype}
+- #processor "{cputype}"
 
 Specify the CPU model. 1802, 1804/5/6, 1804/5/6A
 
@@ -64,7 +64,14 @@ Remove the definition of a variable
 
 - #if {condition}
 
-Conditional assembly if \<condition\> evaluates to true (non-zero)
+Conditional assembly if \<condition\> evaluates to true (non-zero). In addition to arithmetic, the following functions are available:
+
+    - HIGH(expression)
+    Returns the high byte of expression
+    - LOW(expression)
+    Returns the low byte of expression
+    - PROCESSOR("designation")
+    Returns true(1) if designation is the currently selected processor model
 
 - #ifdef variable
 

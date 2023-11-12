@@ -14,7 +14,7 @@ public:
         FN_HIGH,
         FN_LOW,
         FN_ISDEF,
-        FN_ISUNDEF
+        FN_ISNDEF
     };
 
     struct FunctionSpec

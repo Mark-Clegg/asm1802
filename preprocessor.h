@@ -6,6 +6,7 @@
 #include <stack>
 #include <string>
 #include <set>
+#include "opcodetable.h"
 
 class PreProcessor
 {
@@ -48,9 +49,9 @@ private:
     inline void WriteLineMarker(std::ofstream& Output, const std::string& FileName, const int LineNumber);
 
     std::map<std::string, std::string> Defines;
+    CPUTypeEnum Processor = CPU_1802;
 
     static const std::map<std::string, PreProcessor::DirectiveEnum> Directives;
-    static const std::set<std::string> CPUTable;
     bool IsDirective(const std::string& Line, DirectiveEnum& Directive, std::string& Expression);
     void ExpandDefines(std::string& Line);
     DirectiveEnum SkipTo(const std::set<DirectiveEnum>& Directives);

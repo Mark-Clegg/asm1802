@@ -27,24 +27,6 @@ const std::map<std::string, PreProcessor::DirectiveEnum> PreProcessor::Directive
     { "ERROR",       PP_error     }
 };
 
-const std::set<std::string> PreProcessor::CPUTable =
-{
-    "1802",
-    "1804",
-    "1805",
-    "1806",
-    "1804A",
-    "1805A",
-    "1806A",
-    "CDP1802",
-    "CDP1804",
-    "CDP1805",
-    "CDP1806",
-    "CDP1804A"
-    "CDP1805A",
-    "CDP1806A"
-};
-
 //!
 //! \brief PreProcessor::SourceEntry::SourceEntry
 //! \param Name
@@ -128,11 +110,23 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                     switch(Directive)
                     {
                         case PP_processor:
-                            if(CPUTable.find(Expression) != CPUTable.end())
-                                fmt::println(OutputStream, "#setcpu \"{CPUID}\"", fmt::arg("CPUID", Expression));
+                        {
+                            std::smatch MatchResult;
+                            std::string Operand = Expression;
+                            ToUpper(Operand);
+                            if(regex_match(Operand, MatchResult, std::regex(R"-(^"(.*)"$)-")))
+                            {
+                                auto CPU = OpCodeTable::CPUTable.find(MatchResult[1]);
+                                if(CPU == OpCodeTable::CPUTable.end())
+                                    throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unknown processor specification");
+
+                                Processor = CPU->second;
+                                fmt::println(OutputStream, "#setcpu \"{CPUID}\"", fmt::arg("CPUID", CPU->first));
+                            }
                             else
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unknown processor specification");
                             break;
+                        }
                         case PP_define:
                         {
                             std::string key;
@@ -174,7 +168,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             if(Expression.empty())
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected Espression");
                             ToUpper(Expression);
-                            PreProcessorExpressionEvaluator E;
+                            PreProcessorExpressionEvaluator E(Processor);
                             int Result;
                             try
                             {
@@ -491,7 +485,7 @@ PreProcessor::DirectiveEnum PreProcessor::SkipTo(const std::set<DirectiveEnum>& 
                         if(Expression.empty())
                             throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected Espression");
                         ToUpper(Expression);
-                        PreProcessorExpressionEvaluator E;
+                        PreProcessorExpressionEvaluator E(Processor);
                         int Result;
                         try
                         {

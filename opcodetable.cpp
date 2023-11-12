@@ -181,22 +181,3 @@ const std::map<std::string, CPUTypeEnum> OpCodeTable::CPUTable =
     { "CDP1805A", CPU_1806A },
     { "CDP1806A", CPU_1806A }
 };
-
-//OpCodeSpec::OpCodeSpec()
-//{
-//}
-
-//OpCodeSpec::OpCodeSpec(OpCodeEnum OpCode, OpCodeTypeEnum OpCodeType, CPUTypeEnum CPUType)
-//{
-//    this->OpCode = OpCode;
-//    this->OpCodeType = OpCodeType;
-//    this->CPUType = CPUType;
-//}
-
-//OpCodeSpec::OpCodeSpec(OpCodeEnum OpCode, std::string& Mnemonic, OpCodeTypeEnum OpCodeType, CPUTypeEnum CPUType)
-//{
-//    this->OpCode = OpCode;
-//    this->Mnemonic = Mnemonic;
-//    this->OpCodeType = OpCodeType;
-//    this->CPUType = CPUType;
-//}

@@ -41,6 +41,10 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
     {
         switch(FirstChar)
         {
+            case '"':
+                StringValue = QuotedString();
+                Result = TOKEN_QUOTED_STRING;
+                break;
             case '(':
                 Result = TOKEN_OPEN_BRACE;
                 break;
@@ -283,6 +287,65 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
                     throw ExpressionException("Unrecognised token in expression");
             }
         }
+    }
+    return Result;
+}
+
+std::string ExpressionTokenizer::QuotedString()
+{
+    std::string Result;
+    int Len = 0;
+    while(!InputStream.eof() && !InputStream.fail())
+    {
+        char ch = InputStream.get();
+        if(ch == '\"')
+            break;
+        if(ch == '\\')
+        {
+            ch = InputStream.get();
+            switch(ch)
+            {
+                case '\'':
+                    Result += '\'';
+                    break;
+                case '\"':
+                    Result += '\"';
+                    break;
+                case '\?':
+                    Result += '\?';
+                    break;
+                case '\\':
+                    Result += '\\';
+                    break;
+                case 'a':
+                    Result += '\a';
+                    break;
+                case 'b':
+                    Result += '\b';
+                    break;
+                case 'f':
+                    Result += '\f';
+                    break;
+                case 'n':
+                    Result += '\n';
+                    break;
+                case 'r':
+                    Result += '\r';
+                    break;
+                case 't':
+                    Result += '\t';
+                    break;
+                case 'v':
+                    Result += '\v';
+                    break;
+                default:
+                    throw ExpressionException("Unrecognised escape sequence in string constant");
+                    break;
+            }
+        }
+        else
+            Result += ch;
+        Len++;
     }
     return Result;
 }

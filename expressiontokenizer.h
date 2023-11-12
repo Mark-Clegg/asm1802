@@ -10,6 +10,7 @@ class ExpressionTokenizer
 public:
     enum TokenEnum
     {
+        TOKEN_QUOTED_STRING,
         TOKEN_CLOSE_BRACE,
         TOKEN_OPEN_BRACE,
         TOKEN_LABEL,
@@ -50,6 +51,8 @@ private:
     std::istringstream InputStream;
     bool PeekValid = false;
     TokenEnum LastPeek;
+    std::string QuotedString();
+
 };
 
 #endif // EXPRESSIONTOKENIZER_H

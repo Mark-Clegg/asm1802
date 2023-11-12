@@ -1,13 +1,15 @@
 #include "preprocessorexpressionevaluator.h"
 #include "expressionexception.h"
+#include "opcodetable.h"
 
 const std::map<std::string, PreProcessorExpressionEvaluator::FunctionSpec> PreProcessorExpressionEvaluator::FunctionTable =
 {
-    { "HIGH",        { FN_HIGH,    1 }},
-    { "LOW",         { FN_LOW,     1 }}
+    { "HIGH",        { FN_HIGH,      1 }},
+    { "LOW",         { FN_LOW,       1 }},
+    { "PROCESSOR",   { FN_PROCESSOR, 1 }}
 };
 
-PreProcessorExpressionEvaluator::PreProcessorExpressionEvaluator() : ExpressionEvaluatorBase()
+PreProcessorExpressionEvaluator::PreProcessorExpressionEvaluator(const CPUTypeEnum Processor) : ExpressionEvaluatorBase(), Processor(Processor)
 {
 }
 
@@ -23,12 +25,16 @@ int PreProcessorExpressionEvaluator::AtomValue()
     auto Token = TokenStream.Get();
     switch(Token)
     {
+        case ExpressionTokenizer::TOKEN_QUOTED_STRING:
+            throw ExpressionException("Unexpected string literal");
+            break;
+
         case ExpressionTokenizer::TOKEN_NUMBER:
             Result = TokenStream.IntegerValue;
             break;
 
         case ExpressionTokenizer::TOKEN_OPEN_BRACE: // Bracketed Expression
-        Result = EvaluateSubExpression();
+            Result = EvaluateSubExpression();
             if (TokenStream.Peek() != ExpressionTokenizer::TOKEN_CLOSE_BRACE)
                 throw ExpressionException("Expected ')'");
             else
@@ -58,6 +64,27 @@ int PreProcessorExpressionEvaluator::AtomValue()
                         if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
                             throw ExpressionException("Incorrect number of arguments: HIGH expects 1 argument");
                         Result = (Arguments[0] >> 8) & 0xFF;
+                        break;
+                    case FN_PROCESSOR:
+                        if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_QUOTED_STRING)
+                        {
+                            TokenStream.Get();
+                            std::string Argument = TokenStream.StringValue;
+
+                            if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_CLOSE_BRACE)
+                            {
+                                TokenStream.Get();
+
+                                auto CPU = OpCodeTable::CPUTable.find(Argument);
+                                if(CPU == OpCodeTable::CPUTable.end())
+                                    throw ExpressionException("Unrecognised processor designation");
+                                return CPU->second == Processor ? 1 : 0;
+                            }
+                            else
+                                throw ExpressionException("Extra characters after quoted Processor designation");
+                        }
+                        else
+                            throw ExpressionException("Expected quoted Processor designation");
                         break;
                 }
             }

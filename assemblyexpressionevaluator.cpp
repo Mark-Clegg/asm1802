@@ -36,6 +36,9 @@ int AssemblyExpressionEvaluator::AtomValue()
     auto Token = TokenStream.Get();
     switch(Token)
     {
+        case ExpressionTokenizer::TOKEN_QUOTED_STRING:
+            throw ExpressionException("Unexpected string literal");
+            break;
         case ExpressionTokenizer::TOKEN_NUMBER:
             Result = TokenStream.IntegerValue;
             break;

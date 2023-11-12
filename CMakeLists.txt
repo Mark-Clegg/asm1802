@@ -32,6 +32,7 @@ add_executable(asm1802 main.cpp
     preprocessorexpressionevaluator.h preprocessorexpressionevaluator.cpp
     expressionexception.h expressionexception.cpp
     expressionevaluatorbase.h expressionevaluatorbase.cpp
+
     )
 
 install(TARGETS asm1802

@@ -100,14 +100,18 @@ int main(int argc, char **argv)
         { 0,0,0,0 }
     };
 
+    std::string FileName = fs::path(argv[0]).filename();
+    fmt::println("{FileName}: Version {Version}", fmt::arg("FileName", FileName), fmt::arg("Version", Version));
+    fmt::println("Macro Assembler for the COSMAC CDP1802 series MicroProcessor");
+    fmt::println("");
+
     CPUTypeEnum InitialProcessor = CPU_1802;
     bool Listing = false;
     PreProcessor AssemblerPreProcessor;
     bool KeepPreprocessor = false;
     bool Symbols = false;
     OutputFormatEnum OutputFormat = INTEL_HEX;
-    int FileCount = 0;
-    int FilesAssembled = 0;
+
     while (1)
     {
         const int opt = getopt_long(argc, argv, "C:D:U:klso:v?", longopts, 0);
@@ -193,11 +197,8 @@ int main(int argc, char **argv)
             }
             case '?': // Print Help
             {
-                std::string FileName = fs::path(argv[0]).filename();
-                fmt::println("{FileName}: Version {Version}", fmt::arg("FileName", FileName), fmt::arg("Version", Version));
-                fmt::println("Macro Assembler for the COSMAC CDP1802 series MicroProcessor");
                 fmt::println("Usage:");
-                fmt::println("asm1802 <options> SourceFile <options>");
+                fmt::println("asm1802 <options> SourceFile");
                 fmt::println("");
                 fmt::println("Options:");
                 fmt::println("");
@@ -243,19 +244,19 @@ int main(int argc, char **argv)
         }
     }
 
-    while (optind < argc)
+    bool Result = false;
+    if (optind + 1 ==  argc)
     {
         try
         {
-
+            fmt::println("Pre-Processing...");
             std::string PreProcessedInputFile;
             std::string FileName = argv[optind++];
             if(AssemblerPreProcessor.Run(FileName, PreProcessedInputFile))
             {
                 if(KeepPreprocessor)
                     fmt::println("Pre-Processed input saved to {FileName}", fmt::arg("FileName", PreProcessedInputFile));
-                if(assemble(PreProcessedInputFile, InitialProcessor, Listing, Symbols, OutputFormat))
-                    FilesAssembled++;
+                Result = assemble(PreProcessedInputFile, InitialProcessor, Listing, Symbols, OutputFormat);
             }
             else
             {
@@ -265,21 +266,16 @@ int main(int argc, char **argv)
 
             if(!KeepPreprocessor)
                 std::remove(PreProcessedInputFile.c_str());
-            FileCount++;
         }
         catch (AssemblyException Error)
         {
             fmt::println("** Error opening/reading file: {message}", fmt::arg("message", Error.what()));
         }
     }
-
-    fmt::println("{count:4} Files Assembled", fmt::arg("count", FileCount));
-    fmt::println("{count:4} Files Failed",    fmt::arg("count", FileCount - FilesAssembled));
-
-    if(FileCount == FilesAssembled)
-        return 0;
     else
-        return 1;
+        fmt::println("Expected a single filename to assemble");
+
+    return Result ? 0 : 1;
 }
 
 //!
@@ -712,7 +708,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         {
                                                             AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
                                                             int x = E.Evaluate(Operands[0]);
-                                                            if(x > 0 && x < 0x10000)
+                                                            if(x >= 0 && x < 0x10000)
                                                                 ProgramCounter = x;
                                                             else
                                                                 throw AssemblyException("Overflow: Address must be in range 0-FFFF", SEVERITY_Error);
@@ -1299,7 +1295,6 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
 
     if(DumpSymbols)
     {
-        fmt::println("");
         ListingFile.AppendSymbols("Global Symbols", MainTable);
         for(auto& Table : SubTables)
             ListingFile.AppendSymbols(Table.first, Table.second);

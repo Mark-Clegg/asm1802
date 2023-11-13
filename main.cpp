@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 
         switch (opt)
         {
-            case 'C':
+            case 'C': // CPU Type
             {
                 std::string RequestedCPU = optarg;
                 ToUpper(RequestedCPU);
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
                     InitialProcessor = CPULookup->second;
                 break;
             }
-            case 'D':
+            case 'D': // Define Pre-Processor variable
             {
                 std::string trimmedKvp = regex_replace(optarg, std::regex(R"(\s+$)"), "");
                 std::string key;
@@ -149,34 +149,34 @@ int main(int argc, char **argv)
                 break;
             }
 
-            case 'U':
+            case 'U': // UnDefine Pre-Processor variable
             {
                 std::string key = optarg;
                 ToUpper(key);
                 AssemblerPreProcessor.RemoveDefine(optarg);
                 break;
             }
-            case 'k':
+            case 'k': // Keep Pre-Processor temporary file (.pp)
                 KeepPreprocessor = true;
                 break;
 
-            case 'l':
+            case 'l': // Create Listing file (.lst)
                 Listing = true;
                 break;
 
-            case 's':
+            case 's': // Dump Symbol Table to Listing file
                 Symbols = true;
                 break;
 
-            case 'r':
+            case 'r': // Do Not pre-define R0-RF
                 NoRegisters = true;
                 break;
 
-            case 'p':
+            case 'p': // Do Not pre-define P1-P7
                 NoPorts = true;
                 break;
 
-            case 'o':
+            case 'o': // Set Binary Output format
             {
                 std::string Mode = optarg;
                 ToUpper(Mode);
@@ -186,12 +186,12 @@ int main(int argc, char **argv)
                     OutputFormat = OutputFormatLookup.at(Mode);
                 break;
             }
-            case 'v':
+            case 'v': // Display Version number
             {
                 fmt::println("{version}", fmt::arg("version", Version));
                 return 0;
             }
-            case '?':
+            case '?': // Print Help
             {
                 std::string FileName = fs::path(argv[0]).filename();
                 fmt::println("{FileName}: Version {Version}", fmt::arg("FileName", FileName), fmt::arg("Version", Version));

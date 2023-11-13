@@ -35,7 +35,8 @@ asm1802 {options} file {options} file ... file
 All Options are processed first, before assembling any files.
 
 | Short | Long | Meaning |
-| :---: | --- | --- |
+| --- | --- | --- |
+| -C type | --cpu type | Set initial processor type |
 | -D name{=value} | --define name{=value} | Define pre-processor variable |
 | -U name | --undefine name | Remove pre-processor variable |
 | -L | --list | Create listing file (.lst) |

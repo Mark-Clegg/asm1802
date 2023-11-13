@@ -177,11 +177,7 @@ enum CPUTypeEnum
 class OpCodeSpec
 {
 public:
-//    OpCodeSpec();
-//    OpCodeSpec(OpCodeEnum OpCode, OpCodeTypeEnum OpCodeType, CPUTypeEnum CPUType);
-//    OpCodeSpec(OpCodeEnum OpCode, std::string& Mnemonic, OpCodeTypeEnum OpCodeType, CPUTypeEnum CPUType);
     OpCodeEnum OpCode;
-//    std::string Mnemonic;
     OpCodeTypeEnum OpCodeType;
     CPUTypeEnum CPUType;
 };

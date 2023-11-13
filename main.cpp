@@ -60,7 +60,7 @@ std::map<std::string, OutputFormatEnum> OutputFormatLookup =
     { "IDIOT4",    IDIOT4    }
 };
 
-bool assemble(const std::string&, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode);
+bool assemble(const std::string&, CPUTypeEnum InitialProcessor, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode);
 void PrintError(const std::string& FileName, const int LineNumber, const std::string& MacroName, const int MacroLineNumber, const std::string& Line, const std::string& Message, const AssemblyErrorSeverity Severity, const bool InMacro);
 void PrintError(const std::string& Message, AssemblyErrorSeverity Severity);
 void PrintSymbols(const std::string & Name, const SymbolTable& Table);
@@ -86,6 +86,7 @@ int main(int argc, char **argv)
 {
     option longopts[] =
     {
+        { "cpu",                required_argument,  0, 'C' }, // Specify target CPU
         { "define",             required_argument,  0, 'D' }, // Define pre-processor variable
         { "undefine",           required_argument,  0, 'U' }, // Un-define pre-processor variable
         { "keep-preprocessor",  no_argument,        0, 'k' }, // Keep Pre-Processor intermediate file
@@ -99,6 +100,7 @@ int main(int argc, char **argv)
         { 0,0,0,0 }
     };
 
+    CPUTypeEnum InitialProcessor = CPU_1802;
     bool Listing = false;
     PreProcessor AssemblerPreProcessor;
     bool KeepPreprocessor = false;
@@ -108,13 +110,24 @@ int main(int argc, char **argv)
     int FilesAssembled = 0;
     while (1)
     {
-        const int opt = getopt_long(argc, argv, "D:U:klso:v?", longopts, 0);
+        const int opt = getopt_long(argc, argv, "C:D:U:klso:v?", longopts, 0);
 
         if (opt == -1)
             break;
 
         switch (opt)
         {
+            case 'C':
+            {
+                std::string RequestedCPU = optarg;
+                ToUpper(RequestedCPU);
+                auto CPULookup = OpCodeTable::CPUTable.find(RequestedCPU);
+                if(CPULookup == OpCodeTable::CPUTable.end())
+                    fmt::println("Unrecognised CPU Type");
+                else
+                    InitialProcessor = CPULookup->second;
+                break;
+            }
             case 'D':
             {
                 std::string trimmedKvp = regex_replace(optarg, std::regex(R"(\s+$)"), "");
@@ -188,6 +201,9 @@ int main(int argc, char **argv)
                 fmt::println("");
                 fmt::println("Options:");
                 fmt::println("");
+                fmt::println("-C|--cpu Processor");
+                fmt::println("\tSpecify target CPU: 1802, 1804/5/6, 1804/5/6A");
+                fmt::println("");
                 fmt::println("-D|--define Name{{=value}}");
                 fmt::println("\tDefine preprocessor variable");
                 fmt::println("");
@@ -238,7 +254,7 @@ int main(int argc, char **argv)
             {
                 if(KeepPreprocessor)
                     fmt::println("Pre-Processed input saved to {FileName}", fmt::arg("FileName", PreProcessedInputFile));
-                if(assemble(PreProcessedInputFile, Listing, Symbols, OutputFormat))
+                if(assemble(PreProcessedInputFile, InitialProcessor, Listing, Symbols, OutputFormat))
                     FilesAssembled++;
             }
             else
@@ -273,7 +289,7 @@ int main(int argc, char **argv)
 //!
 //! Main Assembler
 //!
-bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode)
+bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode)
 {
     SymbolTable MainTable;
     std::map<std::string, SymbolTable> SubTables;
@@ -307,7 +323,7 @@ bool assemble(const std::string& FileName, bool ListingEnabled, bool DumpSymbols
         SymbolTable* CurrentTable = &MainTable;
         uint16_t ProgramCounter = 0;
         uint16_t SubroutineSize = 0;
-        CPUTypeEnum Processor = CPU_1802;
+        CPUTypeEnum Processor = InitialProcessor;
         std::string CurrentFile = "";
         int LineNumber = 0;
         int MacroLineNumber = 0;

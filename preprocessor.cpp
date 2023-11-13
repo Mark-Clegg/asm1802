@@ -144,7 +144,6 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             }
                             else
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected #define key {value}");
-                            ToUpper(key);
                             Defines[key]=value;
                             break;
                         }
@@ -154,7 +153,6 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             if(regex_match(Expression, MatchResult, std::regex(R"(^([_.[:alnum:]]+)$)")))
                             {
                                 std::string Key = MatchResult[1];
-                                ToUpper(Key);
                                 Defines.erase(Key);
                             }
                             else
@@ -359,69 +357,64 @@ void PreProcessor::ExpandDefines(std::string& Line)
         bool inSingleQuotes = false;
         bool inDoubleQuotes = false;
         bool inEscape = false;
-        while(Line.size() > 0)
+        for(int i = 0; i < Line.size(); i++)
         {
-            char ch = Line[0];
+            char ch = Line[i];
 
             if(inEscape)
             {
                 out += ch;
-                Line.erase(0,1);
                 inEscape = false;
+            }
+            else if(inSingleQuotes)
+            {
+                out += ch;
+
+                if(ch == '\\')
+                    inEscape = true;
+
+                if(inSingleQuotes && ch == '\'' && !inEscape)
+                    inSingleQuotes = false;
+            }
+            else if(inDoubleQuotes)
+            {
+                out += ch;;
+
+                if(ch == '\\')
+                    inEscape = true;
+
+                if(inDoubleQuotes && ch == '\"' && !inEscape)
+                    inDoubleQuotes = false;
+            }
+            else if(ch == '\'')
+            {
+                inSingleQuotes = true;
+                out += ch;
+            }
+            else if(ch == '\"')
+            {
+                inDoubleQuotes = true;
+                out += ch;
             }
             else
             {
-                if(inSingleQuotes)
+                std::string FirstWord;
+                std::smatch MatchResult;
+                int j = i;
+                while(isalnum(Line[j]) || Line[j]=='_')
+                    FirstWord += Line[j++];
+                if(FirstWord.size() > 0)
                 {
-                    out += ch;
-                    Line.erase(0,1);
-
-                    if(ch == '\\')
-                        inEscape = true;
-
-                    if(inSingleQuotes && ch == '\'' && !inEscape)
-                        inSingleQuotes = false;
-                }
-                else
-                {
-                    if(inDoubleQuotes)
+                    if(FirstWord == Define.first)
                     {
-                        out += ch;;
-                        Line.erase(0,1);
-
-                        if(ch == '\\')
-                            inEscape = true;
-
-                        if(inDoubleQuotes && ch == '\"' && !inEscape)
-                            inDoubleQuotes = false;
+                        out += Defines[FirstWord];
                     }
                     else
-                    {
-                        if(ch == '\'')
-                            inSingleQuotes = true;
-                        if(ch == '\"')
-                            inDoubleQuotes = true;
-
-                        std::string FirstWord;
-                        std::smatch MatchResult;
-                        if(regex_match(Line, MatchResult, std::regex(R"(^(\w+).*)")))
-                        {
-                            FirstWord = MatchResult[1];
-                            if(FirstWord == Define.first)
-                            {
-                                out += Defines[FirstWord];
-                            }
-                            else
-                                out += FirstWord;
-                            Line.erase(0,FirstWord.size());
-                        }
-                        else
-                        {
-                            out += Line[0];
-                            Line.erase(0,1);
-                        }
-                    }
+                        out += FirstWord;
+                    i+=FirstWord.size() - 1;
                 }
+                else
+                    out += Line[i];
             }
         }
         Line = out;

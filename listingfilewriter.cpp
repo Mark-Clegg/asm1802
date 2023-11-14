@@ -27,17 +27,10 @@ ListingFileWriter::~ListingFileWriter()
 void ListingFileWriter::Append(const std::string& FileName, int LineNumber, const std::string& MacroName, int MacroLineNumber, const std::string& Line, const bool InMacro)
 {
     std::string FileRef;
-    std::pair<int,int> LineRef;
     if(InMacro)
-    {
         FileRef = FileName+"::"+MacroName;
-        LineRef = { LineNumber, MacroLineNumber };
-    }
     else
-    {
         FileRef = FileName;
-        LineRef = { LineNumber, 0 };
-    }
 
     if(Enabled)
     {
@@ -46,13 +39,14 @@ void ListingFileWriter::Append(const std::string& FileName, int LineNumber, cons
             ListStream.open(ListFileName, std::ofstream::out | std::ofstream::trunc);
         }
         if(InMacro)
-            fmt::println(ListStream, "[{filename:22.22}({linenumber:5})] |                    |  {line}",
+            fmt::println(ListStream, "[{filename:21.21} :{linenumber:05}.{macrolinenumber:02}]                       {line}",
                          fmt::arg("filename", FileRef),
-                         fmt::arg("linenumber", MacroLineNumber),
+                         fmt::arg("linenumber", LineNumber - 1),
+                         fmt::arg("macrolinenumber", MacroLineNumber),
                          fmt::arg("line", Line)
                         );
         else
-            fmt::println(ListStream, "[{filename:22.22}({linenumber:5})] |                    |  {line}",
+            fmt::println(ListStream, "[{filename:21.21} :{linenumber:05}   ]                       {line}",
                          fmt::arg("filename", FileName),
                          fmt::arg("linenumber", LineNumber),
                          fmt::arg("line", Line)
@@ -65,17 +59,10 @@ void ListingFileWriter::Append(const std::string& FileName, int LineNumber, cons
 void ListingFileWriter::Append(const std::string& FileName, int LineNumber, const std::string& MacroName, int MacroLineNumber, const std::string& Line, const bool InMacro, const std::uint16_t Address, const std::vector<std::uint8_t>& Data)
 {
     std::string FileRef;
-    std::pair<int,int> LineRef;
     if(InMacro)
-    {
         FileRef = FileName+"::"+MacroName;
-        LineRef = { LineNumber, MacroLineNumber };
-    }
     else
-    {
         FileRef = FileName;
-        LineRef = { LineNumber, 0 };
-    }
 
     if(Enabled)
     {
@@ -87,26 +74,26 @@ void ListingFileWriter::Append(const std::string& FileName, int LineNumber, cons
         {
             if(i == 0)
                 if(InMacro)
-                    fmt::print(ListStream, "[{filename:22.22}({linenumber:5})] | {address:04X}   ",
+                    fmt::print(ListStream, "[{filename:21.21} :{linenumber:05}.{macrolinenumber:02}]  {address:04X}   ",
                                fmt::arg("filename", FileRef),
-                               fmt::arg("linenumber", MacroLineNumber),
+                               fmt::arg("linenumber", LineNumber - 1),
+                               fmt::arg("macrolinenumber", MacroLineNumber),
                                fmt::arg("address", Address)
                               );
                 else
-                    fmt::print(ListStream, "[{filename:22.22}({linenumber:5})] | {address:04X}   ",
+                    fmt::print(ListStream, "[{filename:21.21} :{linenumber:05}   ]  {address:04X}   ",
                                fmt::arg("filename", FileName),
                                fmt::arg("linenumber", LineNumber),
                                fmt::arg("address", Address)
                               );
             else
-                fmt::print(ListStream, "{space:32}|{space:8}", fmt::arg("space", " "));
+                fmt::print(ListStream, "{space:32}{space:8}", fmt::arg("space", " "));
 
             for(int j = 0; j < 4; j++)
                 if((i*4)+j < Data.size())
                     fmt::print(ListStream, "{byte:02X} ", fmt::arg("byte", Data[i*4+j]));
                 else
                     fmt::print(ListStream, "{space:2} ", fmt::arg("space", ""));
-            fmt::print(ListStream, "|");
             if(i == 0)
                 fmt::print(ListStream, "  {line}", // Initial spaces to pad line start to an 8 character boundary (to align tabs)
                            fmt::arg("line", Line)
@@ -141,7 +128,7 @@ void ListingFileWriter::PrintError(const std::string& FileName, const int LineNu
             auto MsgSevPair = it->second;
             std::string Message = MsgSevPair.first;
             AssemblyErrorSeverity Severity = MsgSevPair.second;
-            fmt::println(ListStream, "**************************************{severity:*>15}:  {message}",
+            fmt::println(ListStream, "**********************************************{severity:*>15}:  {message}",
                          fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
                          fmt::arg("message", Message));
         }

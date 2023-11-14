@@ -493,6 +493,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             if(MacroDefinition != MainTable.Macros.end())
                                                                 ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                         }
+                                                        MacroLineNumber = 0;
                                                         LineNumber++;
                                                         if(!MacroExpansion.empty())
                                                             Source.InsertMacro(Mnemonic, MacroExpansion);
@@ -693,6 +694,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             if(MacroDefinition != MainTable.Macros.end())
                                                                 ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                         }
+                                                        MacroLineNumber = 0;
                                                         LineNumber++;
                                                         if(!MacroExpansion.empty())
                                                             Source.InsertMacro(Mnemonic, MacroExpansion);
@@ -874,6 +876,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                         }
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                        MacroLineNumber = 0;
                                                         LineNumber++;
                                                         if(!MacroExpansion.empty())
                                                             Source.InsertMacro(Mnemonic, MacroExpansion);
@@ -1245,10 +1248,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                 if(Source.InMacro())
                     MacroLineNumber++;
                 else
-                {
-                    MacroLineNumber = 0;
                     LineNumber++;
-                }
             } // while(Source.getLine())...
 
             // Custom processing at the end of each pass
@@ -1634,17 +1634,17 @@ void PrintError(const std::string& FileName, const int LineNumber, const std::st
     if(InMacro)
     {
         FileRef = FileName+"::"+MacroName;
-        LineRef = fmt::format("{LineNumber}.{MacroLineNumber:02}", fmt::arg("LineNumber", LineNumber-1), fmt::arg("MacroLineNumber", MacroLineNumber));
+        LineRef = fmt::format("{LineNumber:05}.{MacroLineNumber:02}", fmt::arg("LineNumber", LineNumber-1), fmt::arg("MacroLineNumber", MacroLineNumber));
     }
     else
     {
         FileRef = FileName;
-        LineRef = fmt::format("{LineNumber}", fmt::arg("LineNumber", LineNumber));
+        LineRef = fmt::format("{LineNumber:05}   ", fmt::arg("LineNumber", LineNumber));
     }
 
     try // Source may not contain anything...
     {
-        fmt::println("[{filename:22.22}{linenumber:>7}] {line}",
+        fmt::println("[{filename:21.21}{linenumber:>8}] {line}",
                      fmt::arg("filename", FileRef),
                      fmt::arg("linenumber", LineRef),
                      fmt::arg("line", Line)

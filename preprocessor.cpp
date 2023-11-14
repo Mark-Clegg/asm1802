@@ -399,7 +399,6 @@ void PreProcessor::ExpandDefines(std::string& Line)
             else
             {
                 std::string FirstWord;
-                std::smatch MatchResult;
                 int j = i;
                 while(isalnum(Line[j]) || Line[j]=='_')
                     FirstWord += Line[j++];

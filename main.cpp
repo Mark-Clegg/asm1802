@@ -438,6 +438,10 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         {
                                                             std::string Argument(Arg);
                                                             ToUpper(Argument);
+
+                                                            if(OpCodeTable::OpCode.find(Argument) != OpCodeTable::OpCode.cend())
+                                                                throw AssemblyException(fmt::format("Cannot use reserved word '{OpCode}' as a Macro parameter", fmt::arg("OpCode", Argument)), SEVERITY_Error, ENDMACRO);
+
                                                             if(std::regex_match(Argument, ArgMatch))
                                                                 if(std::find(MacroDefinition.Arguments.begin(), MacroDefinition.Arguments.end(), Argument) == MacroDefinition.Arguments.end())
                                                                     MacroDefinition.Arguments.push_back(Argument);
@@ -1349,28 +1353,93 @@ void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operan
         Parameters[Definition.Arguments[i]] = Operands[i];
 
     std::string Input = Definition.Expansion;
-    std::regex IdentifierRegex(R"(^([A-Za-z_][A-Za-z0-9_]*).*$)", std::regex::extended);
-    std::smatch MatchResult;
 
-    while(Input.size() > 0)
+    bool inSingleQuotes = false;
+    bool inDoubleQuotes = false;
+    bool inEscape = false;
+
+    for(int i = 0; i < Input.size(); i++)
     {
-        if(regex_match(Input, MatchResult, IdentifierRegex))
+        char ch = Input[i];
+
+        if(inEscape)
         {
-            std::string Identifier = MatchResult[1];
-            std::string UCIdentifier = Identifier;
-            ToUpper(UCIdentifier);
-            if(Parameters.find(UCIdentifier) != Parameters.end())
-                Output += Parameters[UCIdentifier];
-            else
-                Output += Identifier;
-            Input.erase(0, Identifier.size());
+            Output += ch;
+            inEscape = false;
+        }
+        else if(inSingleQuotes)
+        {
+            Output += ch;
+
+            if(ch == '\\')
+                inEscape = true;
+
+            if(inSingleQuotes && ch == '\'' && !inEscape)
+                inSingleQuotes = false;
+        }
+        else if(inDoubleQuotes)
+        {
+            Output += ch;
+
+            if(ch == '\\')
+                inEscape = true;
+
+            if(inDoubleQuotes && ch == '\"' && !inEscape)
+                inDoubleQuotes = false;
+        }
+        else if(ch == '\'')
+        {
+            inSingleQuotes = true;
+            Output += ch;
+        }
+        else if(ch == '\"')
+        {
+            inDoubleQuotes = true;
+            Output += ch;
         }
         else
         {
-            Output += Input[0];
-            Input.erase(0, 1);
+            std::string Identifier;
+            int j = i;
+            while(isalnum(Input[j]) || Input[j]=='_')
+                Identifier += Input[j++];
+            if(Identifier.size() > 0)
+            {
+                std::string UCIdentifier(Identifier);
+                ToUpper(UCIdentifier);
+                if(Parameters.find(UCIdentifier) != Parameters.end())
+                    Output += Parameters[UCIdentifier];
+                else
+                    Output += Identifier;
+                i += Identifier.size() - 1;
+            }
+            else
+                Output += ch;
         }
     }
+
+//    std::regex IdentifierRegex(R"(^([A-Za-z_][A-Za-z0-9_]*).*$)", std::regex::extended);
+//    std::smatch MatchResult;
+
+//    while(Input.size() > 0)
+//    {
+//        if(regex_match(Input, MatchResult, IdentifierRegex))
+//        {
+//            std::string Identifier = MatchResult[1];
+//            std::string UCIdentifier = Identifier;
+//            ToUpper(UCIdentifier);
+//            if(Parameters.find(UCIdentifier) != Parameters.end())
+//                Output += Parameters[UCIdentifier];
+//            else
+//                Output += Identifier;
+//            Input.erase(0, Identifier.size());
+//        }
+//        else
+//        {
+//            Output += Input[0];
+//            Input.erase(0, 1);
+//        }
+//    }
 }
 
 //!

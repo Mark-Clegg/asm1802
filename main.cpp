@@ -1417,29 +1417,6 @@ void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operan
                 Output += ch;
         }
     }
-
-//    std::regex IdentifierRegex(R"(^([A-Za-z_][A-Za-z0-9_]*).*$)", std::regex::extended);
-//    std::smatch MatchResult;
-
-//    while(Input.size() > 0)
-//    {
-//        if(regex_match(Input, MatchResult, IdentifierRegex))
-//        {
-//            std::string Identifier = MatchResult[1];
-//            std::string UCIdentifier = Identifier;
-//            ToUpper(UCIdentifier);
-//            if(Parameters.find(UCIdentifier) != Parameters.end())
-//                Output += Parameters[UCIdentifier];
-//            else
-//                Output += Identifier;
-//            Input.erase(0, Identifier.size());
-//        }
-//        else
-//        {
-//            Output += Input[0];
-//            Input.erase(0, 1);
-//        }
-//    }
 }
 
 //!

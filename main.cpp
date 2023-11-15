@@ -456,6 +456,15 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         {
                                                             LineNumber++;
                                                             std::string Line = Trim(OriginalLine);
+
+                                                            // Throw an error if the source file changes mid definition
+                                                            if(regex_match(Line, MatchResult, std::regex(R"-(^#(\w+)(\s+(.*))?$)-")))
+                                                            {
+                                                                std::string ControlWord = MatchResult[1];
+                                                                if(PreProcessorControlLookup.find(ControlWord) != PreProcessorControlLookup.end() && PreProcessorControlLookup.at(ControlWord) == PP_LINE)
+                                                                    throw AssemblyException("Macro definition must be within a single source file", SEVERITY_Error);
+                                                            }
+
                                                             std::optional<OpCodeSpec> OpCode;
                                                             try
                                                             {

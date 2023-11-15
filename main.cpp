@@ -321,6 +321,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
         uint16_t SubroutineSize = 0;
         CPUTypeEnum Processor = InitialProcessor;
         std::string CurrentFile = "";
+        std::string SubDefinitionFile = "";
         int LineNumber = 0;
         int MacroLineNumber = 0;
         bool InSub = false;
@@ -354,6 +355,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                             case PP_LINE:
                             {
                                 std::smatch MatchResult;
+                                std::string NewFile;
                                 if(regex_match(Expression, MatchResult, std::regex(R"-(^"(.*)" ([0-9]+)$)-")))
                                 {
                                     CurrentFile = MatchResult[1];
@@ -386,6 +388,11 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                         {
                             try
                             {
+                                if(InSub && SubDefinitionFile != CurrentFile)
+                                {
+                                    InSub = false;
+                                    throw AssemblyException("Subroutine definition must be within a single source file", SEVERITY_Error);
+                                }
                                 std::string Label;
                                 std::string Mnemonic;
                                 std::vector<std::string>Operands;
@@ -412,6 +419,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             throw AssemblyException(fmt::format("Subroutine '{Label}' is already defined", fmt::arg("Label", Label)), SEVERITY_Error, ENDSUB);
 
                                                         InSub = true;
+                                                        SubDefinitionFile = CurrentFile;
                                                         SubTables.insert(std::pair<std::string, SymbolTable>(Label, SymbolTable()));
                                                         CurrentTable = &SubTables[Label];
                                                         SubroutineSize = 0;
@@ -461,8 +469,13 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             if(regex_match(Line, MatchResult, std::regex(R"-(^#(\w+)(\s+(.*))?$)-")))
                                                             {
                                                                 std::string ControlWord = MatchResult[1];
-                                                                if(PreProcessorControlLookup.find(ControlWord) != PreProcessorControlLookup.end() && PreProcessorControlLookup.at(ControlWord) == PP_LINE)
+                                                                std::string Expression = MatchResult[3];
+                                                                if(PreProcessorControlLookup.find(ControlWord) != PreProcessorControlLookup.end()
+                                                                        && PreProcessorControlLookup.at(ControlWord) == PP_LINE
+                                                                        && regex_match(Expression, MatchResult, std::regex(R"-(^"(.*)" ([0-9]+)$)-"))
+                                                                        && CurrentFile != MatchResult[1])
                                                                     throw AssemblyException("Macro definition must be within a single source file", SEVERITY_Error);
+
                                                             }
 
                                                             std::optional<OpCodeSpec> OpCode;
@@ -597,6 +610,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     {
                                                         CurrentTable = &SubTables[Label];
                                                         CurrentTable->Name = Label;
+                                                        SubDefinitionFile = CurrentFile;
                                                         for(int i = 0; i < Operands.size(); i++)
                                                         {
                                                             std::vector<std::string> SubOptions;
@@ -809,6 +823,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     case SUB:
                                                     {
                                                         CurrentTable = &SubTables[Label];
+                                                        SubDefinitionFile = CurrentFile;
                                                         for(int i = 0; i < Operands.size(); i++)
                                                         {
                                                             std::vector<std::string> SubOptions;

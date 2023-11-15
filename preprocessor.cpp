@@ -55,6 +55,11 @@ PreProcessor::PreProcessor()
     Defines["__TIMESTAMP__"] = fmt::format("\"{:%a %b %d %H:%M:%S %Y}\"", fmt::localtime(Now));
 }
 
+void PreProcessor::SetCPU(CPUTypeEnum Processor)
+{
+    this->Processor = Processor;
+}
+
 //!
 //! \brief PreProcessor::Run
 //! \param InputFile

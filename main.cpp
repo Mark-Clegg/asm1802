@@ -244,6 +244,7 @@ int main(int argc, char **argv)
         }
     }
 
+    AssemblerPreProcessor.SetCPU(InitialProcessor);
     bool Result = false;
     if (optind + 1 ==  argc)
     {

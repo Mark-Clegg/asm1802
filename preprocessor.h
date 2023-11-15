@@ -38,6 +38,7 @@ class PreProcessor
 
 public:
     PreProcessor();
+    void SetCPU(CPUTypeEnum Processor);
     bool Run(const std::string& InputFile, std::string& OutputFile);
     void AddDefine(const std::string& Identifier, const std::string& Expression);
     void RemoveDefine(const std::string& Identifier);

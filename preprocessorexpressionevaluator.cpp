@@ -78,7 +78,7 @@ int PreProcessorExpressionEvaluator::AtomValue()
                                 auto CPU = OpCodeTable::CPUTable.find(Argument);
                                 if(CPU == OpCodeTable::CPUTable.end())
                                     throw ExpressionException("Unrecognised processor designation");
-                                return CPU->second == Processor ? 1 : 0;
+                                return CPU->second <= Processor ? 1 : 0;
                             }
                             else
                                 throw ExpressionException("Extra characters after quoted Processor designation");

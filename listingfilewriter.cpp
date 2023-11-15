@@ -87,7 +87,7 @@ void ListingFileWriter::Append(const std::string& FileName, int LineNumber, cons
                                fmt::arg("address", Address)
                               );
             else
-                fmt::print(ListStream, "{space:32}{space:8}", fmt::arg("space", " "));
+                fmt::print(ListStream, "{space:42}", fmt::arg("space", " "));
 
             for(int j = 0; j < 4; j++)
                 if((i*4)+j < Data.size())

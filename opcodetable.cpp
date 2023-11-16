@@ -142,8 +142,6 @@ const std::map<std::string, OpCodeSpec> OpCodeTable::OpCode =
     { "MACRO",      { MACRO,     PSEUDO_OP,             CPU_1802  }},
     { "ENDMACRO",   { ENDMACRO,  PSEUDO_OP,             CPU_1802  }},
     { "ENDM",       { ENDMACRO,  PSEUDO_OP,             CPU_1802  }},
-    { "LIST",       { LIST,      PSEUDO_OP,             CPU_1802  }},
-    { "SYMBOLS",    { SYMBOLS,   PSEUDO_OP,             CPU_1802  }},
     { "END",        { END,       PSEUDO_OP,             CPU_1802  }}
 };
 

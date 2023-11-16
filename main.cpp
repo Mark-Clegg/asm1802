@@ -29,13 +29,17 @@ std::string Version("0.1");
 enum PreProcessorControlEnum
 {
     PP_LINE,
-    PP_SETCPU
+    PP_SETCPU,
+    PP_LIST,
+    PP_SYMBOLS
 };
 
 std::map<std::string, PreProcessorControlEnum> PreProcessorControlLookup =
 {
-    { "line",   PP_LINE   },
-    { "setcpu", PP_SETCPU }
+    { "line",    PP_LINE    },
+    { "setcpu",  PP_SETCPU  },
+    { "list",    PP_LIST    },
+    { "symbols", PP_SYMBOLS }
 };
 
 enum SubroutineOptionsEnum
@@ -375,6 +379,46 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                     throw AssemblyException("Bad setcpu directive received from Pre-Processor", SEVERITY_Error);
                                 break;
                             }
+                            case PP_LIST:
+                                if(Pass == 3)
+                                {
+                                    ToUpper(Expression);
+                                    if(Expression == "\"ON\"")
+                                    {
+                                        ListingFile.Enabled = true;
+                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                    }
+                                    else if(Expression == "\"OFF\"")
+                                    {
+                                        if(ListingFile.Enabled)
+                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                        ListingFile.Enabled = false;
+                                    }
+                                    else
+                                        throw AssemblyException("Bad list directive received from Pre-Processor", SEVERITY_Error);
+                                }
+                                if(Source.InMacro())
+                                    MacroLineNumber++;
+                                else
+                                    LineNumber++;
+                                break;
+                            case PP_SYMBOLS:
+                                if(Pass == 3)
+                                {
+                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                    ToUpper(Expression);
+                                    if(Expression == "\"ON\"")
+                                        DumpSymbols = true;
+                                    else if(Expression == "\"OFF\"")
+                                        DumpSymbols = false;
+                                    else
+                                        throw AssemblyException("Bad symbols directive received from Pre-Processor", SEVERITY_Error);
+                                }
+                                if(Source.InMacro())
+                                    MacroLineNumber++;
+                                else
+                                    LineNumber++;
+                                break;
                         }
                         continue; // Go back to start of getLine loop - control statements have no further processing and are not included in the listing file.
                     }
@@ -1023,54 +1067,6 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                                             while(Source.getLine(OriginalLine))
                                                                 ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
-                                                        }
-                                                        catch(ExpressionException Ex)
-                                                        {
-                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
-                                                        }
-                                                        break;
-                                                    case LIST:
-                                                        try
-                                                        {
-                                                            if(Operands.size() != 1)
-                                                                throw AssemblyException("LIST Requires a single argument <expression>", SEVERITY_Error);
-                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                            if(CurrentTable != &MainTable)
-                                                                E.AddLocalSymbols(CurrentTable);
-                                                            int Result = E.Evaluate(Operands[0]);
-
-                                                            if(Result == 1)
-                                                            {
-                                                                ListingFile.Enabled = true;
-                                                                ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
-                                                            }
-
-                                                            if(Result == 0)
-                                                                ListingFile.Enabled = false;
-                                                            else
-                                                                ListingFile.Enabled = true;
-                                                        }
-                                                        catch(ExpressionException Ex)
-                                                        {
-                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
-                                                        }
-                                                        break;
-                                                    case SYMBOLS:
-                                                        try
-                                                        {
-                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
-
-                                                            if(Operands.size() != 1)
-                                                                throw AssemblyException("LIST Requires a single argument <expression>", SEVERITY_Error);
-                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                            if(CurrentTable != &MainTable)
-                                                                E.AddLocalSymbols(CurrentTable);
-                                                            int Result = E.Evaluate(Operands[0]);
-
-                                                            if(Result == 0)
-                                                                DumpSymbols = false;
-                                                            else
-                                                                DumpSymbols = true;
                                                         }
                                                         catch(ExpressionException Ex)
                                                         {

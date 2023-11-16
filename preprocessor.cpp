@@ -25,7 +25,9 @@ const std::map<std::string, PreProcessor::DirectiveEnum> PreProcessor::Directive
     { "ELIF",        PP_elif      },
     { "ENDIF",       PP_endif     },
     { "INCLUDE",     PP_include   },
-    { "ERROR",       PP_error     }
+    { "ERROR",       PP_error     },
+    { "LIST",        PP_list      },
+    { "SYMBOLS",     PP_symbols   }
 };
 
 //!
@@ -279,6 +281,12 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unable to interpret filename expected <filename> or \"filename\"");
                             break;
                         }
+                        case PP_list: // Check syntax and just pass through to main assembler
+                            OnOffCheck(Expression);
+                            break;
+                        case PP_symbols: // Check syntax and just pass through to main assembler
+                            OnOffCheck(Expression);
+                            break;
                     }
                 }
             }
@@ -345,6 +353,17 @@ void PreProcessor::AddDefine(const std::string& Identifier, const std::string& E
 void PreProcessor::RemoveDefine(const std::string& Identifier)
 {
     Defines.erase(Identifier);
+}
+
+void PreProcessor::OnOffCheck(const std::string& Operand)
+{
+    std::smatch MatchResult;
+    std::string State = Operand;
+    ToUpper(State);
+    if(regex_match(State, MatchResult, std::regex(R"-(^"(ON|OFF)"$)-")) && (MatchResult[1] == "ON" || MatchResult[1] == "OFF"))
+        return;
+    else
+        throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected \"ON\" or \"OFF\"");
 }
 
 //!

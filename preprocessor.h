@@ -22,7 +22,9 @@ class PreProcessor
         PP_elif,
         PP_endif,
         PP_include,
-        PP_error
+        PP_error,
+        PP_list,
+        PP_symbols
     };
 
     class SourceEntry
@@ -56,6 +58,7 @@ private:
     bool IsDirective(const std::string& Line, DirectiveEnum& Directive, std::string& Expression);
     void ExpandDefines(std::string& Line);
     DirectiveEnum SkipTo(const std::set<DirectiveEnum>& Directives);
+    void OnOffCheck(const std::string& Operand);
     int ErrorCount = 0;
 };
 

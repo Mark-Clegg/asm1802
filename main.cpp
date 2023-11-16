@@ -595,7 +595,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
 
                                                         try
                                                         {
-                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                             if(CurrentTable != &MainTable)
                                                                 E.AddLocalSymbols(CurrentTable);
                                                             int Value = E.Evaluate(Operands[0]);
@@ -636,7 +636,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                         {
                                                                             try
                                                                             {
-                                                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                                                 Align = E.Evaluate(SubOptions[1]);
                                                                                 if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
                                                                                     throw AssemblyException("SUBROUTINE ALIGN must be 2,4,8,16,32,64,128,256 or AUTO", SEVERITY_Error);
@@ -668,7 +668,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             case 1:
                                                                 try
                                                                 {
-                                                                    AssemblyExpressionEvaluator E(*CurrentTable, ProgramCounter);
+                                                                    AssemblyExpressionEvaluator E(*CurrentTable, ProgramCounter, Processor);
                                                                     auto EntryPoint = E.Evaluate(Operands[0]);
                                                                     MainTable.Symbols[CurrentTable->Name].Value = EntryPoint;
                                                                     break;
@@ -736,7 +736,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
 
                                                         try
                                                         {
-                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                             int x = E.Evaluate(Operands[0]);
                                                             if(x >= 0 && x < 0x10000)
                                                                 ProgramCounter = x;
@@ -783,7 +783,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             int Align;
                                                             if(!SetAlignFromKeyword(Operands[0], Align))
                                                             {
-                                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                                 if(CurrentTable != &MainTable)
                                                                     E.AddLocalSymbols(CurrentTable);
                                                                 Align = E.Evaluate(Operands[0]);
@@ -842,7 +842,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                             Align = AlignFromSize(CurrentTable->CodeSize);
                                                                         else if(!SetAlignFromKeyword(SubOptions[1], Align))
                                                                         {
-                                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                                             Align = E.Evaluate(SubOptions[1]);
                                                                         }
                                                                         ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
@@ -912,7 +912,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     case ORG:
                                                         try
                                                         {
-                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                             ProgramCounter = E.Evaluate(Operands[0]);
 
                                                             CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
@@ -928,7 +928,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     case DB:
                                                     {
                                                         std::vector<std::uint8_t> Data;
-                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                         if(CurrentTable != &MainTable)
                                                             E.AddLocalSymbols(CurrentTable);
                                                         for(auto& Operand : Operands)
@@ -956,7 +956,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     case DW:
                                                     {
                                                         std::vector<std::uint8_t> Data;
-                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                         if(CurrentTable != &MainTable)
                                                             E.AddLocalSymbols(CurrentTable);
                                                         for(auto& Operand : Operands)
@@ -981,7 +981,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             int Align;
                                                             if(!SetAlignFromKeyword(Operands[0], Align))
                                                             {
-                                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                                 if(CurrentTable != &MainTable)
                                                                     E.AddLocalSymbols(CurrentTable);
                                                                 Align = E.Evaluate(Operands[0]);
@@ -1001,7 +1001,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             throw AssemblyException("ASSERT Requires a single argument <expression>", SEVERITY_Error);
                                                         try
                                                         {
-                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                             if(CurrentTable != &MainTable)
                                                                 E.AddLocalSymbols(CurrentTable);
                                                             int Result = E.Evaluate(Operands[0]);
@@ -1018,7 +1018,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     case END:
                                                         try
                                                         {
-                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                             EntryPoint = E.Evaluate(Operands[0]);
                                                             ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
                                                             while(Source.getLine(OriginalLine))
@@ -1034,7 +1034,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         {
                                                             if(Operands.size() != 1)
                                                                 throw AssemblyException("LIST Requires a single argument <expression>", SEVERITY_Error);
-                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                             if(CurrentTable != &MainTable)
                                                                 E.AddLocalSymbols(CurrentTable);
                                                             int Result = E.Evaluate(Operands[0]);
@@ -1062,7 +1062,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
 
                                                             if(Operands.size() != 1)
                                                                 throw AssemblyException("LIST Requires a single argument <expression>", SEVERITY_Error);
-                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                             if(CurrentTable != &MainTable)
                                                                 E.AddLocalSymbols(CurrentTable);
                                                             int Result = E.Evaluate(Operands[0]);
@@ -1085,7 +1085,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                 try
                                                 {
                                                     std::vector<std::uint8_t> Data;
-                                                    AssemblyExpressionEvaluator E(MainTable, ProgramCounter);
+                                                    AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                     if(CurrentTable != &MainTable)
                                                         E.AddLocalSymbols(CurrentTable);
 

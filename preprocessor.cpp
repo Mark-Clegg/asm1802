@@ -14,6 +14,7 @@ namespace fs = std::filesystem;
 
 const std::map<std::string, PreProcessor::DirectiveEnum> PreProcessor::Directives =
 {
+    { "CPU",         PP_processor },
     { "PROCESSOR",   PP_processor },
     { "DEFINE",      PP_define    },
     { "UNDEF",       PP_undef     },

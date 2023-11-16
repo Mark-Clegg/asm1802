@@ -3,6 +3,7 @@
 
 #include <fmt/core.h>
 #include <string>
+#include "opcodetable.h"
 #include "expressionevaluatorbase.h"
 #include "symboltable.h"
 
@@ -11,6 +12,7 @@ class AssemblyExpressionEvaluator : public ExpressionEvaluatorBase
 public:
     enum FunctionEnum
     {
+        FN_PROCESSOR,
         FN_HIGH,
         FN_LOW,
         FN_ISDEF,
@@ -23,7 +25,7 @@ public:
         int Arguments;
     };
 
-    AssemblyExpressionEvaluator(const SymbolTable& Global, uint16_t ProgramCounter);
+    AssemblyExpressionEvaluator(const SymbolTable& Global, uint16_t ProgramCounter, CPUTypeEnum Processor);
     void AddLocalSymbols(const SymbolTable* Local);
 
 private:
@@ -31,7 +33,7 @@ private:
     const SymbolTable* Local;
     const SymbolTable* Global;
     bool LocalSymbols;      // Denotess if a local blob is available for symbol lookups
-
+    CPUTypeEnum Processor;
     const uint16_t ProgramCounter;
     uint16_t SymbolValue(std::string Label);
     int AtomValue();

@@ -6,6 +6,7 @@ const std::map<std::string, PreProcessorExpressionEvaluator::FunctionSpec> PrePr
 {
     { "HIGH",        { FN_HIGH,      1 }},
     { "LOW",         { FN_LOW,       1 }},
+    { "CPU",         { FN_PROCESSOR, 1 }},
     { "PROCESSOR",   { FN_PROCESSOR, 1 }}
 };
 

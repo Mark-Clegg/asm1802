@@ -36,10 +36,10 @@ enum PreProcessorControlEnum
 
 std::map<std::string, PreProcessorControlEnum> PreProcessorControlLookup =
 {
-    { "line",        PP_LINE    },
-    { "cwprocessor", PP_PROCESSOR  },
-    { "list",        PP_LIST    },
-    { "symbols",     PP_SYMBOLS }
+    { "line",      PP_LINE      },
+    { "processor", PP_PROCESSOR },
+    { "list",      PP_LIST      },
+    { "symbols",   PP_SYMBOLS   }
 };
 
 enum SubroutineOptionsEnum
@@ -378,7 +378,11 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                 if(regex_match(Expression, MatchResult, std::regex(R"-(^"(.*)"$)-")) && OpCodeTable::CPUTable.find(MatchResult[1]) != OpCodeTable::CPUTable.end())
                                     Processor = OpCodeTable::CPUTable.at(MatchResult[1]);
                                 else
-                                    throw AssemblyException("Bad setcpu directive received from Pre-Processor", SEVERITY_Error);
+                                    throw AssemblyException("Bad processor directive received from Pre-Processor", SEVERITY_Error);
+                                if(Source.InMacro())
+                                    MacroLineNumber++;
+                                else
+                                    LineNumber++;
                                 break;
                             }
                             case PP_LIST:

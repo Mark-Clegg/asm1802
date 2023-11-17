@@ -15,6 +15,7 @@ SourceCodeReader::SourceEntry::SourceEntry(const std::string& Name, const std::s
 {
     this->Type = SourceType::SOURCE_MACRO;
     Stream = new std::istringstream(Data);
+    LineNumber = 0;
 }
 
 SourceCodeReader::SourceCodeReader(const std::string& FileName)
@@ -36,6 +37,7 @@ bool SourceCodeReader::getLine(std::string &Line)
 {
     while(SourceStreams.size() > 0)
     {
+        SourceStreams.top().LineNumber++;
         if(std::getline(*SourceStreams.top().Stream, Line))
         {
             // remove last character if \n or \r (convert MS-DOS line endings)

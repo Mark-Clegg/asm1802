@@ -24,6 +24,7 @@ public:
         SourceType Type;
         std::string Name;
         std::istream* Stream;
+        int LineNumber;
 
         SourceEntry(const std::string& Name);                           // For the top level File Stream
         SourceEntry(const std::string& Name, const std::string& Data);  // For Macro Expansions
@@ -44,6 +45,10 @@ public:
     inline const std::string& StreamName() const
     {
         return SourceStreams.size() > 0 ? SourceStreams.top().Name : Empty;
+    }
+    inline const int LineNumber() const
+    {
+        return SourceStreams.top().LineNumber;
     }
 };
 

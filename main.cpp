@@ -67,7 +67,6 @@ std::map<std::string, OutputFormatEnum> OutputFormatLookup =
 bool assemble(const std::string&, CPUTypeEnum InitialProcessor, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode);
 void PrintError(const std::string& FileName, const int LineNumber, const std::string& MacroName, const int MacroLineNumber, const std::string& Line, const std::string& Message, const AssemblyErrorSeverity Severity, const bool InMacro);
 void PrintError(const std::string& Message, AssemblyErrorSeverity Severity);
-void PrintSymbols(const std::string & Name, const SymbolTable& Table);
 void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operands, std::string& Output);
 void StringToByteVector(const std::string& Operand, std::vector<uint8_t>& Data);
 void StringListToVector(std::string& Input, std::vector<std::string>& Output, char Delimiter);
@@ -311,10 +310,6 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
         {
             MainTable.Symbols[fmt::format("P{n}",   fmt::arg("n", i))] = { i, true };
         }
-    MainTable.Symbols["ON"]    = { 1, true };
-    MainTable.Symbols["OFF"]   = { 0, true };
-    MainTable.Symbols["TRUE"]  = { 1, true };
-    MainTable.Symbols["FALSE"] = { 0, true };
 
     ErrorTable Errors;
     ListingFileWriter ListingFile(FileName, Errors, ListingEnabled);
@@ -328,7 +323,6 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
         std::string CurrentFile = "";
         std::string SubDefinitionFile = "";
         int LineNumber = 0;
-        int MacroLineNumber = 0;
         bool InSub = false;
         bool InAutoAlignedSub = false;
         try
@@ -373,15 +367,13 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                             case PP_PROCESSOR:
                             {
                                 if(Pass == 3)
-                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                 std::smatch MatchResult;
                                 if(regex_match(Expression, MatchResult, std::regex(R"-(^"(.*)"$)-")) && OpCodeTable::CPUTable.find(MatchResult[1]) != OpCodeTable::CPUTable.end())
                                     Processor = OpCodeTable::CPUTable.at(MatchResult[1]);
                                 else
                                     throw AssemblyException("Bad processor directive received from Pre-Processor", SEVERITY_Error);
-                                if(Source.InMacro())
-                                    MacroLineNumber++;
-                                else
+                                if(!Source.InMacro())
                                     LineNumber++;
                                 break;
                             }
@@ -392,26 +384,24 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                     if(Expression == "\"ON\"")
                                     {
                                         ListingFile.Enabled = true;
-                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                     }
                                     else if(Expression == "\"OFF\"")
                                     {
                                         if(ListingFile.Enabled)
-                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                         ListingFile.Enabled = false;
                                     }
                                     else
                                         throw AssemblyException("Bad list directive received from Pre-Processor", SEVERITY_Error);
                                 }
-                                if(Source.InMacro())
-                                    MacroLineNumber++;
-                                else
+                                if(!Source.InMacro())
                                     LineNumber++;
                                 break;
                             case PP_SYMBOLS:
                                 if(Pass == 3)
                                 {
-                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                     ToUpper(Expression);
                                     if(Expression == "\"ON\"")
                                         DumpSymbols = true;
@@ -420,16 +410,14 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                     else
                                         throw AssemblyException("Bad symbols directive received from Pre-Processor", SEVERITY_Error);
                                 }
-                                if(Source.InMacro())
-                                    MacroLineNumber++;
-                                else
+                                if(!Source.InMacro())
                                     LineNumber++;
                                 break;
                         }
                         continue; // Go back to start of getLine loop - control statements have no further processing and are not included in the listing file.
                     }
                     if(Pass == 3)
-                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                 }
                 else
                 {
@@ -566,8 +554,8 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             if(MacroDefinition != MainTable.Macros.end())
                                                                 ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                         }
-                                                        MacroLineNumber = 0;
-                                                        LineNumber++;
+                                                        if(!Source.InMacro())
+                                                            LineNumber++;
                                                         if(!MacroExpansion.empty())
                                                             Source.InsertMacro(Mnemonic, MacroExpansion);
                                                         else
@@ -768,8 +756,8 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             if(MacroDefinition != MainTable.Macros.end())
                                                                 ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                         }
-                                                        MacroLineNumber = 0;
-                                                        LineNumber++;
+                                                        if(!Source.InMacro())
+                                                            LineNumber++;
                                                         if(!MacroExpansion.empty())
                                                             Source.InsertMacro(Mnemonic, MacroExpansion);
                                                         else
@@ -905,22 +893,22 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                     }
                                                             }
                                                         }
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                         break;
                                                     }
                                                     case ENDSUB:
                                                     {
                                                         CurrentTable = &MainTable;
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                         break;
                                                     }
                                                     case MACRO:
                                                     {
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                         while(Source.getLine(OriginalLine))
                                                         {
                                                             LineNumber++;
-                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                             std::string Line = Trim(OriginalLine);
                                                             try
                                                             {
@@ -950,9 +938,9 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             if(MacroDefinition != MainTable.Macros.end())
                                                                 ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                         }
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
-                                                        MacroLineNumber = 0;
-                                                        LineNumber++;
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
+                                                        if(!Source.InMacro())
+                                                            LineNumber++;
                                                         if(!MacroExpansion.empty())
                                                             Source.InsertMacro(Mnemonic, MacroExpansion);
                                                         else
@@ -967,7 +955,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
 
                                                             CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
 
-                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                             break;
                                                         }
                                                         catch(ExpressionException Ex)
@@ -999,7 +987,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 }
                                                         }
                                                         CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro(), ProgramCounter, Data);
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, Data);
                                                         ProgramCounter += Data.size();
                                                         break;
                                                     }
@@ -1021,7 +1009,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 throw AssemblyException(Ex.what(), SEVERITY_Error);
                                                             }
                                                         CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro(), ProgramCounter, Data);
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, Data);
                                                         ProgramCounter += Data.size();
                                                         break;
                                                     }
@@ -1038,7 +1026,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             }
                                                             ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
                                                             CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
-                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                             break;
                                                         }
                                                         catch(ExpressionException Ex)
@@ -1057,7 +1045,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             int Result = E.Evaluate(Operands[0]);
                                                             if (Result == 0)
                                                                 throw AssemblyException("ASSERT Failed", SEVERITY_Error);
-                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                         }
                                                         catch(ExpressionException Ex)
                                                         {
@@ -1070,9 +1058,9 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         {
                                                             AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                             EntryPoint = E.Evaluate(Operands[0]);
-                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                             while(Source.getLine(OriginalLine))
-                                                                ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                                                ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                         }
                                                         catch(ExpressionException Ex)
                                                         {
@@ -1218,7 +1206,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
 
                                                     CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
 
-                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro(), ProgramCounter, Data);
+                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, Data);
                                                     ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
                                                 }
                                                 catch(ExpressionException Ex)
@@ -1227,16 +1215,16 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                 }
                                         }
                                         else
-                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                     }
                                 }
                             }
                             catch (AssemblyException Ex)
                             {
-                                if(!Errors.Contains(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Ex.what(), Ex.Severity, Source.InMacro()))
+                                if(!Errors.Contains(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), Ex.what(), Ex.Severity, Source.InMacro()))
                                 {
-                                    PrintError(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.what(), Ex.Severity, Source.InMacro());
-                                    Errors.Push(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.what(), Ex.Severity, Source.InMacro());
+                                    PrintError(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), Line, Ex.what(), Ex.Severity, Source.InMacro());
+                                    Errors.Push(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), Line, Ex.what(), Ex.Severity, Source.InMacro());
                                 }
                                 if(Ex.SkipToOpCode.has_value())
                                 {
@@ -1253,28 +1241,26 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                 }
                                 if (Pass == 3)
                                 {
-                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                 }
                             }
                         }
                         else // Empty line
                             if (Pass == 3)
-                                ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, OriginalLine, Source.InMacro());
+                                ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                     }
                     catch (AssemblyException Ex)
                     {
-                        if(!Errors.Contains(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Ex.what(), Ex.Severity, Source.InMacro()))
+                        if(!Errors.Contains(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), Ex.what(), Ex.Severity, Source.InMacro()))
                         {
-                            PrintError(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.what(), Ex.Severity, Source.InMacro());
-                            Errors.Push(CurrentFile, LineNumber, Source.StreamName(), MacroLineNumber, Line, Ex.what(), Ex.Severity, Source.InMacro());
+                            PrintError(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), Line, Ex.what(), Ex.Severity, Source.InMacro());
+                            Errors.Push(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), Line, Ex.what(), Ex.Severity, Source.InMacro());
                         }
                         if(Ex.SkipToOpCode.has_value())
                             throw; // AssemblyException is only thrown with a SkipToOpcode in an enclosed try / catch so this should never happen
                     }
                 }
-                if(Source.InMacro())
-                    MacroLineNumber++;
-                else
+                if(!Source.InMacro())
                     LineNumber++;
             } // while(Source.getLine())...
 
@@ -1693,32 +1679,6 @@ void PrintError(const std::string& Message, AssemblyErrorSeverity Severity)
     fmt::println("***************{severity:*>15}: {message}",
                  fmt::arg("severity", " "+AssemblyException::SeverityName.at(Severity)),
                  fmt::arg("message", Message));
-}
-
-//!
-//! \brief PrintSymbols
-//! \param Name
-//! \param Symbols
-//!
-//! Print the given Symbol Table
-//!
-void PrintSymbols(const std::string& Name, const SymbolTable& Blob)
-{
-    fmt::println("{Name:-^116}", fmt::arg("Name", Name));
-
-    int c = 0;
-    for(auto& Symbol : Blob.Symbols)
-        if(!Symbol.second.HideFromSymbolTable)
-        {
-            fmt::print("{Name:15} ", fmt::arg("Name", Symbol.first));
-            if(Symbol.second.Value.has_value())
-                fmt::print("{Address:04X}", fmt::arg("Address", Symbol.second.Value.value()));
-            if(++c % 5 == 0)
-                fmt::println("");
-            else
-                fmt::print("    ");
-        }
-    fmt::println("");
 }
 
 bool SetAlignFromKeyword(std::string Alignment, int& Align)

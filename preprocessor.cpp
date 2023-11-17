@@ -117,24 +117,6 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                 {
                     switch(Directive)
                     {
-                        case PP_processor:
-                        {
-                            std::smatch MatchResult;
-                            std::string Operand = Expression;
-                            ToUpper(Operand);
-                            if(regex_match(Operand, MatchResult, std::regex(R"-(^"(.*)"$)-")))
-                            {
-                                auto CPU = OpCodeTable::CPUTable.find(MatchResult[1]);
-                                if(CPU == OpCodeTable::CPUTable.end())
-                                    throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unknown processor specification");
-
-                                Processor = CPU->second;
-                                fmt::println(OutputStream, "#setcpu \"{CPUID}\"", fmt::arg("CPUID", CPU->first));
-                            }
-                            else
-                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unknown processor specification");
-                            break;
-                        }
                         case PP_define:
                         {
                             std::string key;
@@ -279,6 +261,22 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             }
                             else
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unable to interpret filename expected <filename> or \"filename\"");
+                            break;
+                        }
+                        case PP_processor: // Check syntax, save value, and pass through to main assembler
+                        {
+                            std::smatch MatchResult;
+                            std::string Operand = Expression;
+                            ToUpper(Operand);
+                            if(regex_match(Operand, MatchResult, std::regex(R"-(^"(.*)"$)-")))
+                            {
+                                auto CPU = OpCodeTable::CPUTable.find(MatchResult[1]);
+                                if(CPU == OpCodeTable::CPUTable.end())
+                                    throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unknown processor specification");
+                                Processor = CPU->second;
+                            }
+                            else
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unknown processor specification");
                             break;
                         }
                         case PP_list: // Check syntax and just pass through to main assembler

@@ -514,7 +514,6 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                         && regex_match(Expression, MatchResult, std::regex(R"-(^"(.*)" ([0-9]+)$)-"))
                                                                         && CurrentFile != MatchResult[1])
                                                                     throw AssemblyException("Macro definition must be within a single source file", SEVERITY_Error);
-
                                                             }
 
                                                             std::optional<OpCodeSpec> OpCode;

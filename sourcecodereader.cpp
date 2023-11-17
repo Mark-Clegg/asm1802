@@ -56,6 +56,8 @@ bool SourceCodeReader::getLine(std::string &Line)
 
 void SourceCodeReader::InsertMacro(const std::string& Name, const std::string& Data)
 {
+    if(SourceStreams.size() > 16)
+        throw AssemblyException("Maximum Macro nesting level exceeded", SEVERITY_Error);
     SourceEntry Entry(Name, Data);
     SourceStreams.push(Entry);
 }

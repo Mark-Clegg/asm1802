@@ -1,6 +1,7 @@
 #include "preprocessorexpressionevaluator.h"
 #include "expressionexception.h"
 #include "opcodetable.h"
+#include "utils.h"
 
 const std::map<std::string, PreProcessorExpressionEvaluator::FunctionSpec> PreProcessorExpressionEvaluator::FunctionTable =
 {
@@ -68,14 +69,14 @@ int PreProcessorExpressionEvaluator::AtomValue()
                         break;
                     case FN_PROCESSOR:
                     {
-                        auto Argument = TokenStream.Peek();
                         std::string Value;
-                        if(Argument == ExpressionTokenizer::TOKEN_QUOTED_STRING)
+                        if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_QUOTED_STRING)
                             TokenStream.Get();
-                        else if(!TokenStream.GetCustomToken(std::regex(R"(^((CDP)?180[2456]A?).*)")))
+                        else if(!TokenStream.GetCustomToken(std::regex(R"(^(([Cc][Dd][Pp])?180[2456][Aa]?).*)")))
                             throw ExpressionException("Expected Processor designation");
 
                         Value = TokenStream.StringValue;
+                        ToUpper(Value);
 
                         if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_CLOSE_BRACE)
                         {
@@ -87,7 +88,7 @@ int PreProcessorExpressionEvaluator::AtomValue()
                             Result = CPU->second <= Processor ? 1 : 0;
                         }
                         else
-                            throw ExpressionException("Extra characters after quoted Processor designation");
+                            throw ExpressionException("Extra characters after Processor designation");
                         break;
                     }
                 }

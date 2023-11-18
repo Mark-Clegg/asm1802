@@ -1,5 +1,6 @@
 #include "assemblyexpressionevaluator.h"
 #include "expressionexception.h"
+#include "utils.h"
 
 const std::map<std::string, AssemblyExpressionEvaluator::FunctionSpec> AssemblyExpressionEvaluator::FunctionTable =
 {
@@ -72,26 +73,29 @@ int AssemblyExpressionEvaluator::AtomValue()
                 switch(FunctionSpec->second.ID)
                 {
                     case FN_PROCESSOR:
+                    {
+                        std::string Value;
                         if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_QUOTED_STRING)
+                            TokenStream.Get();
+                        else if(!TokenStream.GetCustomToken(std::regex(R"(^(([Cc][Dd][Pp])?180[2456][Aa]?).*)")))
+                            throw ExpressionException("Expected Processor designation");
+
+                        Value = TokenStream.StringValue;
+                        ToUpper(Value);
+
+                        if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_CLOSE_BRACE)
                         {
                             TokenStream.Get();
-                            std::string Argument = TokenStream.StringValue;
 
-                            if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_CLOSE_BRACE)
-                            {
-                                TokenStream.Get();
-
-                                auto CPU = OpCodeTable::CPUTable.find(Argument);
-                                if(CPU == OpCodeTable::CPUTable.end())
-                                    throw ExpressionException("Unrecognised processor designation");
-                                return CPU->second <= Processor ? 1 : 0;
-                            }
-                            else
-                                throw ExpressionException("Extra characters after quoted Processor designation");
+                            auto CPU = OpCodeTable::CPUTable.find(Value);
+                            if(CPU == OpCodeTable::CPUTable.end())
+                                throw ExpressionException("Unrecognised processor designation");
+                            Result = CPU->second <= Processor ? 1 : 0;
                         }
                         else
-                            throw ExpressionException("Expected quoted Processor designation");
+                            throw ExpressionException("Extra characters after Processor designation");
                         break;
+                    }
                     case FN_LOW:
                         if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
                             throw ExpressionException("Incorrect number of arguments: LOW expects 1 argument");

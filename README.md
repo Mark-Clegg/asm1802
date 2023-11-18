@@ -51,7 +51,7 @@ Pre-processor directives are denoted be a line with '#' in column 1.
 
 The following Pre-processor directives are supported
 
-- #processor "{cputype}"
+- #processor {cputype}
 
 Specify the CPU model. 1802, 1804/5/6, 1804/5/6A
 
@@ -71,7 +71,7 @@ Conditional assembly if \<condition\> evaluates to true (non-zero). In addition 
 | --- | --- |
 | HIGH(expression) | Returns the high byte of expression |
 | LOW(expression) | Returns the low byte of expression |
-| PROCESSOR("designation") | Returns true(1) if designation is the currently selected processor model |
+| PROCESSOR(designation) | Returns true(1) if designation is the currently selected processor model |
 
 - #ifdef variable
 
@@ -96,6 +96,14 @@ End of conditional assembly block
 - #include \<filename\> | "filename"
 
 Include the contents of the specified file into the input stream.
+
+- #list on|off
+
+Turn on listing output
+
+- #symbols on|off
+
+Append symbol table to end of listing file
 
 ### Predefined Pre-processor variables
 
@@ -139,9 +147,6 @@ The following labels are pre-defined
 | R0 - R15 | 0 - 15 |
 | R0 - RF | 0 - 15 |
 | P1 - P7 | 1 -7 |
-| ON | TRUE | 1 |
-| OFF | FALSE | 0 |
-
 
 ## Operands
 
@@ -194,6 +199,8 @@ For Logical operators, 0 = false, 1 = true.
  | LOW(expression) | LOW order 8 bits of value |
  | ISDEF(label) | True if label is defined |
  | ISNDEF(label) | True if label is not defined |
+ | PROCESSOR(designation) | True if designated processor is suppported |
+ | CPU(designation) | Pseudonym for PROCESSOR(designation) |
 
 ## Pseudo Operators
 

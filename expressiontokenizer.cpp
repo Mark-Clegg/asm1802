@@ -6,6 +6,12 @@ ExpressionTokenizer::ExpressionTokenizer()
 {
 }
 
+//!
+//! \brief ExpressionTokenizer::Initialize
+//! \param Expression
+//!
+//! Initialise the tokenizer with the given string expression
+//!
 void ExpressionTokenizer::Initialize(std::string& Expression)
 {
     InputStream.str(Expression);
@@ -14,6 +20,12 @@ void ExpressionTokenizer::Initialize(std::string& Expression)
     PeekValid = false;
 }
 
+//!
+//! \brief ExpressionTokenizer::Peek
+//! \return
+//!
+//! Return the next token in the input stream without actually retrieving it.
+//!
 ExpressionTokenizer::TokenEnum ExpressionTokenizer::Peek()
 {
     if(!PeekValid)
@@ -27,6 +39,14 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Peek()
     return LastPeek;
 }
 
+//!
+//! \brief ExpressionTokenizer::Get
+//! \return
+//!
+//! Scan and return the next token in the input stream.
+//! If the token has a string or integer value, populate the
+//! StringValue or IntegerValue properties.
+//!
 ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
 {
     PeekValid = false;
@@ -291,6 +311,15 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
     return Result;
 }
 
+//!
+//! \brief ExpressionTokenizer::GetCustomToken
+//! \param Pattern
+//! \return
+//!
+//! For cases where a non-standard token can be accepted, GetCustomToken will scan the
+//! input stream for a match to the given regular expression. The RE should begin with
+//! ^ and end with .*. If a match is found, then StringValue is set to MatchResult[1]
+//!
 bool ExpressionTokenizer::GetCustomToken(std::regex Pattern)
 {
     std::string Line;
@@ -321,6 +350,13 @@ bool ExpressionTokenizer::GetCustomToken(std::regex Pattern)
         return false;
 }
 
+//!
+//! \brief ExpressionTokenizer::QuotedString
+//! \return
+//!
+//! Scan for a quoted string, expanding escaped characters, returning the found
+//! string content in StringValue
+//!
 std::string ExpressionTokenizer::QuotedString()
 {
     std::string Result;

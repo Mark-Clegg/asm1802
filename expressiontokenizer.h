@@ -2,6 +2,7 @@
 #define EXPRESSIONTOKENIZER_H
 
 #include <map>
+#include <regex>
 #include <sstream>
 #include <string>
 
@@ -43,8 +44,9 @@ public:
 
     ExpressionTokenizer();
     void Initialize(std::string& Expression);
-    TokenEnum Get();
     TokenEnum Peek();
+    TokenEnum Get();
+    bool GetCustomToken(std::regex Pattern);
     int IntegerValue;
     std::string StringValue;
 private:

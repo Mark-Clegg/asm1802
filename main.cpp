@@ -369,7 +369,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                 if(Pass == 3)
                                     ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                 std::smatch MatchResult;
-                                if(regex_match(Expression, MatchResult, std::regex(R"-(^"(.*)"$)-")) && OpCodeTable::CPUTable.find(MatchResult[1]) != OpCodeTable::CPUTable.end())
+                                if(regex_match(Expression, MatchResult, std::regex(R"-(^(.*)$)-")) && OpCodeTable::CPUTable.find(MatchResult[1]) != OpCodeTable::CPUTable.end())
                                     Processor = OpCodeTable::CPUTable.at(MatchResult[1]);
                                 else
                                     throw AssemblyException("Bad processor directive received from Pre-Processor", SEVERITY_Error);
@@ -381,12 +381,12 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                 if(Pass == 3)
                                 {
                                     ToUpper(Expression);
-                                    if(Expression == "\"ON\"")
+                                    if(Expression == "ON")
                                     {
                                         ListingFile.Enabled = true;
                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                     }
-                                    else if(Expression == "\"OFF\"")
+                                    else if(Expression == "OFF")
                                     {
                                         if(ListingFile.Enabled)
                                             ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
@@ -403,9 +403,9 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                 {
                                     ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                     ToUpper(Expression);
-                                    if(Expression == "\"ON\"")
+                                    if(Expression == "ON")
                                         DumpSymbols = true;
-                                    else if(Expression == "\"OFF\"")
+                                    else if(Expression == "OFF")
                                         DumpSymbols = false;
                                     else
                                         throw AssemblyException("Bad symbols directive received from Pre-Processor", SEVERITY_Error);

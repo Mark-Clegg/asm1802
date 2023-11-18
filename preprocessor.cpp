@@ -265,18 +265,12 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         }
                         case PP_processor: // Check syntax, save value, and pass through to main assembler
                         {
-                            std::smatch MatchResult;
                             std::string Operand = Expression;
                             ToUpper(Operand);
-                            if(regex_match(Operand, MatchResult, std::regex(R"-(^"(.*)"$)-")))
-                            {
-                                auto CPU = OpCodeTable::CPUTable.find(MatchResult[1]);
-                                if(CPU == OpCodeTable::CPUTable.end())
-                                    throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unknown processor specification");
-                                Processor = CPU->second;
-                            }
-                            else
+                            auto CPU = OpCodeTable::CPUTable.find(Operand);
+                            if(CPU == OpCodeTable::CPUTable.end())
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unknown processor specification");
+                            Processor = CPU->second;
                             break;
                         }
                         case PP_list: // Check syntax and just pass through to main assembler
@@ -358,7 +352,7 @@ void PreProcessor::OnOffCheck(const std::string& Operand)
     std::smatch MatchResult;
     std::string State = Operand;
     ToUpper(State);
-    if(regex_match(State, MatchResult, std::regex(R"-(^"(ON|OFF)"$)-")) && (MatchResult[1] == "ON" || MatchResult[1] == "OFF"))
+    if(regex_match(State, MatchResult, std::regex(R"-(^(ON|OFF)$)-")) && (MatchResult[1] == "ON" || MatchResult[1] == "OFF"))
         return;
     else
         throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected \"ON\" or \"OFF\"");

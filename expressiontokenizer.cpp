@@ -291,6 +291,36 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
     return Result;
 }
 
+bool ExpressionTokenizer::GetCustomToken(std::regex Pattern)
+{
+    std::string Line;
+    while(!InputStream.eof() && !InputStream.fail() && isspace(InputStream.peek()))
+        InputStream.ignore();
+
+    PeekValid = false;
+    std::streampos SavedPos = InputStream.tellg();
+    if(std::getline(InputStream, Line))
+    {
+        std::smatch MatchResult;
+        if(regex_match(Line, MatchResult, Pattern))
+        {
+            StringValue = MatchResult[1];
+            InputStream.clear();
+            InputStream.seekg(SavedPos);
+            InputStream.seekg(StringValue.size(), InputStream.cur);
+            return true;
+        }
+        else
+        {
+            InputStream.clear();
+            InputStream.seekg(SavedPos);
+            return false;
+        }
+    }
+    else
+        return false;
+}
+
 std::string ExpressionTokenizer::QuotedString()
 {
     std::string Result;

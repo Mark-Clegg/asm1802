@@ -67,26 +67,29 @@ int PreProcessorExpressionEvaluator::AtomValue()
                         Result = (Arguments[0] >> 8) & 0xFF;
                         break;
                     case FN_PROCESSOR:
-                        if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_QUOTED_STRING)
+                    {
+                        auto Argument = TokenStream.Peek();
+                        std::string Value;
+                        if(Argument == ExpressionTokenizer::TOKEN_QUOTED_STRING)
+                            TokenStream.Get();
+                        else if(!TokenStream.GetCustomToken(std::regex(R"(^((CDP)?180[2456]A?).*)")))
+                            throw ExpressionException("Expected Processor designation");
+
+                        Value = TokenStream.StringValue;
+
+                        if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_CLOSE_BRACE)
                         {
                             TokenStream.Get();
-                            std::string Argument = TokenStream.StringValue;
 
-                            if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_CLOSE_BRACE)
-                            {
-                                TokenStream.Get();
-
-                                auto CPU = OpCodeTable::CPUTable.find(Argument);
-                                if(CPU == OpCodeTable::CPUTable.end())
-                                    throw ExpressionException("Unrecognised processor designation");
-                                return CPU->second <= Processor ? 1 : 0;
-                            }
-                            else
-                                throw ExpressionException("Extra characters after quoted Processor designation");
+                            auto CPU = OpCodeTable::CPUTable.find(Value);
+                            if(CPU == OpCodeTable::CPUTable.end())
+                                throw ExpressionException("Unrecognised processor designation");
+                            Result = CPU->second <= Processor ? 1 : 0;
                         }
                         else
-                            throw ExpressionException("Expected quoted Processor designation");
+                            throw ExpressionException("Extra characters after quoted Processor designation");
                         break;
+                    }
                 }
             }
             else

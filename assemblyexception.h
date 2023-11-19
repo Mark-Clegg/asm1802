@@ -19,11 +19,12 @@ enum AssemblyErrorSeverity
 class AssemblyException : public std::exception
 {
 public:
-    AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity);
+    AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity, OpCodeTypeEnum OpCodeType = BASIC);
     AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity, OpCodeEnum SkipToOpCode);
     AssemblyErrorSeverity Severity;
 
     const char* what() const throw();
+    int BytesToSkip;
 
     static const std::map<AssemblyErrorSeverity, std::string> SeverityName;
     std::optional<OpCodeEnum> SkipToOpCode;

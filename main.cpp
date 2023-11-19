@@ -1088,29 +1088,29 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         case REGISTER:
                                                         {
                                                             if(Operands.size() != 1)
-                                                                throw AssemblyException("Expected single operand of type Register", SEVERITY_Error);
+                                                                throw AssemblyException("Expected single operand of type Register", SEVERITY_Error, OpCode->OpCodeType);
 
                                                             int Register = E.Evaluate(Operands[0]);
-                                                            if(OpCode->OpCode == LDN) // Special Case - LDN R0 is IDL
+                                                            if(OpCode->OpCode == LDN) // Special Case - LDN R0 is overriden by IDL
                                                             {
                                                                 if(Register < 1 || Register > 15)
-                                                                    throw AssemblyException("Register out of range (1-F)", SEVERITY_Error);
+                                                                    throw AssemblyException(fmt::format("Register out of range (Expected: $1-$F, got: ${value:X}))", fmt::arg("value", Register)), SEVERITY_Error, OpCode->OpCodeType);
                                                             }
                                                             else
                                                             {
                                                                 if(Register < 0 || Register > 15)
-                                                                    throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
+                                                                    throw AssemblyException(fmt::format("Register out of range (Expected: $0-$F, got: ${value:X}))", fmt::arg("value", Register)), SEVERITY_Error, OpCode->OpCodeType);
                                                             }
-                                                            Data.push_back(OpCode->OpCode & 0xFF | Register);
+                                                            Data.push_back(OpCode->OpCode | Register);
                                                             break;
                                                         }
                                                         case IMMEDIATE:
                                                         {
                                                             if(Operands.size() != 1)
-                                                                throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
+                                                                throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error, OpCode->OpCodeType);
                                                             int Byte = E.Evaluate(Operands[0]);
                                                             if(Byte > 0xFF && Byte < 0xFF80)
-                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got: ${value:X})", fmt::arg("value", Byte)), SEVERITY_Error);
+                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got: ${value:X})", fmt::arg("value", Byte)), SEVERITY_Error, OpCode->OpCodeType);
                                                             Data.push_back(OpCode->OpCode);
                                                             Data.push_back(Byte & 0xFF);
                                                             break;
@@ -1118,10 +1118,10 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         case SHORT_BRANCH:
                                                         {
                                                             if(Operands.size() != 1)
-                                                                throw AssemblyException("Short Branch expected single operand", SEVERITY_Error);
+                                                                throw AssemblyException("Short Branch expected single operand", SEVERITY_Error, OpCode->OpCodeType);
                                                             int Address = E.Evaluate(Operands[0]);
                                                             if(((ProgramCounter + 1) & 0xFF00) != (Address & 0xFF00))
-                                                                throw AssemblyException("Short Branch out of range", SEVERITY_Error);
+                                                                throw AssemblyException("Short Branch out of range", SEVERITY_Error, OpCode->OpCodeType);
                                                             Data.push_back(OpCode->OpCode);
                                                             Data.push_back(Address & 0xFF);
                                                             break;
@@ -1129,10 +1129,10 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         case LONG_BRANCH:
                                                         {
                                                             if(Operands.size() != 1)
-                                                                throw AssemblyException("Long Branch expected single operand", SEVERITY_Error);
+                                                                throw AssemblyException("Long Branch expected single operand", SEVERITY_Error, OpCode->OpCodeType);
                                                             int Address = E.Evaluate(Operands[0]);
                                                             if(Address < 0 || Address > 0xFFFF)
-                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FFFF, got: ${value:X})", fmt::arg("value", Address)), SEVERITY_Error);
+                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FFFF, got: ${value:X})", fmt::arg("value", Address)), SEVERITY_Error, OpCode->OpCodeType);
                                                             Data.push_back(OpCode->OpCode);
                                                             Data.push_back(Address >> 8);
                                                             Data.push_back(Address & 0xFF);
@@ -1141,11 +1141,11 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         case INPUT_OUTPUT:
                                                         {
                                                             if(Operands.size() != 1)
-                                                                throw AssemblyException("Expected single operand of type Port", SEVERITY_Error);
+                                                                throw AssemblyException("Expected single operand of type Port", SEVERITY_Error, OpCode->OpCodeType);
 
                                                             int Port = E.Evaluate(Operands[0]);
                                                             if(Port == 0 || Port > 7)
-                                                                throw AssemblyException("Port out of range (1-7)", SEVERITY_Error);
+                                                                throw AssemblyException("Port out of range (1-7)", SEVERITY_Error, OpCode->OpCodeType);
                                                             Data.push_back(OpCode->OpCode | Port);
                                                             break;
                                                         }
@@ -1158,11 +1158,11 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         case EXTENDED_REGISTER:
                                                         {
                                                             if(Operands.size() != 1)
-                                                                throw AssemblyException("Expected single operand of type Register", SEVERITY_Error);
+                                                                throw AssemblyException("Expected single operand of type Register", SEVERITY_Error, OpCode->OpCodeType);
 
                                                             int Register = E.Evaluate(Operands[0]);
                                                             if(Register < 0 || Register > 15)
-                                                                throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
+                                                                throw AssemblyException("Register out of range (0-F)", SEVERITY_Error, OpCode->OpCodeType);
                                                             Data.push_back(OpCode->OpCode >> 8);
                                                             Data.push_back(OpCode->OpCode & 0xFF | Register);
                                                             break;
@@ -1170,10 +1170,10 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         case EXTENDED_IMMEDIATE:
                                                         {
                                                             if(Operands.size() != 1)
-                                                                throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error);
+                                                                throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error, OpCode->OpCodeType);
                                                             int Byte = E.Evaluate(Operands[0]);
                                                             if(Byte > 0xFF && Byte < 0xFF80)
-                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got :${value:X})", fmt::arg("value", Byte)), SEVERITY_Error);
+                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got :${value:X})", fmt::arg("value", Byte)), SEVERITY_Error, OpCode->OpCodeType);
                                                             Data.push_back(OpCode->OpCode >> 8);
                                                             Data.push_back(OpCode->OpCode & 0xFF);
                                                             Data.push_back(Byte & 0xFF);
@@ -1182,10 +1182,10 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         case EXTENDED_SHORT_BRANCH:
                                                         {
                                                             if(Operands.size() != 1)
-                                                                throw AssemblyException("Short Branch expected single operand", SEVERITY_Error);
+                                                                throw AssemblyException("Short Branch expected single operand", SEVERITY_Error, OpCode->OpCodeType);
                                                             int Address = E.Evaluate(Operands[0]);
                                                             if(((ProgramCounter + 2) & 0xFF00) != (Address & 0xFF00))
-                                                                throw AssemblyException("Short Branch out of range", SEVERITY_Error);
+                                                                throw AssemblyException("Short Branch out of range", SEVERITY_Error, OpCode->OpCodeType);
                                                             Data.push_back(OpCode->OpCode >> 8);
                                                             Data.push_back(OpCode->OpCode & 0xFF);
                                                             Data.push_back(Address & 0xFF);
@@ -1194,13 +1194,13 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         case EXTENDED_REGISTER_IMMEDIATE16:
                                                         {
                                                             if(Operands.size() != 2)
-                                                                throw AssemblyException("Expected Register and Immediate operands", SEVERITY_Error);
+                                                                throw AssemblyException("Expected Register and Immediate operands", SEVERITY_Error, OpCode->OpCodeType);
                                                             int Register = E.Evaluate(Operands[0]);
                                                             if(Register > 15)
-                                                                throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
+                                                                throw AssemblyException("Register out of range (0-F)", SEVERITY_Error, OpCode->OpCodeType);
                                                             int Address = E.Evaluate(Operands[1]);
                                                             if(Address < -32768 || Address > 0xFFFF)
-                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FFFF, got :${value:X})", fmt::arg("value", Address)), SEVERITY_Error);
+                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FFFF, got :${value:X})", fmt::arg("value", Address)), SEVERITY_Error, OpCode->OpCodeType);
                                                             Data.push_back(OpCode->OpCode >> 8);
                                                             Data.push_back(OpCode->OpCode & 0xFF | Register);
                                                             Data.push_back(Address >> 8);
@@ -1218,7 +1218,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                 }
                                                 catch(ExpressionException Ex)
                                                 {
-                                                    throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                    throw AssemblyException(Ex.what(), SEVERITY_Error, OpCode->OpCodeType);
                                                 }
                                         }
                                         else
@@ -1248,8 +1248,17 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                 }
                                 if (Pass == 3)
                                 {
-                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
+                                    if(Ex.BytesToSkip == 0)
+                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
+                                    else
+                                    {
+                                        std::vector<std::uint8_t> Data;
+                                        for(int i = 0; i< Ex.BytesToSkip; i++)
+                                            Data.push_back(0);
+                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, Data);
+                                    }
                                 }
+                                ProgramCounter += Ex.BytesToSkip;
                             }
                         }
                         else // Empty line

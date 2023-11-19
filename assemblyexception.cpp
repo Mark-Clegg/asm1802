@@ -7,10 +7,11 @@ const std::map<AssemblyErrorSeverity, std::string> AssemblyException::SeverityNa
     { SEVERITY_Error,   "Error"       }
 };
 
-AssemblyException::AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity)
+AssemblyException::AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity, OpCodeTypeEnum OpCodeType)
 {
     this->Message = Message;
     this->Severity = Severity;
+    this->BytesToSkip = OpCodeTable::OpCodeBytes.at(OpCodeType);
 }
 
 AssemblyException::AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity, OpCodeEnum SkipToOpCode)

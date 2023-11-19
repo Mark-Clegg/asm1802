@@ -7,7 +7,7 @@
 enum OpCodeEnum
 {
     IDL  = 0x00,
-    LDN  = 0x100, // Special case - LDN cannot be used with R0
+    LDN  = 0x00,
     INC  = 0x10,
     DEC  = 0x20,
     BR   = 0x30,

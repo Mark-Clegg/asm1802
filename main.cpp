@@ -1091,9 +1091,17 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 throw AssemblyException("Expected single operand of type Register", SEVERITY_Error);
 
                                                             int Register = E.Evaluate(Operands[0]);
-                                                            if(Register < 0 || Register > 15)
-                                                                throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
-                                                            Data.push_back(OpCode->OpCode | Register);
+                                                            if(OpCode->OpCode == LDN) // Special Case - LDN R0 is IDL
+                                                            {
+                                                                if(Register < 1 || Register > 15)
+                                                                    throw AssemblyException("Register out of range (1-F)", SEVERITY_Error);
+                                                            }
+                                                            else
+                                                            {
+                                                                if(Register < 0 || Register > 15)
+                                                                    throw AssemblyException("Register out of range (0-F)", SEVERITY_Error);
+                                                            }
+                                                            Data.push_back(OpCode->OpCode & 0xFF | Register);
                                                             break;
                                                         }
                                                         case IMMEDIATE:
@@ -1263,7 +1271,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                     LineNumber++;
             } // while(Source.getLine())...
 
-            // Custom processing at the end of each pass
+// Custom processing at the end of each pass
             switch(Pass)
             {
                 case 1:

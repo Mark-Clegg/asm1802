@@ -28,7 +28,7 @@ int PreProcessorExpressionEvaluator::AtomValue()
     switch(Token)
     {
         case ExpressionTokenizer::TOKEN_QUOTED_STRING:
-            throw ExpressionException("Unexpected string literal");
+            throw ExpressionException("String literals are not valid in pre-processor expressions");
             break;
 
         case ExpressionTokenizer::TOKEN_NUMBER:

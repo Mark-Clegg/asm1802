@@ -134,6 +134,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             }
                             else
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected #define key {value}");
+                            ToUpper(key);
                             Defines[key]=value;
                             break;
                         }
@@ -142,8 +143,9 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             std::smatch MatchResult;
                             if(regex_match(Expression, MatchResult, std::regex(R"(^([_.[:alnum:]]+)$)")))
                             {
-                                std::string Key = MatchResult[1];
-                                Defines.erase(Key);
+                                std::string key = MatchResult[1];
+                                ToUpper(key);
+                                Defines.erase(key);
                             }
                             else
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Invalid variable name");
@@ -155,7 +157,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             IfNestingLevel.top()++;
                             if(Expression.empty())
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected Espression");
-                            ToUpper(Expression);
+                            //ToUpper(Expression);
                             PreProcessorExpressionEvaluator E(Processor);
                             int Result;
                             try
@@ -339,12 +341,16 @@ bool PreProcessor::IsDirective(const std::string& Line, DirectiveEnum& Directive
 
 void PreProcessor::AddDefine(const std::string& Identifier, const std::string& Expression)
 {
-    Defines[Identifier] = Expression;
+    std::string key = Identifier;
+    ToUpper(key);
+    Defines[key] = Expression;
 }
 
 void PreProcessor::RemoveDefine(const std::string& Identifier)
 {
-    Defines.erase(Identifier);
+    std::string key = Identifier;
+    ToUpper(key);
+    Defines.erase(key);
 }
 
 void PreProcessor::OnOffCheck(const std::string& Operand)
@@ -419,11 +425,13 @@ void PreProcessor::ExpandDefines(std::string& Line)
                 int j = i;
                 while(isalnum(Line[j]) || Line[j]=='_')
                     FirstWord += Line[j++];
+                std::string Lookup = FirstWord;
+                ToUpper(Lookup);
                 if(FirstWord.size() > 0)
                 {
-                    if(FirstWord == Define.first)
+                    if(Lookup == Define.first)
                     {
-                        out += Defines[FirstWord];
+                        out += Define.second;
                     }
                     else
                         out += FirstWord;

@@ -173,7 +173,10 @@ uint16_t AssemblyExpressionEvaluator::SymbolValue(std::string Label)
         if(Symbol != Local->Symbols.end())
         {
             if(Symbol->second.Value.has_value())
+            {
+                Symbol->second.RefCount++;
                 return Symbol->second.Value.value();
+            }
             else
                 throw ExpressionException(fmt::format("Label '{Label}' is not yet assigned", fmt::arg("Label", Label)));
         }
@@ -183,7 +186,10 @@ uint16_t AssemblyExpressionEvaluator::SymbolValue(std::string Label)
     if(Symbol != Global->Symbols.end())
     {
         if(Symbol->second.Value.has_value())
+        {
+            Symbol->second.RefCount++;
             return Symbol->second.Value.value();
+        }
         else
             throw ExpressionException(fmt::format("Label '{Label}' is not yet assigned", fmt::arg("Label", Label)));
     }

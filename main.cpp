@@ -44,12 +44,14 @@ std::map<std::string, PreProcessorControlEnum> PreProcessorControlLookup =
 
 enum SubroutineOptionsEnum
 {
-    SUBOPT_ALIGN
+    SUBOPT_ALIGN,
+    SUBOPT_STATIC
 };
 
 std::map<std::string, SubroutineOptionsEnum> SubroutineOptionsLookup =
 {
-    { "ALIGN", SUBOPT_ALIGN      }
+    { "ALIGN",  SUBOPT_ALIGN  },
+    { "STATIC", SUBOPT_STATIC }
 };
 
 enum OutputFormatEnum
@@ -296,6 +298,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
     std::map<uint16_t, std::vector<uint8_t>> Code = {{ 0, {}}};
     std::map<uint16_t, std::vector<uint8_t>>::iterator CurrentCode = Code.begin();
     std::optional<uint16_t> EntryPoint;
+    std::set<std::string> UnReferencedSubs;
 
     // Pre-Define LABELS for Registers
     if(!NoRegisters)
@@ -325,6 +328,8 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
         int LineNumber = 0;
         bool InSub = false;
         bool InAutoAlignedSub = false;
+        bool SkippingUnreferencedSub = false;
+
         try
         {
             fmt::println("Pass {pass}", fmt::arg("pass", Pass));
@@ -602,7 +607,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                 }
                                 case 2: // Generate Symbol Tables
                                 {
-                                    if(!Label.empty() && (!OpCode.has_value() || OpCode.value().OpCode != MACRO))
+                                    if(!SkippingUnreferencedSub && !Label.empty() && (!OpCode.has_value() || OpCode.value().OpCode != MACRO))
                                     {
                                         if(CurrentTable->Symbols.find(Label) == CurrentTable->Symbols.end())
                                             CurrentTable->Symbols[Label].Value = ProgramCounter;
@@ -619,231 +624,245 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                     {
                                         if(OpCode.value().OpCodeType == PSEUDO_OP)
                                         {
-                                            switch(OpCode.value().OpCode)
-                                            {
-                                                case EQU:
+                                            if(!SkippingUnreferencedSub || OpCode.value().OpCode == ENDSUB)
+                                                switch(OpCode.value().OpCode)
                                                 {
-                                                    if(Label.empty())
-                                                        throw AssemblyException("EQU requires a Label", SEVERITY_Error);
-                                                    if(Operands.size() != 1)
-                                                        throw AssemblyException("EQU Requires a single argument <value>", SEVERITY_Error);
+                                                    case EQU:
+                                                    {
+                                                        if(Label.empty())
+                                                            throw AssemblyException("EQU requires a Label", SEVERITY_Error);
+                                                        if(Operands.size() != 1)
+                                                            throw AssemblyException("EQU Requires a single argument <value>", SEVERITY_Error);
 
-                                                    try
-                                                    {
-                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                        if(CurrentTable != &MainTable)
-                                                            E.AddLocalSymbols(CurrentTable);
-                                                        int Value = E.Evaluate(Operands[0]);
-                                                        CurrentTable->Symbols[Label].Value = Value;
-                                                    }
-                                                    catch (ExpressionException Ex)
-                                                    {
-                                                        throw AssemblyException(Ex.what(), SEVERITY_Error);
-                                                    }
-                                                    break;
-                                                }
-                                                case SUB:
-                                                {
-                                                    CurrentTable = &SubTables[Label];
-                                                    CurrentTable->Name = Label;
-                                                    SubDefinitionFile = CurrentFile;
-                                                    for(int i = 0; i < Operands.size(); i++)
-                                                    {
-                                                        std::vector<std::string> SubOptions;
-                                                        StringListToVector(Operands[i], SubOptions, '=');
-                                                        auto Option = SubroutineOptionsLookup.find(SubOptions[0]);
-                                                        if(Option == SubroutineOptionsLookup.end())
-                                                            throw AssemblyException("Unrecognised SUBROUTINE option", SEVERITY_Warning);
-                                                        switch(Option->second)
-                                                        {
-                                                            case SUBOPT_ALIGN:
-                                                                if(SubOptions.size() != 2)
-                                                                    throw AssemblyException("Unrecognised SUBROUTINE ALIGN parameters", SEVERITY_Error);
-                                                                else
-                                                                {
-                                                                    int Align;
-                                                                    if(SubOptions[1] == "AUTO")
-                                                                    {
-                                                                        Align = AlignFromSize(CurrentTable->CodeSize);
-                                                                        InAutoAlignedSub = true;
-                                                                    }
-                                                                    else if(!SetAlignFromKeyword(SubOptions[1], Align))
-                                                                    {
-                                                                        try
-                                                                        {
-                                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                                            Align = E.Evaluate(SubOptions[1]);
-                                                                            if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
-                                                                                throw AssemblyException("SUBROUTINE ALIGN must be 2,4,8,16,32,64,128,256 or AUTO", SEVERITY_Error);
-                                                                        }
-                                                                        catch (ExpressionException Ex)
-                                                                        {
-                                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
-                                                                        }
-                                                                    }
-                                                                    ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
-                                                                    MainTable.Symbols[Label].Value = ProgramCounter;
-                                                                }
-                                                                break;
-                                                            default:
-                                                                throw AssemblyException("Unrecognised SUBROUTINE option", SEVERITY_Warning);
-                                                                break;
-                                                        }
-                                                    }
-                                                    CurrentTable->Symbols[Label].Value = ProgramCounter;
-                                                    break;
-                                                }
-                                                case ENDSUB:
-                                                {
-                                                    InAutoAlignedSub = false;
-                                                    switch(Operands.size())
-                                                    {
-                                                        case 0:
-                                                            break;
-                                                        case 1:
-                                                            try
-                                                            {
-                                                                AssemblyExpressionEvaluator E(*CurrentTable, ProgramCounter, Processor);
-                                                                auto EntryPoint = E.Evaluate(Operands[0]);
-                                                                MainTable.Symbols[CurrentTable->Name].Value = EntryPoint;
-                                                                break;
-                                                            }
-                                                            catch (ExpressionException Ex)
-                                                            {
-                                                                throw AssemblyException(Ex.what(), SEVERITY_Error);
-                                                            }
-
-                                                        default:
-                                                            throw AssemblyException("Incorrect number of arguments", SEVERITY_Error);
-                                                    }
-                                                    CurrentTable = &MainTable;
-                                                    break;
-                                                }
-                                                case MACRO:
-                                                {
-                                                    while(Source.getLine(OriginalLine))
-                                                    {
-                                                        LineNumber++;
-                                                        std::string Line = Trim(OriginalLine);
                                                         try
-                                                        {
-                                                            OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
-                                                        }
-                                                        catch(AssemblyException Ex)
-                                                        {
-                                                            Label = {};
-                                                            Mnemonic = {};
-                                                            OpCode = {};
-                                                            Operands = {};
-                                                        }
-                                                        if(OpCode.has_value() && OpCode.value().OpCode == ENDMACRO)
-                                                            break;
-                                                    }
-                                                    break;
-                                                }
-                                                case MACROEXPANSION:
-                                                {
-                                                    std::string MacroExpansion;
-                                                    auto MacroDefinition = CurrentTable->Macros.find(Mnemonic);
-                                                    if(MacroDefinition != CurrentTable->Macros.end())
-                                                        ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
-                                                    else if(CurrentTable != &MainTable)
-                                                    {
-                                                        MacroDefinition = MainTable.Macros.find(Mnemonic);
-                                                        if(MacroDefinition != MainTable.Macros.end())
-                                                            ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
-                                                    }
-                                                    if(!Source.InMacro())
-                                                        LineNumber++;
-                                                    if(!MacroExpansion.empty())
-                                                        Source.InsertMacro(Mnemonic, MacroExpansion);
-                                                    else
-                                                        throw AssemblyException("Unknown OpCode", SEVERITY_Error);
-                                                    break;
-                                                }
-                                                case ORG:
-                                                {
-                                                    if(CurrentTable != &MainTable)
-                                                        throw AssemblyException("ORG Cannot be used in a SUBROUTINE", SEVERITY_Error);
-
-                                                    if(Operands.size() != 1)
-                                                        throw AssemblyException("ORG Requires a single argument <address>", SEVERITY_Error);
-
-                                                    try
-                                                    {
-                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                        int x = E.Evaluate(Operands[0]);
-                                                        if(x >= 0 && x < 0x10000)
-                                                            ProgramCounter = x;
-                                                        else
-                                                            throw AssemblyException("Overflow: Address must be in range 0-FFFF", SEVERITY_Error);
-                                                    }
-                                                    catch(ExpressionException Ex)
-                                                    {
-                                                        throw AssemblyException(Ex.what(), SEVERITY_Error);
-                                                    }
-                                                    if(!Label.empty())
-                                                        CurrentTable->Symbols[Label].Value = ProgramCounter;
-
-                                                    break;
-                                                }
-                                                case DB:
-                                                {
-                                                    for(auto& Operand : Operands)
-                                                    {
-                                                        if(Operand[0] == '\"')
-                                                        {
-                                                            std::vector<std::uint8_t> Data;
-                                                            StringToByteVector(Operand, Data);
-                                                            ProgramCounter += Data.size();
-                                                        }
-                                                        else
-                                                            ProgramCounter++;
-                                                    }
-                                                    break;
-                                                }
-                                                case DW:
-                                                {
-                                                    ProgramCounter += Operands.size() * 2;
-                                                    break;
-                                                }
-                                                case ALIGN:
-                                                {
-                                                    if(InAutoAlignedSub)
-                                                        throw AssemblyException("ALIGN cannot be used inside an AUTO Aligned SUBROUTINE", SEVERITY_Error);
-                                                    if(Operands.size() != 1)
-                                                        throw AssemblyException("ALIGN Requires a single argument <alignment>", SEVERITY_Error);
-                                                    try
-                                                    {
-                                                        int Align;
-                                                        if(!SetAlignFromKeyword(Operands[0], Align))
                                                         {
                                                             AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                             if(CurrentTable != &MainTable)
                                                                 E.AddLocalSymbols(CurrentTable);
-                                                            Align = E.Evaluate(Operands[0]);
-                                                            if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
-                                                                throw AssemblyException("ALIGN must be 2,4,8,16,32,64,128 or 256", SEVERITY_Error);
+                                                            int Value = E.Evaluate(Operands[0]);
+                                                            CurrentTable->Symbols[Label].Value = Value;
                                                         }
-                                                        ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                        catch (ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
+                                                        break;
                                                     }
-                                                    catch(ExpressionException Ex)
+                                                    case SUB:
                                                     {
-                                                        throw AssemblyException(Ex.what(), SEVERITY_Error);
-                                                    }
+                                                        if(UnReferencedSubs.count(Label) > 0)
+                                                            SkippingUnreferencedSub = true;
+                                                        else
+                                                        {
+                                                            CurrentTable = &SubTables[Label];
+                                                            CurrentTable->Name = Label;
+                                                            SubDefinitionFile = CurrentFile;
+                                                            for(int i = 0; i < Operands.size(); i++)
+                                                            {
+                                                                std::vector<std::string> SubOptions;
+                                                                StringListToVector(Operands[i], SubOptions, '=');
+                                                                auto Option = SubroutineOptionsLookup.find(SubOptions[0]);
+                                                                if(Option == SubroutineOptionsLookup.end())
+                                                                    throw AssemblyException("Unrecognised SUBROUTINE option", SEVERITY_Warning);
+                                                                switch(Option->second)
+                                                                {
+                                                                    case SUBOPT_ALIGN:
+                                                                        if(SubOptions.size() != 2)
+                                                                            throw AssemblyException("Unrecognised SUBROUTINE ALIGN option", SEVERITY_Error);
+                                                                        else
+                                                                        {
+                                                                            int Align;
+                                                                            if(SubOptions[1] == "AUTO")
+                                                                            {
+                                                                                Align = AlignFromSize(CurrentTable->CodeSize);
+                                                                                InAutoAlignedSub = true;
+                                                                            }
+                                                                            else if(!SetAlignFromKeyword(SubOptions[1], Align))
+                                                                            {
+                                                                                try
+                                                                                {
+                                                                                    AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                                                    Align = E.Evaluate(SubOptions[1]);
+                                                                                    if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
+                                                                                        throw AssemblyException("SUBROUTINE ALIGN must be 2,4,8,16,32,64,128,256 or AUTO", SEVERITY_Error);
+                                                                                }
+                                                                                catch (ExpressionException Ex)
+                                                                                {
+                                                                                    throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                                                }
+                                                                            }
+                                                                            ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                                            MainTable.Symbols[Label].Value = ProgramCounter;
+                                                                        }
+                                                                        break;
 
-                                                    if(!Label.empty())
-                                                        CurrentTable->Symbols[Label].Value = ProgramCounter;
-                                                    break;
+                                                                    case SUBOPT_STATIC:
+                                                                        if(SubOptions.size() != 1)
+                                                                            throw AssemblyException("SUBROUTINE STATIC option does not take any arguments", SEVERITY_Error);
+                                                                        CurrentTable->Static = true;
+                                                                        break;
+
+                                                                    default:
+                                                                        throw AssemblyException("Unrecognised SUBROUTINE option", SEVERITY_Warning);
+                                                                        break;
+                                                                }
+                                                            }
+                                                            CurrentTable->Symbols[Label].Value = ProgramCounter;
+                                                            break;
+                                                        }
+                                                    }
+                                                    case ENDSUB:
+                                                    {
+                                                        InAutoAlignedSub = false;
+                                                        SkippingUnreferencedSub = false;
+                                                        switch(Operands.size())
+                                                        {
+                                                            case 0:
+                                                                break;
+                                                            case 1:
+                                                                try
+                                                                {
+                                                                    AssemblyExpressionEvaluator E(*CurrentTable, ProgramCounter, Processor);
+                                                                    auto EntryPoint = E.Evaluate(Operands[0]);
+                                                                    MainTable.Symbols[CurrentTable->Name].Value = EntryPoint;
+                                                                    break;
+                                                                }
+                                                                catch (ExpressionException Ex)
+                                                                {
+                                                                    throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                                }
+
+                                                            default:
+                                                                throw AssemblyException("Incorrect number of arguments", SEVERITY_Error);
+                                                        }
+                                                        CurrentTable = &MainTable;
+                                                        break;
+                                                    }
+                                                    case MACRO:
+                                                    {
+                                                        while(Source.getLine(OriginalLine))
+                                                        {
+                                                            LineNumber++;
+                                                            std::string Line = Trim(OriginalLine);
+                                                            try
+                                                            {
+                                                                OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
+                                                            }
+                                                            catch(AssemblyException Ex)
+                                                            {
+                                                                Label = {};
+                                                                Mnemonic = {};
+                                                                OpCode = {};
+                                                                Operands = {};
+                                                            }
+                                                            if(OpCode.has_value() && OpCode.value().OpCode == ENDMACRO)
+                                                                break;
+                                                        }
+                                                        break;
+                                                    }
+                                                    case MACROEXPANSION:
+                                                    {
+                                                        std::string MacroExpansion;
+                                                        auto MacroDefinition = CurrentTable->Macros.find(Mnemonic);
+                                                        if(MacroDefinition != CurrentTable->Macros.end())
+                                                            ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
+                                                        else if(CurrentTable != &MainTable)
+                                                        {
+                                                            MacroDefinition = MainTable.Macros.find(Mnemonic);
+                                                            if(MacroDefinition != MainTable.Macros.end())
+                                                                ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
+                                                        }
+                                                        if(!Source.InMacro())
+                                                            LineNumber++;
+                                                        if(!MacroExpansion.empty())
+                                                            Source.InsertMacro(Mnemonic, MacroExpansion);
+                                                        else
+                                                            throw AssemblyException("Unknown OpCode", SEVERITY_Error);
+                                                        break;
+                                                    }
+                                                    case ORG:
+                                                    {
+                                                        if(CurrentTable != &MainTable)
+                                                            throw AssemblyException("ORG Cannot be used in a SUBROUTINE", SEVERITY_Error);
+
+                                                        if(Operands.size() != 1)
+                                                            throw AssemblyException("ORG Requires a single argument <address>", SEVERITY_Error);
+
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            int x = E.Evaluate(Operands[0]);
+                                                            if(x >= 0 && x < 0x10000)
+                                                                ProgramCounter = x;
+                                                            else
+                                                                throw AssemblyException("Overflow: Address must be in range 0-FFFF", SEVERITY_Error);
+                                                        }
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
+                                                        if(!Label.empty())
+                                                            CurrentTable->Symbols[Label].Value = ProgramCounter;
+
+                                                        break;
+                                                    }
+                                                    case DB:
+                                                    {
+                                                        for(auto& Operand : Operands)
+                                                        {
+                                                            if(Operand[0] == '\"')
+                                                            {
+                                                                std::vector<std::uint8_t> Data;
+                                                                StringToByteVector(Operand, Data);
+                                                                ProgramCounter += Data.size();
+                                                            }
+                                                            else
+                                                                ProgramCounter++;
+                                                        }
+                                                        break;
+                                                    }
+                                                    case DW:
+                                                    {
+                                                        ProgramCounter += Operands.size() * 2;
+                                                        break;
+                                                    }
+                                                    case ALIGN:
+                                                    {
+                                                        if(InAutoAlignedSub)
+                                                            throw AssemblyException("ALIGN cannot be used inside an AUTO Aligned SUBROUTINE", SEVERITY_Error);
+                                                        if(Operands.size() != 1)
+                                                            throw AssemblyException("ALIGN Requires a single argument <alignment>", SEVERITY_Error);
+                                                        try
+                                                        {
+                                                            int Align;
+                                                            if(!SetAlignFromKeyword(Operands[0], Align))
+                                                            {
+                                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                                if(CurrentTable != &MainTable)
+                                                                    E.AddLocalSymbols(CurrentTable);
+                                                                Align = E.Evaluate(Operands[0]);
+                                                                if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 129 && Align !=256)
+                                                                    throw AssemblyException("ALIGN must be 2,4,8,16,32,64,128 or 256", SEVERITY_Error);
+                                                            }
+                                                            ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                        }
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
+
+                                                        if(!Label.empty())
+                                                            CurrentTable->Symbols[Label].Value = ProgramCounter;
+                                                        break;
+                                                    }
+                                                    case END:
+                                                        while(Source.getLine(OriginalLine))
+                                                            ;
+                                                    default:
+                                                        break;
                                                 }
-                                                case END:
-                                                    while(Source.getLine(OriginalLine))
-                                                        ;
-                                                default:
-                                                    break;
-                                            }
                                         }
-                                        else if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP)
+                                        else if(OpCode && OpCode.value().OpCodeType != PSEUDO_OP && !SkippingUnreferencedSub)
                                             ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
                                     }
                                     break;
@@ -854,219 +873,228 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                     {
                                         if(OpCode.value().OpCodeType == PSEUDO_OP)
                                         {
-                                            switch(OpCode.value().OpCode)
-                                            {
-                                                case SUB:
+                                            if(!SkippingUnreferencedSub || OpCode.value().OpCode == ENDSUB)
+                                                switch(OpCode.value().OpCode)
                                                 {
-                                                    CurrentTable = &SubTables[Label];
-                                                    SubDefinitionFile = CurrentFile;
-                                                    for(int i = 0; i < Operands.size(); i++)
+                                                    case SUB:
                                                     {
-                                                        std::vector<std::string> SubOptions;
-                                                        StringListToVector(Operands[i], SubOptions, '=');
-                                                        auto Option = SubroutineOptionsLookup.find(SubOptions[0]);
-                                                        if(Option == SubroutineOptionsLookup.end())
-                                                            throw AssemblyException("Unrecognised SUBROUTINE option", SEVERITY_Warning);
-                                                        switch(Option->second)
+                                                        if(UnReferencedSubs.count(Label) > 0)
+                                                            SkippingUnreferencedSub = true;
+                                                        else
                                                         {
-                                                            case SUBOPT_ALIGN:
+                                                            SkippingUnreferencedSub = false;
+                                                            CurrentTable = &SubTables[Label];
+                                                            SubDefinitionFile = CurrentFile;
+                                                            for(int i = 0; i < Operands.size(); i++)
+                                                            {
+                                                                std::vector<std::string> SubOptions;
+                                                                StringListToVector(Operands[i], SubOptions, '=');
+                                                                auto Option = SubroutineOptionsLookup.find(SubOptions[0]);
+                                                                if(Option == SubroutineOptionsLookup.end())
+                                                                    throw AssemblyException("Unrecognised SUBROUTINE option", SEVERITY_Warning);
+                                                                switch(Option->second)
+                                                                {
+                                                                    case SUBOPT_ALIGN:
+                                                                        try
+                                                                        {
+                                                                            int Align;
+                                                                            if(SubOptions[1] == "AUTO")
+                                                                                Align = AlignFromSize(CurrentTable->CodeSize);
+                                                                            else if(!SetAlignFromKeyword(SubOptions[1], Align))
+                                                                            {
+                                                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                                                Align = E.Evaluate(SubOptions[1]);
+                                                                            }
+                                                                            ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
+                                                                        }
+                                                                        catch(ExpressionException Ex)
+                                                                        {
+                                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                                        }
+                                                                        break;
+                                                                    case SUBOPT_STATIC:
+                                                                        break;
+                                                                }
+                                                            }
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
+                                                        }
+                                                        break;
+                                                    }
+                                                    case ENDSUB:
+                                                    {
+                                                        CurrentTable = &MainTable;
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
+                                                        break;
+                                                    }
+                                                    case MACRO:
+                                                    {
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
+                                                        while(Source.getLine(OriginalLine))
+                                                        {
+                                                            LineNumber++;
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
+                                                            std::string Line = Trim(OriginalLine);
+                                                            try
+                                                            {
+                                                                OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
+                                                            }
+                                                            catch(AssemblyException Ex)
+                                                            {
+                                                                Label = {};
+                                                                Mnemonic = {};
+                                                                OpCode = {};
+                                                                Operands = {};
+                                                            }
+                                                            if(OpCode.has_value() && OpCode.value().OpCode == ENDMACRO)
+                                                                break;
+                                                        }
+                                                        break;
+                                                    }
+                                                    case MACROEXPANSION:
+                                                    {
+                                                        std::string MacroExpansion;
+                                                        auto MacroDefinition = CurrentTable->Macros.find(Mnemonic);
+                                                        if(MacroDefinition != CurrentTable->Macros.end())
+                                                            ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
+                                                        else if(CurrentTable != &MainTable)
+                                                        {
+                                                            MacroDefinition = MainTable.Macros.find(Mnemonic);
+                                                            if(MacroDefinition != MainTable.Macros.end())
+                                                                ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
+                                                        }
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
+                                                        if(!Source.InMacro())
+                                                            LineNumber++;
+                                                        if(!MacroExpansion.empty())
+                                                            Source.InsertMacro(Mnemonic, MacroExpansion);
+                                                        else
+                                                            throw AssemblyException("Unknown OpCode", SEVERITY_Error);
+                                                        break;
+                                                    }
+                                                    case ORG:
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            ProgramCounter = E.Evaluate(Operands[0]);
+
+                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
+
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
+                                                            break;
+                                                        }
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
+
+                                                    case DB:
+                                                    {
+                                                        std::vector<std::uint8_t> Data;
+                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                        if(CurrentTable != &MainTable)
+                                                            E.AddLocalSymbols(CurrentTable);
+                                                        for(auto& Operand : Operands)
+                                                        {
+                                                            if(Operand[0] == '\"')
+                                                                StringToByteVector(Operand, Data);
+                                                            else
                                                                 try
                                                                 {
-                                                                    int Align;
-                                                                    if(SubOptions[1] == "AUTO")
-                                                                        Align = AlignFromSize(CurrentTable->CodeSize);
-                                                                    else if(!SetAlignFromKeyword(SubOptions[1], Align))
-                                                                    {
-                                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                                        Align = E.Evaluate(SubOptions[1]);
-                                                                    }
-                                                                    ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
-                                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
-                                                                    break;
+                                                                    int x = E.Evaluate(Operand);
+                                                                    if(x > 255)
+                                                                        throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got: ${value:X})", fmt::arg("value", x)), SEVERITY_Error);
+                                                                    Data.push_back(x & 0xFF);
                                                                 }
                                                                 catch(ExpressionException Ex)
                                                                 {
                                                                     throw AssemblyException(Ex.what(), SEVERITY_Error);
                                                                 }
                                                         }
-                                                    }
-                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
-                                                    break;
-                                                }
-                                                case ENDSUB:
-                                                {
-                                                    CurrentTable = &MainTable;
-                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
-                                                    break;
-                                                }
-                                                case MACRO:
-                                                {
-                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
-                                                    while(Source.getLine(OriginalLine))
-                                                    {
-                                                        LineNumber++;
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
-                                                        std::string Line = Trim(OriginalLine);
-                                                        try
-                                                        {
-                                                            OpCode = ExpandTokens(Line, Label, Mnemonic, Operands);
-                                                        }
-                                                        catch(AssemblyException Ex)
-                                                        {
-                                                            Label = {};
-                                                            Mnemonic = {};
-                                                            OpCode = {};
-                                                            Operands = {};
-                                                        }
-                                                        if(OpCode.has_value() && OpCode.value().OpCode == ENDMACRO)
-                                                            break;
-                                                    }
-                                                    break;
-                                                }
-                                                case MACROEXPANSION:
-                                                {
-                                                    std::string MacroExpansion;
-                                                    auto MacroDefinition = CurrentTable->Macros.find(Mnemonic);
-                                                    if(MacroDefinition != CurrentTable->Macros.end())
-                                                        ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
-                                                    else if(CurrentTable != &MainTable)
-                                                    {
-                                                        MacroDefinition = MainTable.Macros.find(Mnemonic);
-                                                        if(MacroDefinition != MainTable.Macros.end())
-                                                            ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
-                                                    }
-                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
-                                                    if(!Source.InMacro())
-                                                        LineNumber++;
-                                                    if(!MacroExpansion.empty())
-                                                        Source.InsertMacro(Mnemonic, MacroExpansion);
-                                                    else
-                                                        throw AssemblyException("Unknown OpCode", SEVERITY_Error);
-                                                    break;
-                                                }
-                                                case ORG:
-                                                    try
-                                                    {
-                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                        ProgramCounter = E.Evaluate(Operands[0]);
-
-                                                        CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
-
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
+                                                        CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, Data);
+                                                        ProgramCounter += Data.size();
                                                         break;
                                                     }
-                                                    catch(ExpressionException Ex)
+                                                    case DW:
                                                     {
-                                                        throw AssemblyException(Ex.what(), SEVERITY_Error);
-                                                    }
-
-                                                case DB:
-                                                {
-                                                    std::vector<std::uint8_t> Data;
-                                                    AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                    if(CurrentTable != &MainTable)
-                                                        E.AddLocalSymbols(CurrentTable);
-                                                    for(auto& Operand : Operands)
-                                                    {
-                                                        if(Operand[0] == '\"')
-                                                            StringToByteVector(Operand, Data);
-                                                        else
+                                                        std::vector<std::uint8_t> Data;
+                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                        if(CurrentTable != &MainTable)
+                                                            E.AddLocalSymbols(CurrentTable);
+                                                        for(auto& Operand : Operands)
                                                             try
                                                             {
                                                                 int x = E.Evaluate(Operand);
-                                                                if(x > 255)
-                                                                    throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got: ${value:X})", fmt::arg("value", x)), SEVERITY_Error);
+                                                                Data.push_back((x >> 8) & 0xFF);
                                                                 Data.push_back(x & 0xFF);
                                                             }
                                                             catch(ExpressionException Ex)
                                                             {
                                                                 throw AssemblyException(Ex.what(), SEVERITY_Error);
                                                             }
+                                                        CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
+                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, Data);
+                                                        ProgramCounter += Data.size();
+                                                        break;
                                                     }
-                                                    CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
-                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, Data);
-                                                    ProgramCounter += Data.size();
-                                                    break;
-                                                }
-                                                case DW:
-                                                {
-                                                    std::vector<std::uint8_t> Data;
-                                                    AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                    if(CurrentTable != &MainTable)
-                                                        E.AddLocalSymbols(CurrentTable);
-                                                    for(auto& Operand : Operands)
+                                                    case ALIGN:
                                                         try
                                                         {
-                                                            int x = E.Evaluate(Operand);
-                                                            Data.push_back((x >> 8) & 0xFF);
-                                                            Data.push_back(x & 0xFF);
+                                                            int Align;
+                                                            if(!SetAlignFromKeyword(Operands[0], Align))
+                                                            {
+                                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                                if(CurrentTable != &MainTable)
+                                                                    E.AddLocalSymbols(CurrentTable);
+                                                                Align = E.Evaluate(Operands[0]);
+                                                            }
+                                                            ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
+                                                            break;
                                                         }
                                                         catch(ExpressionException Ex)
                                                         {
                                                             throw AssemblyException(Ex.what(), SEVERITY_Error);
                                                         }
-                                                    CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
-                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, Data);
-                                                    ProgramCounter += Data.size();
-                                                    break;
-                                                }
-                                                case ALIGN:
-                                                    try
+                                                    case ASSERT:
                                                     {
-                                                        int Align;
-                                                        if(!SetAlignFromKeyword(Operands[0], Align))
+                                                        if(Operands.size() != 1)
+                                                            throw AssemblyException("ASSERT Requires a single argument <expression>", SEVERITY_Error);
+                                                        try
                                                         {
                                                             AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                             if(CurrentTable != &MainTable)
                                                                 E.AddLocalSymbols(CurrentTable);
-                                                            Align = E.Evaluate(Operands[0]);
+                                                            int Result = E.Evaluate(Operands[0]);
+                                                            if (Result == 0)
+                                                                throw AssemblyException("ASSERT Failed", SEVERITY_Error);
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                         }
-                                                        ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
-                                                        CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
                                                         break;
                                                     }
-                                                    catch(ExpressionException Ex)
-                                                    {
-                                                        throw AssemblyException(Ex.what(), SEVERITY_Error);
-                                                    }
-                                                case ASSERT:
-                                                {
-                                                    if(Operands.size() != 1)
-                                                        throw AssemblyException("ASSERT Requires a single argument <expression>", SEVERITY_Error);
-                                                    try
-                                                    {
-                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                        if(CurrentTable != &MainTable)
-                                                            E.AddLocalSymbols(CurrentTable);
-                                                        int Result = E.Evaluate(Operands[0]);
-                                                        if (Result == 0)
-                                                            throw AssemblyException("ASSERT Failed", SEVERITY_Error);
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
-                                                    }
-                                                    catch(ExpressionException Ex)
-                                                    {
-                                                        throw AssemblyException(Ex.what(), SEVERITY_Error);
-                                                    }
-                                                    break;
-                                                }
-                                                case END:
-                                                    try
-                                                    {
-                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                        EntryPoint = E.Evaluate(Operands[0]);
-                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
-                                                        while(Source.getLine(OriginalLine))
+                                                    case END:
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            EntryPoint = E.Evaluate(Operands[0]);
                                                             ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
-                                                    }
-                                                    catch(ExpressionException Ex)
-                                                    {
-                                                        throw AssemblyException(Ex.what(), SEVERITY_Error);
-                                                    }
-                                                    break;
-                                                default:
-                                                    break;
-                                            }
+                                                            while(Source.getLine(OriginalLine))
+                                                                ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
+                                                        }
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
+                                                        break;
+                                                    default:
+                                                        break;
+                                                }
                                         }
                                         else
                                             try
@@ -1076,141 +1104,143 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                 if(CurrentTable != &MainTable)
                                                     E.AddLocalSymbols(CurrentTable);
 
-                                                switch(OpCode->OpCodeType)
+                                                if(!SkippingUnreferencedSub)
                                                 {
-                                                    case BASIC:
+                                                    switch(OpCode->OpCodeType)
                                                     {
-                                                        Data.push_back(OpCode->OpCode);
-                                                        break;
-                                                    }
-                                                    case REGISTER:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Register", SEVERITY_Error, OpCode->OpCodeType);
-
-                                                        int Register = E.Evaluate(Operands[0]);
-                                                        if(OpCode->OpCode == LDN) // Special Case - LDN R0 is overriden by IDL
+                                                        case BASIC:
                                                         {
-                                                            if(Register < 1 || Register > 15)
-                                                                throw AssemblyException(fmt::format("Register out of range (Expected: $1-$F, got: ${value:X}))", fmt::arg("value", Register)), SEVERITY_Error, OpCode->OpCodeType);
+                                                            Data.push_back(OpCode->OpCode);
+                                                            break;
                                                         }
-                                                        else
+                                                        case REGISTER:
                                                         {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Expected single operand of type Register", SEVERITY_Error, OpCode->OpCodeType);
+
+                                                            int Register = E.Evaluate(Operands[0]);
+                                                            if(OpCode->OpCode == LDN) // Special Case - LDN R0 is overriden by IDL
+                                                            {
+                                                                if(Register < 1 || Register > 15)
+                                                                    throw AssemblyException(fmt::format("Register out of range (Expected: $1-$F, got: ${value:X}))", fmt::arg("value", Register)), SEVERITY_Error, OpCode->OpCodeType);
+                                                            }
+                                                            else
+                                                            {
+                                                                if(Register < 0 || Register > 15)
+                                                                    throw AssemblyException(fmt::format("Register out of range (Expected: $0-$F, got: ${value:X}))", fmt::arg("value", Register)), SEVERITY_Error, OpCode->OpCodeType);
+                                                            }
+                                                            Data.push_back(OpCode->OpCode | Register);
+                                                            break;
+                                                        }
+                                                        case IMMEDIATE:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error, OpCode->OpCodeType);
+                                                            int Byte = E.Evaluate(Operands[0]);
+                                                            if(Byte > 0xFF && Byte < 0xFF80)
+                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got: ${value:X})", fmt::arg("value", Byte)), SEVERITY_Error, OpCode->OpCodeType);
+                                                            Data.push_back(OpCode->OpCode);
+                                                            Data.push_back(Byte & 0xFF);
+                                                            break;
+                                                        }
+                                                        case SHORT_BRANCH:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Short Branch expected single operand", SEVERITY_Error, OpCode->OpCodeType);
+                                                            int Address = E.Evaluate(Operands[0]);
+                                                            if(((ProgramCounter + 1) & 0xFF00) != (Address & 0xFF00))
+                                                                throw AssemblyException("Short Branch out of range", SEVERITY_Error, OpCode->OpCodeType);
+                                                            Data.push_back(OpCode->OpCode);
+                                                            Data.push_back(Address & 0xFF);
+                                                            break;
+                                                        }
+                                                        case LONG_BRANCH:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Long Branch expected single operand", SEVERITY_Error, OpCode->OpCodeType);
+                                                            int Address = E.Evaluate(Operands[0]);
+                                                            if(Address < 0 || Address > 0xFFFF)
+                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FFFF, got: ${value:X})", fmt::arg("value", Address)), SEVERITY_Error, OpCode->OpCodeType);
+                                                            Data.push_back(OpCode->OpCode);
+                                                            Data.push_back(Address >> 8);
+                                                            Data.push_back(Address & 0xFF);
+                                                            break;
+                                                        }
+                                                        case INPUT_OUTPUT:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Expected single operand of type Port", SEVERITY_Error, OpCode->OpCodeType);
+
+                                                            int Port = E.Evaluate(Operands[0]);
+                                                            if(Port == 0 || Port > 7)
+                                                                throw AssemblyException("Port out of range (1-7)", SEVERITY_Error, OpCode->OpCodeType);
+                                                            Data.push_back(OpCode->OpCode | Port);
+                                                            break;
+                                                        }
+                                                        case EXTENDED:
+                                                        {
+                                                            Data.push_back(OpCode->OpCode >> 8);
+                                                            Data.push_back(OpCode->OpCode & 0xFF);
+                                                            break;
+                                                        }
+                                                        case EXTENDED_REGISTER:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Expected single operand of type Register", SEVERITY_Error, OpCode->OpCodeType);
+
+                                                            int Register = E.Evaluate(Operands[0]);
                                                             if(Register < 0 || Register > 15)
-                                                                throw AssemblyException(fmt::format("Register out of range (Expected: $0-$F, got: ${value:X}))", fmt::arg("value", Register)), SEVERITY_Error, OpCode->OpCodeType);
+                                                                throw AssemblyException("Register out of range (0-F)", SEVERITY_Error, OpCode->OpCodeType);
+                                                            Data.push_back(OpCode->OpCode >> 8);
+                                                            Data.push_back(OpCode->OpCode & 0xFF | Register);
+                                                            break;
                                                         }
-                                                        Data.push_back(OpCode->OpCode | Register);
-                                                        break;
+                                                        case EXTENDED_IMMEDIATE:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error, OpCode->OpCodeType);
+                                                            int Byte = E.Evaluate(Operands[0]);
+                                                            if(Byte > 0xFF && Byte < 0xFF80)
+                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got :${value:X})", fmt::arg("value", Byte)), SEVERITY_Error, OpCode->OpCodeType);
+                                                            Data.push_back(OpCode->OpCode >> 8);
+                                                            Data.push_back(OpCode->OpCode & 0xFF);
+                                                            Data.push_back(Byte & 0xFF);
+                                                            break;
+                                                        }
+                                                        case EXTENDED_SHORT_BRANCH:
+                                                        {
+                                                            if(Operands.size() != 1)
+                                                                throw AssemblyException("Short Branch expected single operand", SEVERITY_Error, OpCode->OpCodeType);
+                                                            int Address = E.Evaluate(Operands[0]);
+                                                            if(((ProgramCounter + 2) & 0xFF00) != (Address & 0xFF00))
+                                                                throw AssemblyException("Short Branch out of range", SEVERITY_Error, OpCode->OpCodeType);
+                                                            Data.push_back(OpCode->OpCode >> 8);
+                                                            Data.push_back(OpCode->OpCode & 0xFF);
+                                                            Data.push_back(Address & 0xFF);
+                                                            break;
+                                                        }
+                                                        case EXTENDED_REGISTER_IMMEDIATE16:
+                                                        {
+                                                            if(Operands.size() != 2)
+                                                                throw AssemblyException("Expected Register and Immediate operands", SEVERITY_Error, OpCode->OpCodeType);
+                                                            int Register = E.Evaluate(Operands[0]);
+                                                            if(Register > 15)
+                                                                throw AssemblyException("Register out of range (0-F)", SEVERITY_Error, OpCode->OpCodeType);
+                                                            int Address = E.Evaluate(Operands[1]);
+                                                            if(Address < -32768 || Address > 0xFFFF)
+                                                                throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FFFF, got :${value:X})", fmt::arg("value", Address)), SEVERITY_Error, OpCode->OpCodeType);
+                                                            Data.push_back(OpCode->OpCode >> 8);
+                                                            Data.push_back(OpCode->OpCode & 0xFF | Register);
+                                                            Data.push_back(Address >> 8);
+                                                            Data.push_back(Address & 0xFF);
+                                                            break;
+                                                        }
+                                                        default:
+                                                            break;
                                                     }
-                                                    case IMMEDIATE:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error, OpCode->OpCodeType);
-                                                        int Byte = E.Evaluate(Operands[0]);
-                                                        if(Byte > 0xFF && Byte < 0xFF80)
-                                                            throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got: ${value:X})", fmt::arg("value", Byte)), SEVERITY_Error, OpCode->OpCodeType);
-                                                        Data.push_back(OpCode->OpCode);
-                                                        Data.push_back(Byte & 0xFF);
-                                                        break;
-                                                    }
-                                                    case SHORT_BRANCH:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Short Branch expected single operand", SEVERITY_Error, OpCode->OpCodeType);
-                                                        int Address = E.Evaluate(Operands[0]);
-                                                        if(((ProgramCounter + 1) & 0xFF00) != (Address & 0xFF00))
-                                                            throw AssemblyException("Short Branch out of range", SEVERITY_Error, OpCode->OpCodeType);
-                                                        Data.push_back(OpCode->OpCode);
-                                                        Data.push_back(Address & 0xFF);
-                                                        break;
-                                                    }
-                                                    case LONG_BRANCH:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Long Branch expected single operand", SEVERITY_Error, OpCode->OpCodeType);
-                                                        int Address = E.Evaluate(Operands[0]);
-                                                        if(Address < 0 || Address > 0xFFFF)
-                                                            throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FFFF, got: ${value:X})", fmt::arg("value", Address)), SEVERITY_Error, OpCode->OpCodeType);
-                                                        Data.push_back(OpCode->OpCode);
-                                                        Data.push_back(Address >> 8);
-                                                        Data.push_back(Address & 0xFF);
-                                                        break;
-                                                    }
-                                                    case INPUT_OUTPUT:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Port", SEVERITY_Error, OpCode->OpCodeType);
 
-                                                        int Port = E.Evaluate(Operands[0]);
-                                                        if(Port == 0 || Port > 7)
-                                                            throw AssemblyException("Port out of range (1-7)", SEVERITY_Error, OpCode->OpCodeType);
-                                                        Data.push_back(OpCode->OpCode | Port);
-                                                        break;
-                                                    }
-                                                    case EXTENDED:
-                                                    {
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF);
-                                                        break;
-                                                    }
-                                                    case EXTENDED_REGISTER:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Register", SEVERITY_Error, OpCode->OpCodeType);
-
-                                                        int Register = E.Evaluate(Operands[0]);
-                                                        if(Register < 0 || Register > 15)
-                                                            throw AssemblyException("Register out of range (0-F)", SEVERITY_Error, OpCode->OpCodeType);
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF | Register);
-                                                        break;
-                                                    }
-                                                    case EXTENDED_IMMEDIATE:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Expected single operand of type Byte", SEVERITY_Error, OpCode->OpCodeType);
-                                                        int Byte = E.Evaluate(Operands[0]);
-                                                        if(Byte > 0xFF && Byte < 0xFF80)
-                                                            throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got :${value:X})", fmt::arg("value", Byte)), SEVERITY_Error, OpCode->OpCodeType);
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF);
-                                                        Data.push_back(Byte & 0xFF);
-                                                        break;
-                                                    }
-                                                    case EXTENDED_SHORT_BRANCH:
-                                                    {
-                                                        if(Operands.size() != 1)
-                                                            throw AssemblyException("Short Branch expected single operand", SEVERITY_Error, OpCode->OpCodeType);
-                                                        int Address = E.Evaluate(Operands[0]);
-                                                        if(((ProgramCounter + 2) & 0xFF00) != (Address & 0xFF00))
-                                                            throw AssemblyException("Short Branch out of range", SEVERITY_Error, OpCode->OpCodeType);
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF);
-                                                        Data.push_back(Address & 0xFF);
-                                                        break;
-                                                    }
-                                                    case EXTENDED_REGISTER_IMMEDIATE16:
-                                                    {
-                                                        if(Operands.size() != 2)
-                                                            throw AssemblyException("Expected Register and Immediate operands", SEVERITY_Error, OpCode->OpCodeType);
-                                                        int Register = E.Evaluate(Operands[0]);
-                                                        if(Register > 15)
-                                                            throw AssemblyException("Register out of range (0-F)", SEVERITY_Error, OpCode->OpCodeType);
-                                                        int Address = E.Evaluate(Operands[1]);
-                                                        if(Address < -32768 || Address > 0xFFFF)
-                                                            throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FFFF, got :${value:X})", fmt::arg("value", Address)), SEVERITY_Error, OpCode->OpCodeType);
-                                                        Data.push_back(OpCode->OpCode >> 8);
-                                                        Data.push_back(OpCode->OpCode & 0xFF | Register);
-                                                        Data.push_back(Address >> 8);
-                                                        Data.push_back(Address & 0xFF);
-                                                        break;
-                                                    }
-                                                    default:
-                                                        break;
+                                                    CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
                                                 }
-
-                                                CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
-
                                                 ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, Data);
                                                 ProgramCounter += OpCodeTable::OpCodeBytes.at(OpCode->OpCodeType);
                                             }
@@ -1267,7 +1297,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                     LineNumber++;
             } // while(Source.getLine())...
 
-// Custom processing at the end of each pass
+            // Custom processing at the end of each pass
             switch(Pass)
             {
                 case 1:
@@ -1279,8 +1309,46 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                     break;
                 case 3:
                 {
+                    // Check for END statement
                     if(!EntryPoint.has_value())
                         throw AssemblyException("END Statement is missing", SEVERITY_Warning);
+
+                    // Check for un-used non-static SUBROUTINEs and reset to Pass 2 if found
+                    for(const auto& SubTable : SubTables)
+                        if(MainTable.Symbols[SubTable.first].RefCount == 0 && ! SubTable.second.Static)
+                        {
+                            UnReferencedSubs.insert(SubTable.first);
+                            Pass = 1;
+                        }
+                    if(Pass == 1)
+                    {
+                        fmt::println("Unreferenced SUBROUTINES found, Removing...");
+                        for(auto& Name : UnReferencedSubs)
+                            fmt::println("\t{Name}",fmt::arg("Name", Name));
+                        fmt::println("Restarting from Pass 2");
+
+                        // Clear Master Symbol Table
+                        for(auto it = MainTable.Symbols.begin(); it != MainTable.Symbols.end(); )
+                        {
+                            if(!it->second.HideFromSymbolTable)
+                                it = MainTable.Symbols.erase(it);
+                            else
+                                ++it;
+                        }
+
+                        // Clear Sub Symbol Tables
+                        for(auto& SubTable : SubTables)
+                            for(auto it = SubTable.second.Symbols.begin(); it != SubTable.second.Symbols.end(); )
+                            {
+                                if(!it->second.HideFromSymbolTable)
+                                    it = SubTable.second.Symbols.erase(it);
+                                else
+                                    ++it;
+                            }
+
+                        // Clear Code
+                        Code.clear();
+                    }
 
                     // Check for overlapping code
                     int Overlap = 0;
@@ -1309,6 +1377,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
             if(Ex.SkipToOpCode.has_value())
                 throw; // AssemblyException is only thrown with a SkipToOpcode in an enclosed try / catch so this should never happen
         }
+
     } // for(int Pass = 1; Pass <= 3 && Errors.count(SEVERITY_Error) == 0; Pass++)...
 
     ListingFile.AppendGlobalErrors();

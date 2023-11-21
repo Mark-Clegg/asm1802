@@ -435,7 +435,7 @@ void PreProcessor::ExpandDefines(std::string& Line)
                     }
                     else
                         out += FirstWord;
-                    i+=FirstWord.size() - 1;
+                    i += FirstWord.size() - 1;
                 }
                 else
                     out += Line[i];

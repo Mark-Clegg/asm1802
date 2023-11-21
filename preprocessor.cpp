@@ -122,12 +122,12 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             std::string key;
                             std::string value;
                             std::smatch MatchResult;
-                            if(regex_match(Expression, MatchResult, std::regex(R"(^([_.[:alnum:]]+)\s+(.*)$)")))
+                            if(regex_match(Expression, MatchResult, std::regex(R"(^([_[:alpha:]][_.[:alnum:]]*)\s+(.*)$)")))
                             {
                                 key = MatchResult[1];
                                 value = MatchResult[2];
                             }
-                            else if(regex_match(Expression, MatchResult, std::regex(R"(^([_.[:alnum:]]+)$)")))
+                            else if(regex_match(Expression, MatchResult, std::regex(R"(^([_[:alpha:]][_.[:alnum:]]*)$)")))
                             {
                                 key = Expression;
                                 value = "1";
@@ -141,7 +141,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         case PP_undef:
                         {
                             std::smatch MatchResult;
-                            if(regex_match(Expression, MatchResult, std::regex(R"(^([_.[:alnum:]]+)$)")))
+                            if(regex_match(Expression, MatchResult, std::regex(R"(^([_[:alpha:]][_.[:alnum:]]*)$)")))
                             {
                                 std::string key = MatchResult[1];
                                 ToUpper(key);

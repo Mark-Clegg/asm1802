@@ -11,6 +11,7 @@
 class ListingFileWriter
 {
 private:
+    std::filesystem::path File;
     std::string ListFileName;
     std::ofstream ListStream;
 
@@ -19,6 +20,7 @@ private:
 public:
     ListingFileWriter(const std::string& FileName, ErrorTable& Errors, bool Enabled);
     ~ListingFileWriter();
+    void Reset();
 
     bool Enabled;
 

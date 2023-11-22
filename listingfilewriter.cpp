@@ -5,23 +5,29 @@
 #include <vector>
 #include "listingfilewriter.h"
 
-namespace fs = std::filesystem;
-
 ListingFileWriter::ListingFileWriter(const std::string& FileName, ErrorTable& Errors, bool Enabled) :
     Errors { Errors },
     Enabled { Enabled }
 {
-    auto p = fs::path(FileName);
-    p.replace_extension("lst");
-    if(fs::exists(p))
-        fs::remove(p);
-    ListFileName = p;
+    File = std::filesystem::path(FileName);
+    File.replace_extension("lst");
+    if(std::filesystem::exists(File))
+        std::filesystem::remove(File);
+    ListFileName = File;
 }
 
 ListingFileWriter::~ListingFileWriter()
 {
     if(ListStream.is_open())
         ListStream.close();
+}
+
+void ListingFileWriter::Reset()
+{
+    if(ListStream.is_open())
+        ListStream.close();
+    if(std::filesystem::exists(File))
+        std::filesystem::remove(File);
 }
 
 void ListingFileWriter::Append(const std::string& FileName, int LineNumber, const std::string& MacroName, int MacroLineNumber, const std::string& Line, const bool InMacro)

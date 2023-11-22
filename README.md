@@ -209,34 +209,31 @@ For Logical operators, 0 = false, 1 = true.
 | ALIGN arg | align to boundary (arg = 2,4,8,16,32,64,128 or 256) |
 | ASSERT expression | Throw an error if expression evaluates to false (0) |
 | DB value list | Define Bytes, each value can be numeric or "string" |
-| BYTE value list | Pseudonym for DB |
 | DW value list | Define double bytes |
-| WORD value list | Pseudonym for DW |
 | EQU value | Assign value to label |
-| ISDEF/ISDEFINED label | Return true if label is defined |
-| ISUNDEF/ISUNDEFINED label | Return true if lable is not defined |
 | ORG arg | Set Address |
 | SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO } | Define a Subroutine, optionally aligned to boundary |
 | ENDSUB | End of Subroutine Definition |
 | MACRO parameters | Define a Macro |
 | ENDM | End of Macro Definition |
-| LIST value | Turn Listing output on (1) or off (0) |
-| SYMBOLS value | Turn on symbol table dump (1) or off (0) |
+| END expression | End of source code. Expression sets the start address |
 
 ## Subroutines
 
-### SUBROUTINE {ALIGN=...}
+### SUBROUTINE {ALIGN=x}, {STATIC}
 
 ... defines a subroutine.
 
 #### Optional arguments
 
-ALIGN=... Align the subroutine to the specified 
+ALIGN=...: Align the subroutine to the specified 
 power of 2 boudary. (e.g. ALIGN=32). Specifying ALIGN=AUTO will align to the nearest greater
 power of two boundary. This allows the creation of library modules that can be #included
-anywhere in code ensuring that short branches remain in range wherever the code is included.
-To prevent any following code from having out of range branches, it is recommended that
-#included library code is placed at the end of the source.
+anywhere in code helping to ensure that short branches remain in range wherever the code is included.
+
+STATIC: By default, SUBROUTINES that are not referenced, are removed from the assembly.
+Flagging a SUBROUTINE as STATIC forces assembly of the SUBROUTINE regardless of whether
+or not it is used.
 
 Any labels defined within the subroutine are local to that subroutine, and
 cannot be referenced elsewhere. The subroutine name itself appears in both the 
@@ -244,7 +241,7 @@ local and global symbol tables (with possibly different values. see below)
 
 ### ENDSUB {expression}
 
-Marks the end of a SUBROUTINE definition. If an optional Label is supplied, this must refer 
+Marks the end of a SUBROUTINE definition. If an optional expression is supplied, this must refer 
 to a previously declared Label within the subroutine, and marks the entry point of that 
 subroutine. This modifies the value of the SUBROUTINE's label in the Master symbol table to
 point to the referenced local label so that any reference to the SUBROUTINE name in main code

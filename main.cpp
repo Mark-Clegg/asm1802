@@ -376,9 +376,9 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                             {
                                 if(Pass == 3)
                                     ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
-                                std::smatch MatchResult;
-                                if(regex_match(Expression, MatchResult, std::regex(R"-(^(.*)$)-")) && OpCodeTable::CPUTable.find(MatchResult[1]) != OpCodeTable::CPUTable.end())
-                                    Processor = OpCodeTable::CPUTable.at(MatchResult[1]);
+                                ToUpper(Expression);
+                                if(OpCodeTable::CPUTable.find(Expression) != OpCodeTable::CPUTable.end())
+                                    Processor = OpCodeTable::CPUTable.at(Expression);
                                 else
                                     throw AssemblyException("Bad processor directive received from Pre-Processor", SEVERITY_Error);
                                 if(!Source.InMacro())
@@ -955,16 +955,19 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                                 if(regex_match(Expression, MatchResult, std::regex(R"-(^"(.*)" ([0-9]+)$)-")))
                                                                                 {
                                                                                     CurrentFile = MatchResult[1];
-                                                                                    LineNumber = stoi(MatchResult[2]);
+                                                                                    LineNumber = stoi(MatchResult[2]) - 1;
                                                                                 }
                                                                                 else
                                                                                     throw AssemblyException("Bad line directive received from Pre-Processor", SEVERITY_Error);
                                                                                 break;
                                                                             }
                                                                             default:
+                                                                                ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                                                 break;
                                                                         }
                                                                     }
+                                                                    else
+                                                                        ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                                 }
                                                                 else
                                                                 {

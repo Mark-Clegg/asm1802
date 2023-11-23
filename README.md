@@ -212,7 +212,7 @@ For Logical operators, 0 = false, 1 = true.
 | DW value list | Define double bytes |
 | EQU value | Assign value to label |
 | ORG arg | Set Address |
-| SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO } | Define a Subroutine, optionally aligned to boundary |
+| SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO }, STATIC | Define a Subroutine, optionally aligned to boundary, optionally prevent removal if unreferenced |
 | ENDSUB | End of Subroutine Definition |
 | MACRO parameters | Define a Macro |
 | ENDM | End of Macro Definition |

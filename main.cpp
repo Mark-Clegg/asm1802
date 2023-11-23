@@ -652,7 +652,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                 }
                                                 case SUB:
                                                 {
-                                                    if(UnReferencedSubs.count(Label) > 0)
+                                                    if(UnReferencedSubs.count(Label) > 0) // Skip assembly if previously flagged as unreferenced and non-static
                                                     {
                                                         while(Source.getLine(OriginalLine))
                                                         {
@@ -700,7 +700,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             }
                                                         }
                                                     }
-                                                    else
+                                                    else // Assemble subroutine
                                                     {
                                                         CurrentTable = &SubTables[Label];
                                                         CurrentTable->Name = Label;
@@ -929,7 +929,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     break;
                                                 case SUB:
                                                 {
-                                                    if(UnReferencedSubs.count(Label) > 0)
+                                                    if(UnReferencedSubs.count(Label) > 0) // Skip assembly if previously flagged as unreferenced and non-static
                                                     {
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                         while(Source.getLine(OriginalLine))
@@ -982,7 +982,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             }
                                                         }
                                                     }
-                                                    else
+                                                    else // Assemble subroutine
                                                     {
                                                         CurrentTable = &SubTables[Label];
                                                         SubDefinitionFile = CurrentFile;

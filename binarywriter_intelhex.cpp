@@ -22,8 +22,8 @@ void BinaryWriter_IntelHex::Write(std::map<uint16_t, std::vector<uint8_t>>& Code
                     0,                                              // Byte Count (to be replaced)
                     (uint8_t)(((Address + i * 16) & 0xFF00) >> 8),  // Address (Hi)
                     (uint8_t)((Address + i * 16) & 0xFF),           // Address (Lo)
-                    0
-                };                                            // Record Type 0
+                    0                                               // Record Type 0
+                };
 
                 for(int j = 0; j < 16 && i * 16 + j < DataIn.size(); j++)
                 {
@@ -32,7 +32,8 @@ void BinaryWriter_IntelHex::Write(std::map<uint16_t, std::vector<uint8_t>>& Code
                 }
                 DataBlock[0] = DataBlock.size() - 4;
                 AddCheckSum(DataBlock);
-                fmt::println(Output, ":{:02X}", fmt::join(DataBlock, ""));
+                if(DataBlock.size() > 5)
+                    fmt::println(Output, ":{:02X}", fmt::join(DataBlock, ""));
             }
         }
     }

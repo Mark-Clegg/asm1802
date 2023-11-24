@@ -23,7 +23,8 @@ void BinaryWriter_Idiot4::Write(std::map<uint16_t, std::vector<uint8_t>>& Code, 
                     RecordSize ++;
                     DataBlock.push_back(DataIn[i * 16 + j]);
                 }
-                fmt::println(Output, "!M{:04X} {:02X}", Address + i * 16, fmt::join(DataBlock, " "));
+                if(DataBlock.size() > 0)
+                    fmt::println(Output, "!M{:04X} {:02X}", Address + i * 16, fmt::join(DataBlock, " "));
             }
         }
     }

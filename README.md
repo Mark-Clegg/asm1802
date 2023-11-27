@@ -236,16 +236,15 @@ Flagging a SUBROUTINE as STATIC forces assembly of the SUBROUTINE regardless of 
 or not it is used.
 
 Any labels defined within the subroutine are local to that subroutine, and
-cannot be referenced elsewhere. The subroutine name itself appears in both the 
-local and global symbol tables (with possibly different values. see below)
+cannot be referenced elsewhere. The subroutine name itself appears only in global symbol table,
+with it's value defaulting to the current address at assembly, or as set in the matching ENDSUB, if
+specified.
 
 ### ENDSUB {expression}
 
-Marks the end of a SUBROUTINE definition. If an optional expression is supplied, this must refer 
-to a previously declared Label within the subroutine, and marks the entry point of that 
-subroutine. This modifies the value of the SUBROUTINE's label in the Master symbol table to
-point to the referenced local label so that any reference to the SUBROUTINE name in main code
-references the local label instead of the first byte of the SUBROUTINE itself.
+Marks the end of a SUBROUTINE definition. If an optional expression is supplied, this is evaluated
+and marks the entry point of that subroutine. This modifies the value of the SUBROUTINE's label 
+in the Master symbol table.
 
 e.g.
 ```
@@ -265,8 +264,8 @@ e.g.
                             ENDSUB  START
 ```
 
-Main code loads R6 with the address of the local START label (1001). However, within the
-subroutine, FlashQ will have it's initial address of 1000.
+Main code loads R6 with the address of the local START label (1001). Also, within the
+subroutine, FlashQ will have it's initial address of START (1001)
 
 ## Macros
 

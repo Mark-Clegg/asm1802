@@ -774,6 +774,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 AssemblyExpressionEvaluator E(*CurrentTable, ProgramCounter, Processor);
                                                                 auto EntryPoint = E.Evaluate(Operands[0]);
                                                                 MainTable.Symbols[CurrentTable->Name].Value = EntryPoint;
+                                                                CurrentTable->Symbols[CurrentTable->Name].Value = EntryPoint;
                                                                 break;
                                                             }
                                                             catch (ExpressionException Ex)

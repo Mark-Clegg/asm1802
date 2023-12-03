@@ -587,6 +587,11 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     SubroutineSize += Operands.size() * 2;
                                                     break;
                                                 }
+                                                case DL:
+                                                {
+                                                    SubroutineSize += Operands.size() * 4;
+                                                    break;
+                                                }
                                                 case END:
                                                     if(InSub)
                                                         throw AssemblyException("END cannot appear inside a SUBROUTINE", SEVERITY_Error);
@@ -774,7 +779,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 AssemblyExpressionEvaluator E(*CurrentTable, ProgramCounter, Processor);
                                                                 auto EntryPoint = E.Evaluate(Operands[0]);
                                                                 MainTable.Symbols[CurrentTable->Name].Value = EntryPoint;
-                                                                CurrentTable->Symbols[CurrentTable->Nameq].Value = EntryPoint;
+                                                                CurrentTable->Symbols[CurrentTable->Name].Value = EntryPoint;
                                                                 break;
                                                             }
                                                             catch (ExpressionException Ex)
@@ -874,6 +879,11 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                 case DW:
                                                 {
                                                     ProgramCounter += Operands.size() * 2;
+                                                    break;
+                                                }
+                                                case DL:
+                                                {
+                                                    ProgramCounter += Operands.size() * 4;
                                                     break;
                                                 }
                                                 case ALIGN:
@@ -1129,6 +1139,30 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         try
                                                         {
                                                             int x = E.Evaluate(Operand);
+                                                            Data.push_back((x >> 8) & 0xFF);
+                                                            Data.push_back(x & 0xFF);
+                                                        }
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), SEVERITY_Error);
+                                                        }
+                                                    CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
+                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, Data);
+                                                    ProgramCounter += Data.size();
+                                                    break;
+                                                }
+                                                case DL:
+                                                {
+                                                    std::vector<std::uint8_t> Data;
+                                                    AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                    if(CurrentTable != &MainTable)
+                                                        E.AddLocalSymbols(CurrentTable);
+                                                    for(auto& Operand : Operands)
+                                                        try
+                                                        {
+                                                            int x = E.Evaluate(Operand);
+                                                            Data.push_back((x >> 24) & 0xFF);
+                                                            Data.push_back((x >> 16) & 0xFF);
                                                             Data.push_back((x >> 8) & 0xFF);
                                                             Data.push_back(x & 0xFF);
                                                         }

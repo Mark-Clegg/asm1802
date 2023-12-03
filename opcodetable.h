@@ -139,12 +139,13 @@ enum OpCodeEnum
     ENDSUB    = 0xFF03,
     ORG       = 0xFF04,
     DB        = 0xFF05,
-    ALIGN     = 0xFF06,
-    DW        = 0xFF07,
-    ASSERT    = 0xFF08,
-    MACRO     = 0xFF09,
-    ENDMACRO  = 0xFF0A,
-    MACROEXPANSION = 0xFF0B,
+    DW        = 0xFF06,
+    DL        = 0xFF07,
+    ALIGN     = 0xFF08,
+    ASSERT    = 0xFF09,
+    MACRO     = 0xFF0A,
+    ENDMACRO  = 0xFF0B,
+    MACROEXPANSION = 0xFF0C,
     END       = 0xFFFF
 
 };

@@ -24,7 +24,7 @@
 
 namespace fs = std::filesystem;
 
-std::string Version("0.1");
+std::string Version("1.0");
 
 enum PreProcessorControlEnum
 {

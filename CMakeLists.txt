@@ -32,12 +32,17 @@ add_executable(asm1802 main.cpp
     preprocessorexpressionevaluator.h preprocessorexpressionevaluator.cpp
     expressionexception.h expressionexception.cpp
     expressionevaluatorbase.h expressionevaluatorbase.cpp
+    asm1802.xml
 
     )
 
 install(TARGETS asm1802
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(FILES asm1802.xml
+    DESTINATION share/org.kde.syntax-highlighting/syntax
 )
 
 target_link_libraries(asm1802 fmt::fmt)

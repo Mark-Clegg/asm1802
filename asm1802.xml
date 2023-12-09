@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd">
+<!--
+
+*************************************************************************
+*                                                                       *
+*                   Syntax highlighting for asm1802
+*                   Copyright (C) 2023, Mark Clegg
+*                                                                       *
+*************************************************************************
+
+This file contains the XML syntax highlighting description for asm1802,
+the CDP1802 Assembler, for KATE, the KDE Advanced Editor.  Keywords have
+been taken directly from the RCA1802/1806 Datasheets
+
+This program, including associated files, is free software.  You may
+distribute it and/or modify it under the terms of the GNU General Public
+License as published by the Free Software Foundation; either Version 2 of
+the license, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+-->
+
+<language name="CDP1802 Assembler (asm1802)"
+          version="3"
+          kateversion="5.0"
+          section="Assembler"
+          extensions="*.asm"
+          mimetype="text/x-asm"
+          priority="2"
+          author="Mark Clegg (mark.clegg2@gmail.com)"
+          license="GPLv2+" >
+    <highlighting>
+        <list name="registers">
+            <!-- General purpose registers -->
+            <item>r0</item>
+            <item>r1</item>
+            <item>r2</item>
+            <item>r3</item>
+            <item>r4</item>
+            <item>r5</item>
+            <item>r6</item>
+            <item>r7</item>
+            <item>r8</item>
+            <item>r9</item>
+            <item>ra</item>
+            <item>rb</item>
+            <item>rc</item>
+            <item>rd</item>
+            <item>re</item>
+            <item>rf</item>
+            <item>r10</item>
+            <item>r11</item>
+            <item>r12</item>
+            <item>r13</item>
+            <item>r14</item>
+            <item>r15</item>
+        </list>
+
+        <list name="ports">
+            <item>p1</item>
+            <item>p2</item>
+            <item>p3</item>
+            <item>p4</item>
+            <item>p5</item>
+            <item>p6</item>
+            <item>p7</item>
+        </list>
+
+        <list name="instructions">
+            <item>adc</item>
+            <item>adci</item>
+            <item>add</item>
+            <item>adi</item>
+            <item>and</item>
+            <item>ani</item>
+            <item>cid</item>
+            <item>cie</item>
+            <item>daci</item>
+            <item>dadc</item>
+            <item>dadd</item>
+            <item>dadi</item>
+            <item>dec</item>
+            <item>dis</item>
+            <item>dsav</item>
+            <item>dsbi</item>
+            <item>dsm</item>
+            <item>dsmb</item>
+            <item>dsmi</item>
+            <item>dtc</item>
+            <item>etq</item>
+            <item>gex</item>
+            <item>ghi</item>
+            <item>glo</item>
+            <item>idl</item>
+            <item>inc</item>
+            <item>inp</item>
+            <item>irx</item>
+            <item>lda</item>
+            <item>ldc</item>
+            <item>ldi</item>
+            <item>ldn</item>
+            <item>ldx</item>
+            <item>ldxa</item>
+            <item>mark</item>
+            <item>nop</item>
+            <item>or</item>
+            <item>ori</item>
+            <item>out</item>
+            <item>phi</item>
+            <item>plo</item>
+            <item>req</item>
+            <item>ret</item>
+            <item>rldi</item>
+            <item>rlxa</item>
+            <item>rnx</item>
+            <item>rshl</item>
+            <item>rshr</item>
+            <item>rsxd</item>
+            <item>sav</item>
+            <item>scm1</item>
+            <item>scm2</item>
+            <item>sd</item>
+            <item>sdb</item>
+            <item>sdbi</item>
+            <item>sdi</item>
+            <item>sep</item>
+            <item>seq</item>
+            <item>sex</item>
+            <item>shl</item>
+            <item>shlc</item>
+            <item>shr</item>
+            <item>shrc</item>
+            <item>sm</item>
+            <item>smb</item>
+            <item>smbi</item>
+            <item>smi</item>
+            <item>spm1</item>
+            <item>spm2</item>
+            <item>stm</item>
+            <item>stpc</item>
+            <item>str</item>
+            <item>stxd</item>
+            <item>xid</item>
+            <item>xie</item>
+            <item>xor</item>
+            <item>xri</item>
+        </list>
+
+        <list name="branch instructions">
+            <item>b1</item>
+            <item>b2</item>
+            <item>b3</item>
+            <item>b4</item>
+            <item>bci</item>
+            <item>bdf</item>
+            <item>bge</item>
+            <item>bl</item>
+            <item>bm</item>
+            <item>bn1</item>
+            <item>bn2</item>
+            <item>bn3</item>
+            <item>bn4</item>
+            <item>bnf</item>
+            <item>bnq</item>
+            <item>bnz</item>
+            <item>bpz</item>
+            <item>bq</item>
+            <item>br</item>
+            <item>bxi</item>
+            <item>bz</item>
+            <item>dbnz</item>
+            <item>lbdf</item>
+            <item>lbnf</item>
+            <item>lbnq</item>
+            <item>lbnz</item>
+            <item>lbq</item>
+            <item>lbr</item>
+            <item>lbz</item>
+            <item>lsdf</item>
+            <item>lsie</item>
+            <item>lskp</item>
+            <item>lsnf</item>
+            <item>lsnq</item>
+            <item>lsnz</item>
+            <item>lsq</item>
+            <item>lsz</item>
+            <item>nbr</item>
+            <item>nlbr</item>
+            <item>scal</item>
+            <item>skp</item>
+            <item>sret</item>
+        </list>
+
+        <list name="pseudo ops">
+            <item>align</item>
+            <item>assert</item>
+            <item>db</item>
+            <item>dl</item>
+            <item>dw</item>
+            <item>end</item>
+            <item>endm</item>
+            <item>endmacro</item>
+            <item>endsub</item>
+            <item>equ</item>
+            <item>macro</item>
+            <item>org</item>
+            <item>sub</item>
+            <item>subroutine</item>
+        </list>
+
+        <list name="preprocessor">
+            <item>#cpu</item>
+            <item>#define</item>
+            <item>#error</item>
+            <item>#include</item>
+            <item>#list</item>
+            <item>#processor</item>
+            <item>#symbols</item>
+            <item>#undef</item>
+        </list>
+
+        <contexts>
+            <context attribute="Normal Text" lineEndContext="#stay" name="Normal">
+                <WordDetect   attribute="Subroutine"            context="#stay"        String="endsub"     insensitive="true" endRegion="sub" />
+                <WordDetect   attribute="Subroutine"            context="#stay"        String="subroutine" insensitive="true" beginRegion="sub" />
+                <WordDetect   attribute="Subroutine"            context="#stay"        String="sub"        insensitive="true" beginRegion="sub" />
+
+                <WordDetect   attribute="Macro"                 context="#stay"        String="endm"       insensitive="true" endRegion="macro" />
+                <WordDetect   attribute="Macro"                 context="#stay"        String="endmacro"   insensitive="true" endRegion="macro" />
+                <WordDetect   attribute="Macro"                 context="#stay"        String="macro"      insensitive="true" beginRegion="macro" />
+
+                <keyword      attribute="Pseudo Ops"            context="#stay"        String="pseudo ops"/>
+                <keyword      attribute="Registers"             context="#stay"        String="registers"/>
+                <keyword      attribute="Ports"                 context="#stay"        String="ports"/>
+                <keyword      attribute="Instructions"          context="#stay"        String="instructions"/>
+                <keyword      attribute="Branch Instructions"   context="#stay"        String="branch instructions"/>
+
+                <HlCOct       attribute="Octal"                 context="#stay" />
+                <HlCHex       attribute="Hex"                   context="#stay" />
+                <RegExpr      attribute="Hex"                   context="#stay"        String="[$][0-9A-F]+" insensitive="true" />
+                <Int          attribute="Decimal"               context="#stay" />
+
+                <RegExpr      attribute="Label"                 context="#stay"        String="[_\w][_\w\d]*:?\s*" />
+
+                <DetectChar   attribute="String"                context="DoubleQuote"  char="&quot;" />
+                <DetectChar   attribute="String"                context="SingleQuote"  char="&apos;" />
+
+                <RegExpr      attribute="Preprocessor"          context="Preprocessor" String="#if(?:def|ndef)?(?=\s+\S)" insensitive="true" beginRegion="PP" firstNonSpace="true" />
+                <RegExpr      attribute="Preprocessor"          context="Preprocessor" String="#else" insensitive="true" endRegion="PP" beginRegion="PP" firstNonSpace="true" />
+                <RegExpr      attribute="Preprocessor"          context="Preprocessor" String="#elif" insensitive="true" endRegion="PP" beginRegion="PP" firstNonSpace="true" />
+                <RegExpr      attribute="Preprocessor"          context="Preprocessor" String="#endif" insensitive="true" endRegion="PP" firstNonSpace="true" />
+                <keyword      attribute="Preprocessor"          context="Preprocessor" String="preprocessor" />
+
+                <AnyChar      attribute="Comment"               context="Comment"      String=";" />
+
+                <AnyChar      attribute="Symbol"                context="#stay"        String="!#%&amp;*()+,-&lt;=&gt;?/:[]^{|}~" />
+
+                <RegExpr      attribute="Normal Text"           context="#stay"        String="[A-Za-z_.$][A-Za-z0-9_.$]*" />
+            </context>
+            <context attribute="Comment" lineEndContext="#pop"  name="Comment">
+            </context>
+            <context attribute="String" lineEndContext="#pop"   name="SingleQuote">
+                <HlCStringChar attribute="String Char"          context="#stay" />
+                <DetectChar    attribute="String"               context="#pop"         char="&apos;" />
+            </context>
+            <context attribute="String" lineEndContext="#pop"   name="DoubleQuote">
+                <HlCStringChar attribute="String Char"          context="#stay" />
+                <DetectChar    attribute="String"               context="#pop"         char="&quot;" />
+            </context>
+            <context attribute="Preprocessor" lineEndContext="#pop" name="Preprocessor">
+                <DetectChar    attribute="String"                context="DoubleQuote"  char="&quot;" />
+                <DetectChar    attribute="String"                context="SingleQuote"  char="&apos;" />
+                <DetectChar    attribute="Comment"               context="Comment"      char=";" />
+            </context>
+            <context attribute="Normal Text" lineEndContext="#pop" name="Some Context" />
+        </contexts>
+
+        <itemDatas>
+            <itemData name="Subroutine"          defStyleNum="dsKeyword"      />
+            <itemData name="Macro"               defStyleNum="dsKeyword"      />
+            <itemData name="Normal Text"         defStyleNum="dsNormal"       />
+            <itemData name="Label"               defStyleNum="dsFunction"     />
+            <itemData name="Pseudo Ops"          defStyleNum="dsKeyword"      />
+            <itemData name="Registers"           defStyleNum="dsConstant"     />
+            <itemData name="Ports"               defStyleNum="dsConstant"     />
+            <itemData name="Instructions"        defStyleNum="dsKeyword"      />
+            <itemData name="Branch Instructions" defStyleNum="dsControlFlow"  />
+            <itemData name="Decimal"             defStyleNum="dsDecVal"       />
+            <itemData name="Octal"               defStyleNum="dsBaseN"        />
+            <itemData name="Hex"                 defStyleNum="dsBaseN"        />
+            <itemData name="Binary"              defStyleNum="dsBaseN"        />
+            <itemData name="Char"                defStyleNum="dsChar"         />
+            <itemData name="String"              defStyleNum="dsString"       />
+            <itemData name="String Char"         defStyleNum="dsSpecialChar"  />
+            <itemData name="Symbol"              defStyleNum="dsOperator"     />
+            <itemData name="Comment"             defStyleNum="dsComment"      />
+            <itemData name="Preprocessor"        defStyleNum="dsPreprocessor" />
+        </itemDatas>
+    </highlighting>
+
+    <general>
+        <comments>
+            <comment name="singleLine" start=";" />
+        </comments>
+        <keywords casesensitive="false" weakDeliminator="_.$" />
+    </general>
+</language>

@@ -10,17 +10,16 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 find_package(fmt)
 
 add_executable(asm1802 main.cpp
+    README.md
+
     sourcecodereader.h sourcecodereader.cpp
     assemblyexception.h assemblyexception.cpp
-
     utils.h utils.cpp
     listingfilewriter.h listingfilewriter.cpp
     opcodetable.h opcodetable.cpp
     symboltable.h symboltable.cpp
     errortable.h errortable.cpp
-    README.md
     assemblyexpressionevaluator.h assemblyexpressionevaluator.cpp
-
     binarywriter.h binarywriter.cpp
     binarywriter_intelhex.h binarywriter_intelhex.cpp
     binarywriter_idiot4.h binarywriter_idiot4.cpp
@@ -28,11 +27,14 @@ add_executable(asm1802 main.cpp
     preprocessor.h preprocessor.cpp
     preprocessorexception.h preprocessorexception.cpp
     expressiontokenizer.h expressiontokenizer.cpp
-
     preprocessorexpressionevaluator.h preprocessorexpressionevaluator.cpp
     expressionexception.h expressionexception.cpp
     expressionevaluatorbase.h expressionevaluatorbase.cpp
-    asm1802.xml
+
+    lsp/cdp1802-ls.py
+    syntax/asm1802.xml
+
+
 
     )
 

@@ -287,3 +287,39 @@ During assembly, Param1..N are substituted from the call.
 - Macros defined inside a subroutine, are local to that subroutine.
 
 - Macros cannot contain labels.
+
+# Syntax Highlighting
+
+Linux users using editors based on KatePart can benefit from syntax highlighting using
+the installed /usr/local/share/org.kde.syntax-highlighting/syntax/asm1802.xml highlighting 
+definitions.  This should happen automatically in Kate, providing the source file is 
+recognised as 1802 assembler. (You can check/force this by clicking on the file type
+on the right had side of kate's status bar, and selecting "CDP1802 Assembler (asm1802)"
+
+# Language Server Protocol
+
+If your editor supports the Language Server Protocol, a rudimentry server is installed
+as /usr/local/bin/cdp1802-languageserver.py. Configure your editor to use this server 
+using JSON/RCP over STDIO
+
+## Kate
+
+Within Kate, select "Settings", "Configure Kate" then select the "LSP Client" node and 
+"User Server Settings" tab. Enter/add the following:
+
+```
+{
+    "servers": {
+        "asm1802": {
+            "command": ["/usr/local/bin/cdp1802-languageserver.py", "start"],
+            "root": ""
+        }
+    }
+}
+```
+
+## QTCreator
+
+Within QTCreator, select "Edit", "Preferences", then select the "Language Client" and "Add" 
+a new "Generic Stdio Language Server". Set the MIME type to text/x-asm, file mask to *.asm 
+and path to executable to /usr/local/bin/cdp1802-languageserver.py

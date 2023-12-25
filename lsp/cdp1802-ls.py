@@ -188,9 +188,10 @@ def hover(ls, params: lsp.TextDocumentPositionParams) -> lsp.Hover:
                     )
                 )
 
+        Symbols = SymbolTable(ls, uri)
+
         # Show definition for EQUates
         lineNumber = params.position.line
-        Symbols = SymbolTable(ls, uri)
         GotoURI, GotoLine = Symbols.LookupSymbol(ls, word, uri, lineNumber)
         if GotoURI:
             targetDoc = ls.workspace.get_text_document(GotoURI)
@@ -208,17 +209,45 @@ def hover(ls, params: lsp.TextDocumentPositionParams) -> lsp.Hover:
                         )
 
         # Display Macro definition
-        Symbols = SymbolTable(ls, uri)
-        uri,Lines = Symbols.Macrodefinition(ls, word)
+        uri,Lines,LineNumber = Symbols.MacroDefinition(ls, word)
         if Lines:
             uriparts = urlparse(uri)
             file = os.path.basename(uriparts.path)
             return lsp.Hover(
                 contents = lsp.MarkupContent(
                     kind = lsp.MarkupKind.Markdown,
-                   value = "### " + word.upper() + " (Macro)\n\nDefined in: "+file+"\n\n```\n" + Lines + "\n```\n"
+                   value = "### " + word.upper() + " (Macro)\n\nDefined in: "+file+" ("+str(LineNumber+1)+")\n\n```\n" + Lines + "\n```\n"
                    )
                 )
+
+        # Display Subroutine definition
+        uri,Lines,LineNumber = Symbols.SubroutineDefinition(ls, word)
+        if Lines:
+            uriparts = urlparse(uri)
+            file = os.path.basename(uriparts.path)
+            return lsp.Hover(
+                contents = lsp.MarkupContent(
+                    kind = lsp.MarkupKind.Markdown,
+                   value = "### " + word.upper() + " (Subroutine)\n\nDefined in: "+file+" ("+str(LineNumber+1)+")\n\n```\n" + Lines + "\n```\n"
+                   )
+                )
+
+        # Display Label definition
+        uri = params.text_document.uri
+        document = ls.workspace.get_text_document(uri)
+        line = params.position.line
+        word = document.word_at_position(params.position).lower()
+        LabelURI, LabelLine = Symbols.LookupSymbol(ls, word, uri, line)
+        if LabelURI:
+            urlparts = urlparse(LabelURI)
+            file = os.path.basename(urlparts.path)
+            return lsp.Hover(
+                contents = lsp.MarkupContent(
+                    kind = lsp.MarkupKind.Markdown,
+                   value = "### " + word.upper() + " (Label)\n\nDefined in: " + file + " ("+str(LabelLine+1)+")\n"
+                   )
+                )
+
     except:
         ls.show_message("Exception Thrown\n" + traceback.format_exc())
     return None
@@ -360,15 +389,41 @@ class SymbolTable:
                 return Blk.symbols[Label].uri, Blk.symbols[Label].line
         if Label in self.Globals.keys():
             return self.Globals[Label].uri, self.Globals[Label].line
-        return "",""
+        return "",0
 
-    def Macrodefinition(self, ls, Name : str) -> List[str]:
+    def MacroDefinition(self, ls, Name : str) -> str:
         if Name in self.Macro.keys():
             M = self.Macro[Name]
-            out : str = ""
             document = ls.workspace.get_text_document(M.uri)
-            return M.uri,"".join(document.lines[M.startLine : M.endLine + 1])
-        return "",""
+
+            startLine = M.startLine
+            while startLine > 0 and Trim(document.lines[startLine - 1]).lstrip(" \t") == "":
+                startLine -= 1
+
+            output = ""
+            for Line in document.lines[startLine : M.endLine + 1]:
+                if Line.rstrip(" \n\r\t"):
+                    output += Line.lstrip(" \t")
+
+            return M.uri, output, M.startLine
+        return "","",0
+
+    def SubroutineDefinition(self, ls, Name : str) -> str:
+        if Name in self.Subroutine.keys():
+            S = self.Subroutine[Name]
+            document = ls.workspace.get_text_document(S.uri)
+
+            startLine = S.startLine
+            while startLine > 0 and Trim(document.lines[startLine - 1]).lstrip(" \t") == "":
+                startLine -= 1
+
+            output = ""
+            for Line in document.lines[startLine : S.startLine + 1]:
+                if Line.rstrip(" \n\r\t"):
+                    output += Line.lstrip(" \t")
+
+            return S.uri, output, S.startLine
+        return "","",0
 
 def Trim(input : str) -> str:
     """ Remove trailing white space and comments from string """
@@ -410,9 +465,7 @@ def Trim(input : str) -> str:
             inEscape = False
             continue
 
-    while len(output) > 0 and (output[-1] == '\r' or output[-1] == '\n' or output[-1] == ' ' or output[-1] == '\t'):
-        output = output[0:-1]
-    return output;
+    return output.rstrip(" \n\r\t");
 
 # def DumpSymbols(self, ls):
 #     out : str = "SUBROUTINES\n"

@@ -31,7 +31,7 @@ add_executable(asm1802 main.cpp
     expressionexception.h expressionexception.cpp
     expressionevaluatorbase.h expressionevaluatorbase.cpp
 
-    lsp/cdp1802-ls.py
+    lsp/cdp1802-languageserver.py
     syntax/asm1802.xml
 
 
@@ -43,8 +43,12 @@ install(TARGETS asm1802
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-install(FILES asm1802.xml
+install(FILES syntax/asm1802.xml
     DESTINATION share/org.kde.syntax-highlighting/syntax
+)
+
+install(PROGRAMS lsp/cdp1802-languageserver.py
+    DESTINATION bin
 )
 
 target_link_libraries(asm1802 fmt::fmt)

@@ -403,7 +403,7 @@ class SymbolTable:
             output = ""
             for Line in document.lines[startLine : M.endLine + 1]:
                 if Line.rstrip(" \n\r\t"):
-                    output += Line.lstrip(" \t")
+                    output += Line
 
             return M.uri, output, M.startLine
         return "","",0
@@ -420,7 +420,7 @@ class SymbolTable:
             output = ""
             for Line in document.lines[startLine : S.startLine + 1]:
                 if Line.rstrip(" \n\r\t"):
-                    output += Line.lstrip(" \t")
+                    output += Line
 
             return S.uri, output, S.startLine
         return "","",0

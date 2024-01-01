@@ -9,7 +9,7 @@
 class SourceCodeReader
 {
 public:
-    enum SourceType
+    enum class SourceType
     {
         SOURCE_NONE,
         SOURCE_FILE,
@@ -40,7 +40,7 @@ public:
     bool getLine(std::string& line);
     inline bool InMacro() const
     {
-        return SourceStreams.size() > 0 ? SourceStreams.top().Type == SOURCE_MACRO : false;
+        return SourceStreams.size() > 0 ? SourceStreams.top().Type == SourceType::SOURCE_MACRO : false;
     };
     inline const std::string& StreamName() const
     {

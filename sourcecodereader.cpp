@@ -7,7 +7,7 @@ SourceCodeReader::SourceEntry::SourceEntry(const std::string& Name) :
     this->Type = SourceType::SOURCE_FILE;
     Stream = new std::ifstream(Name);
     if(Stream->fail())
-        throw AssemblyException("Unable to open " + Name, SEVERITY_Error);
+        throw AssemblyException("Unable to open " + Name, AssemblyErrorSeverity::SEVERITY_Error);
 }
 
 SourceCodeReader::SourceEntry::SourceEntry(const std::string& Name, const std::string& Data) :
@@ -21,7 +21,7 @@ SourceCodeReader::SourceEntry::SourceEntry(const std::string& Name, const std::s
 SourceCodeReader::SourceCodeReader(const std::string& FileName)
 {
     if(SourceStreams.size() > 100)
-        throw AssemblyException("Source File Nesting limit exceeded", SEVERITY_Error);
+        throw AssemblyException("Source File Nesting limit exceeded", AssemblyErrorSeverity::SEVERITY_Error);
     try
     {
         SourceEntry Entry(FileName);
@@ -29,7 +29,7 @@ SourceCodeReader::SourceCodeReader(const std::string& FileName)
     }
     catch (...)
     {
-        throw AssemblyException("Unable to open " + FileName, SEVERITY_Error);
+        throw AssemblyException("Unable to open " + FileName, AssemblyErrorSeverity::SEVERITY_Error);
     }
 }
 
@@ -57,7 +57,7 @@ bool SourceCodeReader::getLine(std::string &Line)
 void SourceCodeReader::InsertMacro(const std::string& Name, const std::string& Data)
 {
     if(SourceStreams.size() > 16)
-        throw AssemblyException("Maximum Macro nesting level exceeded", SEVERITY_Error);
+        throw AssemblyException("Maximum Macro nesting level exceeded", AssemblyErrorSeverity::SEVERITY_Error);
     SourceEntry Entry(Name, Data);
     SourceStreams.push(Entry);
 }

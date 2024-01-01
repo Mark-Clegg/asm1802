@@ -9,7 +9,7 @@
 class ExpressionTokenizer
 {
 public:
-    enum TokenEnum
+    enum class TokenEnum
     {
         TOKEN_BITWISE_AND,
         TOKEN_BITWISE_NOT,

@@ -206,13 +206,13 @@ For Logical operators, 0 = false, 1 = true.
 
 | Menmonic | Meaning |
 | --- | --- |
-| ALIGN arg | align to boundary (arg = 2,4,8,16,32,64,128 or 256) |
+| ALIGN arg | Pad code output with 0 to align to boundary (arg = 2,4,8,16,32,64,128 or 256) |
 | ASSERT expression | Throw an error if expression evaluates to false (0) |
 | DB value list | Define Bytes, each value can be numeric or "string" |
 | DW value list | Define Word (double bytes) |
 | DL value list | Define Long (quad bytes) |
 | EQU value | Assign value to label |
-| ORG arg | Set Address |
+| ORG arg | Set Address. |
 | SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO }, STATIC | Define a Subroutine, optionally aligned to boundary, optionally prevent removal if unreferenced |
 | ENDSUB | End of Subroutine Definition |
 | MACRO parameters | Define a Macro |

@@ -10,7 +10,7 @@
 
 namespace fs = std::filesystem;
 
-enum AssemblyErrorSeverity
+enum class AssemblyErrorSeverity
 {
     SEVERITY_Warning,   // Assembly can continue, and correct code will be generated
     SEVERITY_Error,     // Assembly can continue, but incorrect code will be generated
@@ -19,7 +19,7 @@ enum AssemblyErrorSeverity
 class AssemblyException : public std::exception
 {
 public:
-    AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity, OpCodeTypeEnum OpCodeType = BASIC);
+    AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity, OpCodeTypeEnum OpCodeType = OpCodeTypeEnum::BASIC);
     AssemblyException(const std::string& Message, AssemblyErrorSeverity Severity, OpCodeEnum SkipToOpCode);
     AssemblyErrorSeverity Severity;
 

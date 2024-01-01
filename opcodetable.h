@@ -150,7 +150,7 @@ enum OpCodeEnum
 
 };
 
-enum OpCodeTypeEnum
+enum class OpCodeTypeEnum
 {
     BASIC,                          // OPCODE
     REGISTER,                       // OPCODE Rn (n=0-F)
@@ -166,7 +166,7 @@ enum OpCodeTypeEnum
     PSEUDO_OP                       // Pseudo Operation
 };
 
-enum CPUTypeEnum
+enum class CPUTypeEnum
 {
     CPU_1802  = 0,
     CPU_1806  = 1,

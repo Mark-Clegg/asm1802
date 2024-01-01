@@ -4,12 +4,12 @@
 
 const std::map<std::string, AssemblyExpressionEvaluator::FunctionSpec> AssemblyExpressionEvaluator::FunctionTable =
 {
-    { "CPU",         { FN_PROCESSOR, 1 }},
-    { "PROCESSOR",   { FN_PROCESSOR, 1 }},
-    { "HIGH",        { FN_HIGH,      1 }},
-    { "LOW",         { FN_LOW,       1 }},
-    { "ISDEF",       { FN_ISDEF,     1 }},
-    { "ISNDEF",      { FN_ISNDEF,    1 }}
+    { "CPU",         { FunctionEnum::FN_PROCESSOR, 1 }},
+    { "PROCESSOR",   { FunctionEnum::FN_PROCESSOR, 1 }},
+    { "HIGH",        { FunctionEnum::FN_HIGH,      1 }},
+    { "LOW",         { FunctionEnum::FN_LOW,       1 }},
+    { "ISDEF",       { FunctionEnum::FN_ISDEF,     1 }},
+    { "ISNDEF",      { FunctionEnum::FN_ISNDEF,    1 }}
 };
 
 AssemblyExpressionEvaluator::AssemblyExpressionEvaluator(const SymbolTable& Global, uint16_t ProgramCounter, CPUTypeEnum Processor) :
@@ -38,30 +38,30 @@ int AssemblyExpressionEvaluator::AtomValue()
     auto Token = TokenStream.Get();
     switch(Token)
     {
-        case ExpressionTokenizer::TOKEN_QUOTED_STRING:
+        case ExpressionTokenizer::TokenEnum::TOKEN_QUOTED_STRING:
             throw ExpressionException("Unexpected string literal");
             break;
-        case ExpressionTokenizer::TOKEN_NUMBER:
+        case ExpressionTokenizer::TokenEnum::TOKEN_NUMBER:
             Result = TokenStream.IntegerValue;
             break;
 
-        case ExpressionTokenizer::TOKEN_DOLLAR:
-        case ExpressionTokenizer::TOKEN_DOT:
+        case ExpressionTokenizer::TokenEnum::TOKEN_DOLLAR:
+        case ExpressionTokenizer::TokenEnum::TOKEN_DOT:
             Result = ProgramCounter;
             break;
 
-        case ExpressionTokenizer::TOKEN_OPEN_BRACE: // Bracketed Expression
+        case ExpressionTokenizer::TokenEnum::TOKEN_OPEN_BRACE: // Bracketed Expression
             Result = EvaluateSubExpression();
-            if (TokenStream.Peek() != ExpressionTokenizer::TOKEN_CLOSE_BRACE)
+            if (TokenStream.Peek() != ExpressionTokenizer::TokenEnum::TOKEN_CLOSE_BRACE)
                 throw ExpressionException("Expected ')'");
             else
                 TokenStream.Get();
             break;
 
-        case ExpressionTokenizer::TOKEN_LABEL:
+        case ExpressionTokenizer::TokenEnum::TOKEN_LABEL:
         {
             std::string Label = TokenStream.StringValue;
-            if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_OPEN_BRACE)
+            if(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_OPEN_BRACE)
             {
                 TokenStream.Get();
 
@@ -72,10 +72,10 @@ int AssemblyExpressionEvaluator::AtomValue()
                 std::vector<int> Arguments = { };
                 switch(FunctionSpec->second.ID)
                 {
-                    case FN_PROCESSOR:
+                    case FunctionEnum::FN_PROCESSOR:
                     {
                         std::string Value;
-                        if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_QUOTED_STRING)
+                        if(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_QUOTED_STRING)
                             TokenStream.Get();
                         else if(!TokenStream.GetCustomToken(std::regex(R"(^(([Cc][Dd][Pp])?180[2456][Aa]?).*)")))
                             throw ExpressionException("Expected Processor designation");
@@ -83,7 +83,7 @@ int AssemblyExpressionEvaluator::AtomValue()
                         Value = TokenStream.StringValue;
                         ToUpper(Value);
 
-                        if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_CLOSE_BRACE)
+                        if(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_CLOSE_BRACE)
                         {
                             TokenStream.Get();
 
@@ -96,23 +96,23 @@ int AssemblyExpressionEvaluator::AtomValue()
                             throw ExpressionException("Extra characters after Processor designation");
                         break;
                     }
-                    case FN_LOW:
+                    case FunctionEnum::FN_LOW:
                         if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
                             throw ExpressionException("Incorrect number of arguments: LOW expects 1 argument");
                         Result = Arguments[0] & 0xFF;
                         break;
-                    case FN_HIGH:
+                    case FunctionEnum::FN_HIGH:
                         if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
                             throw ExpressionException("Incorrect number of arguments: HIGH expects 1 argument");
                         Result = (Arguments[0] >> 8) & 0xFF;
                         break;
-                    case FN_ISDEF:
-                        if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_LABEL)
+                    case FunctionEnum::FN_ISDEF:
+                        if(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_LABEL)
                         {
                             Result = 0;
                             TokenStream.Get();
                             std::string Label = TokenStream.StringValue;
-                            if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_CLOSE_BRACE)
+                            if(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_CLOSE_BRACE)
                             {
                                 TokenStream.Get();
                                 if (LocalSymbols && Local->Symbols.find(Label) != Local->Symbols.end())
@@ -126,13 +126,13 @@ int AssemblyExpressionEvaluator::AtomValue()
                         else
                             throw ExpressionException("ISDEF expects a single LABEL argument");
                         break;
-                    case FN_ISNDEF:
-                        if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_LABEL)
+                    case FunctionEnum::FN_ISNDEF:
+                        if(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_LABEL)
                         {
                             Result = 1;
                             TokenStream.Get();
                             std::string Label = TokenStream.StringValue;
-                            if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_CLOSE_BRACE)
+                            if(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_CLOSE_BRACE)
                             {
                                 TokenStream.Get();
                                 if (LocalSymbols && Local->Symbols.find(Label) != Local->Symbols.end())

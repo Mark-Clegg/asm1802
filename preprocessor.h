@@ -10,7 +10,7 @@
 
 class PreProcessor
 {
-    enum DirectiveEnum
+    enum class DirectiveEnum
     {
         PP_processor,
         PP_define,
@@ -52,7 +52,7 @@ private:
     inline void WriteLineMarker(std::ofstream& Output, const std::string& FileName, const int LineNumber);
 
     std::map<std::string, std::string> Defines;
-    CPUTypeEnum Processor = CPU_1802;
+    CPUTypeEnum Processor = CPUTypeEnum::CPU_1802;
 
     static const std::map<std::string, PreProcessor::DirectiveEnum> Directives;
     bool IsDirective(const std::string& Line, DirectiveEnum& Directive, std::string& Expression);

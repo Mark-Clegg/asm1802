@@ -10,7 +10,7 @@
 class AssemblyExpressionEvaluator : public ExpressionEvaluatorBase
 {
 public:
-    enum FunctionEnum
+    enum class FunctionEnum
     {
         FN_PROCESSOR,
         FN_HIGH,

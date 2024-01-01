@@ -14,20 +14,20 @@ namespace fs = std::filesystem;
 
 const std::map<std::string, PreProcessor::DirectiveEnum> PreProcessor::Directives =
 {
-    { "CPU",         PP_processor },
-    { "PROCESSOR",   PP_processor },
-    { "DEFINE",      PP_define    },
-    { "UNDEF",       PP_undef     },
-    { "IF",          PP_if        },
-    { "IFDEF",       PP_ifdef     },
-    { "IFNDEF",      PP_ifndef    },
-    { "ELSE",        PP_else      },
-    { "ELIF",        PP_elif      },
-    { "ENDIF",       PP_endif     },
-    { "INCLUDE",     PP_include   },
-    { "ERROR",       PP_error     },
-    { "LIST",        PP_list      },
-    { "SYMBOLS",     PP_symbols   }
+    { "CPU",         DirectiveEnum::PP_processor },
+    { "PROCESSOR",   DirectiveEnum::PP_processor },
+    { "DEFINE",      DirectiveEnum::PP_define    },
+    { "UNDEF",       DirectiveEnum::PP_undef     },
+    { "IF",          DirectiveEnum::PP_if        },
+    { "IFDEF",       DirectiveEnum::PP_ifdef     },
+    { "IFNDEF",      DirectiveEnum::PP_ifndef    },
+    { "ELSE",        DirectiveEnum::PP_else      },
+    { "ELIF",        DirectiveEnum::PP_elif      },
+    { "ENDIF",       DirectiveEnum::PP_endif     },
+    { "INCLUDE",     DirectiveEnum::PP_include   },
+    { "ERROR",       DirectiveEnum::PP_error     },
+    { "LIST",        DirectiveEnum::PP_list      },
+    { "SYMBOLS",     DirectiveEnum::PP_symbols   }
 };
 
 //!
@@ -117,7 +117,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                 {
                     switch(Directive)
                     {
-                        case PP_define:
+                        case DirectiveEnum::PP_define:
                         {
                             std::string key;
                             std::string value;
@@ -138,7 +138,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             Defines[key]=value;
                             break;
                         }
-                        case PP_undef:
+                        case DirectiveEnum::PP_undef:
                         {
                             std::smatch MatchResult;
                             if(regex_match(Expression, MatchResult, std::regex(R"(^([_[:alpha:]][_.[:alnum:]]*)$)")))
@@ -151,7 +151,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Invalid variable name");
                             break;
                         }
-                        case  PP_if:
+                        case  DirectiveEnum::PP_if:
                         {
                             ElseCounters.push(0);
                             IfNestingLevel.top()++;
@@ -171,14 +171,14 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
 
                             if(Result == 0)
                             {
-                                if(SkipTo({ PP_else, PP_elif, PP_endif }) == PP_endif)
+                                if(SkipTo({ DirectiveEnum::PP_else, DirectiveEnum::PP_elif, DirectiveEnum::PP_endif }) == DirectiveEnum::PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
                             }
                             break;
                         }
-                        case PP_ifdef:
+                        case DirectiveEnum::PP_ifdef:
                         {
                             ElseCounters.push(0);
                             IfNestingLevel.top()++;
@@ -187,14 +187,14 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             ToUpper(Expression);
                             if(Defines.find(Expression) == Defines.end())
                             {
-                                if(SkipTo({ PP_else, PP_elif, PP_endif }) == PP_endif)
+                                if(SkipTo({ DirectiveEnum::PP_else, DirectiveEnum::PP_elif, DirectiveEnum::PP_endif }) == DirectiveEnum::PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
                             }
                             break;
                         }
-                        case PP_ifndef:
+                        case DirectiveEnum::PP_ifndef:
                         {
                             ElseCounters.push(0);
                             IfNestingLevel.top()++;
@@ -203,14 +203,14 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             ToUpper(Expression);
                             if(Defines.find(Expression) != Defines.end())
                             {
-                                if(SkipTo({ PP_else, PP_elif, PP_endif }) == PP_endif)
+                                if(SkipTo({ DirectiveEnum::PP_else, DirectiveEnum::PP_elif, DirectiveEnum::PP_endif }) == DirectiveEnum::PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
                             }
                             break;
                         }
-                        case PP_else:
+                        case DirectiveEnum::PP_else:
                             if(IfNestingLevel.top() <= 0)
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#else without preceeding #if");
                             if(ElseCounters.top() != 0)
@@ -218,24 +218,24 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             ElseCounters.top()++;
                             if(!Expression.empty())
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Extra characters after #else");
-                            if(SkipTo({ PP_endif }) == PP_endif)
+                            if(SkipTo({ DirectiveEnum::PP_endif }) == DirectiveEnum::PP_endif)
                             {
                                 IfNestingLevel.top()--;
                             }
                             break;
-                        case PP_elif:
+                        case DirectiveEnum::PP_elif:
                         {
                             if(IfNestingLevel.top() <= 0)
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#elif without preceeding #if");
                             if(ElseCounters.top() != 0)
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#elif must come before #else");
-                            if(SkipTo({ PP_endif }) == PP_endif)
+                            if(SkipTo({ DirectiveEnum::PP_endif }) == DirectiveEnum::PP_endif)
                             {
                                 IfNestingLevel.top()--;
                             }
                             break;
                         }
-                        case PP_endif:
+                        case DirectiveEnum::PP_endif:
                         {
                             if(IfNestingLevel.top() <= 0)
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#endif without preceeding #if");
@@ -245,11 +245,11 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             IfNestingLevel.top()--;
                             break;
                         }
-                        case PP_error:
+                        case DirectiveEnum::PP_error:
                             throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, fmt::format("#error: {Message}", fmt::arg("Message", Expression)));
                             break;
 
-                        case PP_include:
+                        case DirectiveEnum::PP_include:
                         {
                             std::smatch MatchResult;
                             if(regex_match(Expression, MatchResult, std::regex(R"(^[<\"]([^>\"]+)[>\"]$)")))
@@ -265,7 +265,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unable to interpret filename expected <filename> or \"filename\"");
                             break;
                         }
-                        case PP_processor: // Check syntax, save value, and pass through to main assembler
+                        case DirectiveEnum::PP_processor: // Check syntax, save value, and pass through to main assembler
                         {
                             std::string Operand = Expression;
                             ToUpper(Operand);
@@ -275,10 +275,10 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             Processor = CPU->second;
                             break;
                         }
-                        case PP_list: // Check syntax and just pass through to main assembler
+                        case DirectiveEnum::PP_list: // Check syntax and just pass through to main assembler
                             OnOffCheck(Expression);
                             break;
-                        case PP_symbols: // Check syntax and just pass through to main assembler
+                        case DirectiveEnum::PP_symbols: // Check syntax and just pass through to main assembler
                             OnOffCheck(Expression);
                             break;
                     }
@@ -466,12 +466,12 @@ PreProcessor::DirectiveEnum PreProcessor::SkipTo(const std::set<DirectiveEnum>& 
         {
             switch (Directive)
             {
-                case PP_if:
-                case PP_ifdef:
-                case PP_ifndef:
+                case DirectiveEnum::PP_if:
+                case DirectiveEnum::PP_ifdef:
+                case DirectiveEnum::PP_ifndef:
                     Level++;
                     break;
-                case PP_else:
+                case DirectiveEnum::PP_else:
                     if (Level == 0)
                     {
                         if(ElseCounters.top() != 0)
@@ -481,7 +481,7 @@ PreProcessor::DirectiveEnum PreProcessor::SkipTo(const std::set<DirectiveEnum>& 
                         fmt::println(OutputStream, "{Line}", fmt::arg("Line", RawLine));
                     }
                     break;
-                case PP_endif:
+                case DirectiveEnum::PP_endif:
                     if (Level == 0)
                     {
                         WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
@@ -491,7 +491,7 @@ PreProcessor::DirectiveEnum PreProcessor::SkipTo(const std::set<DirectiveEnum>& 
                     else
                         Level--;
                     break;
-                case PP_elif:
+                case DirectiveEnum::PP_elif:
                     if (Level == 0)
                     {
                         if(ElseCounters.top() != 0)
@@ -514,7 +514,7 @@ PreProcessor::DirectiveEnum PreProcessor::SkipTo(const std::set<DirectiveEnum>& 
                         }
 
                         if(Result == 0)
-                            return SkipTo({ PP_else, PP_elif, PP_endif });
+                            return SkipTo({ DirectiveEnum::PP_else, DirectiveEnum::PP_elif, DirectiveEnum::PP_endif });
                         break;
                     }
                 // The remaining directives have no effect on if/else/end processing

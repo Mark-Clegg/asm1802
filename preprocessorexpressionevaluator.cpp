@@ -5,10 +5,10 @@
 
 const std::map<std::string, PreProcessorExpressionEvaluator::FunctionSpec> PreProcessorExpressionEvaluator::FunctionTable =
 {
-    { "HIGH",        { FN_HIGH,      1 }},
-    { "LOW",         { FN_LOW,       1 }},
-    { "CPU",         { FN_PROCESSOR, 1 }},
-    { "PROCESSOR",   { FN_PROCESSOR, 1 }}
+    { "HIGH",        { FunctionEnum::FN_HIGH,      1 }},
+    { "LOW",         { FunctionEnum::FN_LOW,       1 }},
+    { "CPU",         { FunctionEnum::FN_PROCESSOR, 1 }},
+    { "PROCESSOR",   { FunctionEnum::FN_PROCESSOR, 1 }}
 };
 
 PreProcessorExpressionEvaluator::PreProcessorExpressionEvaluator(const CPUTypeEnum Processor) : ExpressionEvaluatorBase(), Processor(Processor)
@@ -27,26 +27,26 @@ int PreProcessorExpressionEvaluator::AtomValue()
     auto Token = TokenStream.Get();
     switch(Token)
     {
-        case ExpressionTokenizer::TOKEN_QUOTED_STRING:
+        case ExpressionTokenizer::TokenEnum::TOKEN_QUOTED_STRING:
             throw ExpressionException("String literals are not valid in pre-processor expressions");
             break;
 
-        case ExpressionTokenizer::TOKEN_NUMBER:
+        case ExpressionTokenizer::TokenEnum::TOKEN_NUMBER:
             Result = TokenStream.IntegerValue;
             break;
 
-        case ExpressionTokenizer::TOKEN_OPEN_BRACE: // Bracketed Expression
+        case ExpressionTokenizer::TokenEnum::TOKEN_OPEN_BRACE: // Bracketed Expression
             Result = EvaluateSubExpression();
-            if (TokenStream.Peek() != ExpressionTokenizer::TOKEN_CLOSE_BRACE)
+            if (TokenStream.Peek() != ExpressionTokenizer::TokenEnum::TOKEN_CLOSE_BRACE)
                 throw ExpressionException("Expected ')'");
             else
                 TokenStream.Get();
             break;
 
-        case ExpressionTokenizer::TOKEN_LABEL:
+        case ExpressionTokenizer::TokenEnum::TOKEN_LABEL:
         {
             std::string Label = TokenStream.StringValue;
-            if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_OPEN_BRACE)
+            if(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_OPEN_BRACE)
             {
                 TokenStream.Get();
 
@@ -57,20 +57,20 @@ int PreProcessorExpressionEvaluator::AtomValue()
                 std::vector<int> Arguments = { };
                 switch(FunctionSpec->second.ID)
                 {
-                    case FN_LOW:
+                    case FunctionEnum::FN_LOW:
                         if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
                             throw ExpressionException("Incorrect number of arguments: LOW expects 1 argument");
                         Result = Arguments[0] & 0xFF;
                         break;
-                    case FN_HIGH:
+                    case FunctionEnum::FN_HIGH:
                         if(!GetFunctionArguments(Arguments, FunctionSpec->second.Arguments))
                             throw ExpressionException("Incorrect number of arguments: HIGH expects 1 argument");
                         Result = (Arguments[0] >> 8) & 0xFF;
                         break;
-                    case FN_PROCESSOR:
+                    case FunctionEnum::FN_PROCESSOR:
                     {
                         std::string Value;
-                        if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_QUOTED_STRING)
+                        if(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_QUOTED_STRING)
                             TokenStream.Get();
                         else if(!TokenStream.GetCustomToken(std::regex(R"(^(([Cc][Dd][Pp])?180[2456][Aa]?).*)")))
                             throw ExpressionException("Expected Processor designation");
@@ -78,7 +78,7 @@ int PreProcessorExpressionEvaluator::AtomValue()
                         Value = TokenStream.StringValue;
                         ToUpper(Value);
 
-                        if(TokenStream.Peek() == ExpressionTokenizer::TOKEN_CLOSE_BRACE)
+                        if(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_CLOSE_BRACE)
                         {
                             TokenStream.Get();
 

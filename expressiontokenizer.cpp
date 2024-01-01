@@ -56,81 +56,81 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
 
     char FirstChar = InputStream.get();
     if(InputStream.eof() || InputStream.fail())
-        Result = TOKEN_END;
+        Result = TokenEnum::TOKEN_END;
     else
     {
         switch(FirstChar)
         {
             case '"':
                 StringValue = QuotedString();
-                Result = TOKEN_QUOTED_STRING;
+                Result = TokenEnum::TOKEN_QUOTED_STRING;
                 break;
             case '(':
-                Result = TOKEN_OPEN_BRACE;
+                Result = TokenEnum::TOKEN_OPEN_BRACE;
                 break;
             case ')':
-                Result = TOKEN_CLOSE_BRACE;
+                Result = TokenEnum::TOKEN_CLOSE_BRACE;
                 break;
             case '.':
-                Result = TOKEN_DOT;
+                Result = TokenEnum::TOKEN_DOT;
                 break;
             case '+':
-                Result = TOKEN_PLUS;
+                Result = TokenEnum::TOKEN_PLUS;
                 break;
             case '-':
-                Result = TOKEN_MINUS;
+                Result = TokenEnum::TOKEN_MINUS;
                 break;
             case '*':
-                Result = TOKEN_MULTIPLY;
+                Result = TokenEnum::TOKEN_MULTIPLY;
                 break;
             case '/':
-                Result = TOKEN_DIVIDE;
+                Result = TokenEnum::TOKEN_DIVIDE;
                 break;
             case '%':
-                Result = TOKEN_REMAINDER;
+                Result = TokenEnum::TOKEN_REMAINDER;
                 break;
             case '&':
                 if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == '&')
                 {
                     InputStream.ignore();
-                    Result = TOKEN_LOGICAL_AND;
+                    Result = TokenEnum::TOKEN_LOGICAL_AND;
                 }
                 else
-                    Result = TOKEN_BITWISE_AND;
+                    Result = TokenEnum::TOKEN_BITWISE_AND;
                 break;
             case '^':
-                Result = TOKEN_BITWISE_XOR;
+                Result = TokenEnum::TOKEN_BITWISE_XOR;
                 break;
             case '|':
                 if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == '|')
                 {
                     InputStream.ignore();
-                    Result = TOKEN_LOGICAL_OR;
+                    Result = TokenEnum::TOKEN_LOGICAL_OR;
                 }
                 else
-                    Result = TOKEN_BITWISE_OR;
+                    Result = TokenEnum::TOKEN_BITWISE_OR;
                 break;
             case '~':
-                Result = TOKEN_BITWISE_NOT;
+                Result = TokenEnum::TOKEN_BITWISE_NOT;
                 break;
             case '=':
                 if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == '=')
                     InputStream.ignore();
-                Result = TOKEN_EQUAL;
+                Result = TokenEnum::TOKEN_EQUAL;
                 break;
             case '!':
                 if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == '=')
                 {
                     InputStream.ignore();
-                    Result = TOKEN_NOT_EQUAL;
+                    Result = TokenEnum::TOKEN_NOT_EQUAL;
                 }
                 else
-                    Result =  TOKEN_LOGICAL_NOT;
+                    Result =  TokenEnum::TOKEN_LOGICAL_NOT;
                 break;
             case '$':
                 IntegerValue = 0;
                 if(!isxdigit(InputStream.peek()))
-                    Result = TOKEN_DOLLAR;
+                    Result = TokenEnum::TOKEN_DOLLAR;
                 else
                 {
                     while(!InputStream.eof() && !InputStream.fail() && isxdigit(InputStream.peek()))
@@ -139,7 +139,7 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
                         int v = (c >= 'A') ? (c >= 'a') ? (c - 'a' + 10) : (c - 'A' + 10) : (c - '0');
                         IntegerValue = (IntegerValue << 4) + v;
                     }
-                    Result = TOKEN_NUMBER;
+                    Result = TokenEnum::TOKEN_NUMBER;
                 }
                 break;
             case '<':
@@ -148,14 +148,14 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
                     {
                         case '<':
                             InputStream.ignore();
-                            Result = TOKEN_SHIFT_LEFT;
+                            Result = TokenEnum::TOKEN_SHIFT_LEFT;
                             break;
                         case '=':
                             InputStream.ignore();
-                            Result = TOKEN_LESS_OR_EQUAL;
+                            Result = TokenEnum::TOKEN_LESS_OR_EQUAL;
                             break;
                         default:
-                            Result = TOKEN_LESS;
+                            Result = TokenEnum::TOKEN_LESS;
                             break;
                     }
                 break;
@@ -165,14 +165,14 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
                     {
                         case '>':
                             InputStream.ignore();
-                            Result = TOKEN_SHIFT_RIGHT;
+                            Result = TokenEnum::TOKEN_SHIFT_RIGHT;
                             break;
                         case '=':
                             InputStream.ignore();
-                            Result = TOKEN_GREATER_OR_EQUAL;
+                            Result = TokenEnum::TOKEN_GREATER_OR_EQUAL;
                             break;
                         default:
-                            Result = TOKEN_GREATER;
+                            Result = TokenEnum::TOKEN_GREATER;
                             break;
                     }
                 break;
@@ -248,7 +248,7 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
                             throw ExpressionException("Character constant too long");
                     }
                 }
-                Result = TOKEN_NUMBER;
+                Result = TokenEnum::TOKEN_NUMBER;
                 break;
             default:
             {
@@ -258,7 +258,7 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
                     while(!InputStream.eof() && !InputStream.fail() && (isalnum(InputStream.peek()) || InputStream.peek() == '_'))
                         StringValue.push_back(InputStream.get());
                     ToUpper(StringValue);
-                    Result = TOKEN_LABEL;
+                    Result = TokenEnum::TOKEN_LABEL;
                 }
                 else if(isdigit(FirstChar)) // NUMBER
                 {
@@ -274,7 +274,7 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
                                 int v = (c >= 'A') ? (c >= 'a') ? (c - 'a' + 10) : (c - 'A' + 10) : (c - '0');
                                 IntegerValue = (IntegerValue << 4) + v;
                             }
-                            Result = TOKEN_NUMBER;
+                            Result = TokenEnum::TOKEN_NUMBER;
                         }
                         else    // OCTAL
                         {
@@ -286,7 +286,7 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
                                     throw ExpressionException("Invalid digit in Octal constant");
                                 IntegerValue = (IntegerValue << 3) + v;
                             }
-                            Result = TOKEN_NUMBER;
+                            Result = TokenEnum::TOKEN_NUMBER;
                         }
                     }
                     else // DECIMAL
@@ -298,11 +298,11 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
                             int v = c - '0';
                             IntegerValue = IntegerValue * 10 + v;
                         }
-                        Result = TOKEN_NUMBER;
+                        Result = TokenEnum::TOKEN_NUMBER;
                     }
                 }
                 else if(InputStream.eof() || InputStream.fail())
-                    Result = TOKEN_END;
+                    Result = TokenEnum::TOKEN_END;
                 else
                     throw ExpressionException("Unrecognised token in expression");
             }

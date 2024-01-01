@@ -252,9 +252,40 @@ def hover(ls, params: lsp.TextDocumentPositionParams) -> lsp.Hover:
         ls.show_message("Exception Thrown\n" + traceback.format_exc())
     return None
 
+
+def show_configuration_callback(ls):
+    """Gets exampleConfiguration from the client settings using callback."""
+
+    def _config_callback(config):
+        try:
+            #example_config = config[0].get("exampleConfiguration")
+
+            ls.show_message(f"jsonServer.exampleConfiguration value: {config}")
+
+        except Exception as e:
+            ls.show_message_log(f"Error ocurred: {e}")
+
+    cc = ls.client_capabilities
+    if cc.workspace and cc.workspace.configuration:
+        ls.show_message(f"Get Configuration {cc}")
+        ls.get_configuration(
+            lsp.WorkspaceConfigurationParams(
+                items=[
+                    lsp.ConfigurationItem(
+                        scope_uri="", section="qtcreator" # ???????
+                    )
+                ]
+            ),
+            _config_callback
+    )
+
+
 @server.feature(lsp.TEXT_DOCUMENT_DEFINITION, lsp.DefinitionOptions())
-def Declaration(ls, params: lsp.DeclarationParams) -> Optional[Union[lsp.Location, List[lsp.Location], List[lsp.LocationLink]]]:
+def Definition(ls, params: lsp.DeclarationParams) -> Optional[Union[lsp.Location, List[lsp.Location], List[lsp.LocationLink]]]:
     try:
+
+        show_configuration_callback(ls)
+
         uri = params.text_document.uri
         document = ls.workspace.get_text_document(uri)
 

@@ -10,7 +10,7 @@
 class PreProcessorExpressionEvaluator : public ExpressionEvaluatorBase
 {
 public:
-    enum FunctionEnum
+    enum class FunctionEnum
     {
         FN_HIGH,
         FN_LOW,

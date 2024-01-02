@@ -135,6 +135,8 @@ const std::map<std::string, OpCodeSpec> OpCodeTable::OpCode =
     { "SUBROUTINE", { SUB,       OpCodeTypeEnum::PSEUDO_OP,             CPUTypeEnum::CPU_1802  }},
     { "ENDSUB",     { ENDSUB,    OpCodeTypeEnum::PSEUDO_OP,             CPUTypeEnum::CPU_1802  }},
     { "ORG",        { ORG,       OpCodeTypeEnum::PSEUDO_OP,             CPUTypeEnum::CPU_1802  }},
+    { "RORG",       { RORG,      OpCodeTypeEnum::PSEUDO_OP,             CPUTypeEnum::CPU_1802  }},
+    { "REND",       { REND,      OpCodeTypeEnum::PSEUDO_OP,             CPUTypeEnum::CPU_1802  }},
     { "DB",         { DB,        OpCodeTypeEnum::PSEUDO_OP,             CPUTypeEnum::CPU_1802  }},
     { "DW",         { DW,        OpCodeTypeEnum::PSEUDO_OP,             CPUTypeEnum::CPU_1802  }},
     { "DL",         { DL,        OpCodeTypeEnum::PSEUDO_OP,             CPUTypeEnum::CPU_1802  }},

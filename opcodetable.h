@@ -134,20 +134,21 @@ enum OpCodeEnum
 
     // Pseudo OpCodes
 
-    EQU       = 0xFF01,
-    SUB       = 0xFF02,
-    ENDSUB    = 0xFF03,
-    ORG       = 0xFF04,
-    DB        = 0xFF05,
-    DW        = 0xFF06,
-    DL        = 0xFF07,
-    ALIGN     = 0xFF08,
-    ASSERT    = 0xFF09,
-    MACRO     = 0xFF0A,
-    ENDMACRO  = 0xFF0B,
-    MACROEXPANSION = 0xFF0C,
-    END       = 0xFFFF
-
+    EQU  = 0xFF01,
+    SUB,
+    ENDSUB,
+    ORG,
+    RORG,
+    REND,
+    DB,
+    DW,
+    DL,
+    ALIGN,
+    ASSERT,
+    MACRO,
+    ENDMACRO,
+    MACROEXPANSION,
+    END
 };
 
 enum class OpCodeTypeEnum

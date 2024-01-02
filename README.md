@@ -212,12 +212,26 @@ For Logical operators, 0 = false, 1 = true.
 | DW value list | Define Word (double bytes) |
 | DL value list | Define Long (quad bytes) |
 | EQU value | Assign value to label |
-| ORG arg | Set Address. |
+| ORG arg | Set Address |
+| RORG arg | Set relocation address |
+| REND | End relocated code |
 | SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO }, STATIC | Define a Subroutine, optionally aligned to boundary, optionally prevent removal if unreferenced |
 | ENDSUB | End of Subroutine Definition |
 | MACRO parameters | Define a Macro |
 | ENDM | End of Macro Definition |
 | END expression | End of source code. Expression sets the start address |
+
+## Relocation
+
+### RORG address
+
+Causes any following code to be assembled as normal, but stored in memory starting at address.
+This is achieved by calculating the offset between the supplied address and the current program counter.
+This offset is then applied to all subseuent code, including new ORG'ed sections.
+
+### REND
+
+Ends a relocated block. REND is equivalent to "RORG ." which would calculate to an offset of 0.
 
 ## Subroutines
 

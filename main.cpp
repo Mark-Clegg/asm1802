@@ -26,7 +26,7 @@ namespace fs = std::filesystem;
 
 std::string Version("1.0");
 
-enum PreProcessorControlEnum
+enum class PreProcessorControlEnum
 {
     PP_LINE,
     PP_PROCESSOR,
@@ -36,13 +36,13 @@ enum PreProcessorControlEnum
 
 std::map<std::string, PreProcessorControlEnum> PreProcessorControlLookup =
 {
-    { "line",      PP_LINE      },
-    { "processor", PP_PROCESSOR },
-    { "list",      PP_LIST      },
-    { "symbols",   PP_SYMBOLS   }
+    { "line",      PreProcessorControlEnum::PP_LINE      },
+    { "processor", PreProcessorControlEnum::PP_PROCESSOR },
+    { "list",      PreProcessorControlEnum::PP_LIST      },
+    { "symbols",   PreProcessorControlEnum::PP_SYMBOLS   }
 };
 
-enum SubroutineOptionsEnum
+enum class SubroutineOptionsEnum
 {
     SUBOPT_ALIGN,
     SUBOPT_STATIC
@@ -50,11 +50,11 @@ enum SubroutineOptionsEnum
 
 std::map<std::string, SubroutineOptionsEnum> SubroutineOptionsLookup =
 {
-    { "ALIGN",  SUBOPT_ALIGN  },
-    { "STATIC", SUBOPT_STATIC }
+    { "ALIGN",  SubroutineOptionsEnum::SUBOPT_ALIGN  },
+    { "STATIC", SubroutineOptionsEnum::SUBOPT_STATIC }
 };
 
-enum OutputFormatEnum
+enum class OutputFormatEnum
 {
     INTEL_HEX,
     IDIOT4
@@ -62,8 +62,8 @@ enum OutputFormatEnum
 
 std::map<std::string, OutputFormatEnum> OutputFormatLookup =
 {
-    { "INTEL_HEX", INTEL_HEX },
-    { "IDIOT4",    IDIOT4    }
+    { "INTEL_HEX", OutputFormatEnum::INTEL_HEX },
+    { "IDIOT4",    OutputFormatEnum::IDIOT4    }
 };
 
 bool assemble(const std::string&, CPUTypeEnum InitialProcessor, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode);
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
     PreProcessor AssemblerPreProcessor;
     bool KeepPreprocessor = false;
     bool Symbols = false;
-    OutputFormatEnum OutputFormat = INTEL_HEX;
+    OutputFormatEnum OutputFormat = OutputFormatEnum::INTEL_HEX;
 
     while (1)
     {
@@ -327,6 +327,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
     {
         SymbolTable* CurrentTable = &MainTable;
         uint16_t ProgramCounter = 0;
+        uint16_t RorgOffset = 0;
         uint16_t SubroutineSize = 0;
         CPUTypeEnum Processor = InitialProcessor;
         std::string CurrentFile = "";
@@ -365,7 +366,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                     {
                         switch(PreProcessorControlLookup.at(ControlWord))
                         {
-                            case PP_LINE:
+                            case PreProcessorControlEnum::PP_LINE:
                             {
                                 std::smatch MatchResult;
                                 std::string NewFile;
@@ -378,7 +379,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                     throw AssemblyException("Bad line directive received from Pre-Processor", AssemblyErrorSeverity::SEVERITY_Error);
                                 break;
                             }
-                            case PP_PROCESSOR:
+                            case PreProcessorControlEnum::PP_PROCESSOR:
                             {
                                 if(Pass == 3)
                                     ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
@@ -391,7 +392,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                     LineNumber++;
                                 break;
                             }
-                            case PP_LIST:
+                            case PreProcessorControlEnum::PP_LIST:
                                 if(Pass == 3)
                                 {
                                     ToUpper(Expression);
@@ -412,7 +413,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                 if(!Source.InMacro())
                                     LineNumber++;
                                 break;
-                            case PP_SYMBOLS:
+                            case PreProcessorControlEnum::PP_SYMBOLS:
                                 if(Pass == 3)
                                 {
                                     ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
@@ -522,7 +523,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             std::string ControlWord = MatchResult[1];
                                                             std::string Expression = MatchResult[3];
                                                             if(PreProcessorControlLookup.find(ControlWord) != PreProcessorControlLookup.end()
-                                                                    && PreProcessorControlLookup.at(ControlWord) == PP_LINE
+                                                                    && PreProcessorControlLookup.at(ControlWord) == PreProcessorControlEnum::PP_LINE
                                                                     && regex_match(Expression, MatchResult, std::regex(R"-(^"(.*)" ([0-9]+)$)-"))
                                                                     && CurrentFile != MatchResult[1])
                                                                 throw AssemblyException("Macro definition must be within a single source file", AssemblyErrorSeverity::SEVERITY_Error);
@@ -681,7 +682,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                     {
                                                                         switch(PreProcessorControlLookup.at(ControlWord))
                                                                         {
-                                                                            case PP_LINE:
+                                                                            case PreProcessorControlEnum::PP_LINE:
                                                                             {
                                                                                 std::smatch MatchResult;
                                                                                 std::string NewFile;
@@ -726,7 +727,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 throw AssemblyException("Unrecognised SUBROUTINE option", AssemblyErrorSeverity::SEVERITY_Warning);
                                                             switch(Option->second)
                                                             {
-                                                                case SUBOPT_ALIGN:
+                                                                case SubroutineOptionsEnum::SUBOPT_ALIGN:
                                                                     if(SubOptions.size() != 2)
                                                                         throw AssemblyException("Unrecognised SUBROUTINE ALIGN option", AssemblyErrorSeverity::SEVERITY_Error);
                                                                     else
@@ -756,7 +757,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                     }
                                                                     break;
 
-                                                                case SUBOPT_STATIC:
+                                                                case SubroutineOptionsEnum::SUBOPT_STATIC:
                                                                     if(SubOptions.size() != 1)
                                                                         throw AssemblyException("SUBROUTINE STATIC option does not take any arguments", AssemblyErrorSeverity::SEVERITY_Error);
                                                                     CurrentTable->Static = true;
@@ -845,10 +846,8 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                 {
                                                     if(CurrentTable != &MainTable)
                                                         throw AssemblyException("ORG Cannot be used in a SUBROUTINE", AssemblyErrorSeverity::SEVERITY_Error);
-
                                                     if(Operands.size() != 1)
                                                         throw AssemblyException("ORG Requires a single argument <address>", AssemblyErrorSeverity::SEVERITY_Error);
-
                                                     try
                                                     {
                                                         AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
@@ -965,7 +964,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                     {
                                                                         switch(PreProcessorControlLookup.at(ControlWord))
                                                                         {
-                                                                            case PP_LINE:
+                                                                            case PreProcessorControlEnum::PP_LINE:
                                                                             {
                                                                                 std::smatch MatchResult;
                                                                                 std::string NewFile;
@@ -1013,7 +1012,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 throw AssemblyException("Unrecognised SUBROUTINE option", AssemblyErrorSeverity::SEVERITY_Warning);
                                                             switch(Option->second)
                                                             {
-                                                                case SUBOPT_ALIGN:
+                                                                case SubroutineOptionsEnum::SUBOPT_ALIGN:
                                                                     try
                                                                     {
                                                                         int Align;
@@ -1034,7 +1033,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                         else
                                                                         {
                                                                             ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
-                                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
+                                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
                                                                         }
                                                                     }
                                                                     catch(ExpressionException Ex)
@@ -1042,7 +1041,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                         throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
                                                                     }
                                                                     break;
-                                                                case SUBOPT_STATIC:
+                                                                case SubroutineOptionsEnum::SUBOPT_STATIC:
                                                                     break;
                                                             }
                                                         }
@@ -1106,13 +1105,43 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     {
                                                         AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                         ProgramCounter = E.Evaluate(Operands[0]);
-                                                        CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
+                                                        CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                     }
                                                     catch(ExpressionException Ex)
                                                     {
                                                         throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
                                                     }
+                                                    break;
+                                                case OpCodeEnum::RORG:
+                                                    if(CurrentTable != &MainTable)
+                                                        throw AssemblyException("RORG Cannot be used in a SUBROUTINE", AssemblyErrorSeverity::SEVERITY_Error);
+                                                    if(Operands.size() != 1)
+                                                        throw AssemblyException("RORG Requires a single argument <address>", AssemblyErrorSeverity::SEVERITY_Error);
+                                                    try
+                                                    {
+                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                        int x = E.Evaluate(Operands[0]);
+                                                        if(x >= 0 && x < 0x10000)
+                                                        {
+                                                            RorgOffset = x - ProgramCounter;
+                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
+                                                        }
+                                                        else
+                                                            throw AssemblyException("Overflow: Address must be in range 0-FFFF", AssemblyErrorSeverity::SEVERITY_Error);
+                                                    }
+                                                    catch(ExpressionException Ex)
+                                                    {
+                                                        throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                    }
+                                                    break;
+                                                case OpCodeEnum::REND:
+                                                    if(Operands.size() != 0)
+                                                        throw AssemblyException("REND does not take any arguments", AssemblyErrorSeverity::SEVERITY_Error);
+                                                    RorgOffset = 0;
+                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
+                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                     break;
                                                 case OpCodeEnum::DB:
                                                 {
@@ -1209,7 +1238,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         else
                                                         {
                                                             ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
-                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
+                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
                                                         }
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                         break;
@@ -1510,13 +1539,16 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
 
                         for(auto &Code2 : Code)
                         {
-                            uint16_t Start2 = Code2.first;
-                            uint16_t End2 = Code2.first + Code2.second.size();
-                            if (Start1 >= Start2 && Start1 < End2)
-                                Overlap++;
+                            if(Code1 != Code2)
+                            {
+                                uint16_t Start2 = Code2.first;
+                                uint16_t End2 = Code2.first + Code2.second.size();
+                                if (Start1 >= Start2 && Start1 < End2)
+                                    Overlap++;
+                            }
                         }
                     }
-                    if(Overlap > Code.size())
+                    if(Overlap > 0)
                         throw AssemblyException("Code blocks overlap", AssemblyErrorSeverity::SEVERITY_Warning);
                     break;
                 }
@@ -1555,12 +1587,12 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
         BinaryWriter *Output;
         switch(BinMode)
         {
-            case INTEL_HEX:
+            case OutputFormatEnum::INTEL_HEX:
             {
                 Output = new BinaryWriter_IntelHex(FileName, "hex");
                 break;
             }
-            case IDIOT4:
+            case OutputFormatEnum::IDIOT4:
             {
                 Output = new BinaryWriter_Idiot4(FileName, "idiot");
                 break;

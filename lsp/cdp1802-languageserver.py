@@ -159,7 +159,9 @@ OpCodeTable = {
                                                        "STATIC\n: Prevents the optimiser skipping assembly of the subroutine if it is not referenced elsewhere in the code."),
     "endsub":     OpCode("ENDSUB {EntryPoint}",CPU1802,"Ends a Subroutine definition. ENDSUB can be followed by an optional Label, which sets the entry point for the subroutine."),
     "end":        OpCode("End of Source Code",CPU1802,"Marks the end of the source coe. No further lines are assembled. The optional parameter should evaluate to an address which is used as the entry point if the binary output format supports it."),
-    "org":        OpCode("Set Address",CPU1802,"Set the current output address to the given expression"),
+    "org":        OpCode("ORG {address}",CPU1802,"Set the current output address to the given expression"),
+    "rorg":       OpCode("RORG {address}",SPU1802,"Relocate output. Calculate difference between current progam counter and givne address, and apply as an offset to binary output address for all subsequent code."),
+    "rend":       opCode("REND",CPU1802,"End Relocated code. (Equivalent to "RORG .")",
     "equ":        OpCode("Set Label",CPU1802,"Assign the value of the given expression to the supplied Label")
     }
 

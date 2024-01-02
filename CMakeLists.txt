@@ -33,9 +33,6 @@ add_executable(asm1802 main.cpp
 
     lsp/cdp1802-languageserver.py
     syntax/asm1802.xml
-
-
-
     )
 
 install(TARGETS asm1802

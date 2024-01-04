@@ -45,13 +45,15 @@ std::map<std::string, PreProcessorControlEnum> PreProcessorControlLookup =
 enum class SubroutineOptionsEnum
 {
     SUBOPT_ALIGN,
-    SUBOPT_STATIC
+    SUBOPT_STATIC,
+    SUBOPT_PAD
 };
 
 std::map<std::string, SubroutineOptionsEnum> SubroutineOptionsLookup =
 {
     { "ALIGN",  SubroutineOptionsEnum::SUBOPT_ALIGN  },
-    { "STATIC", SubroutineOptionsEnum::SUBOPT_STATIC }
+    { "STATIC", SubroutineOptionsEnum::SUBOPT_STATIC },
+    { "PAD",    SubroutineOptionsEnum::SUBOPT_PAD    }
 };
 
 enum class OutputFormatEnum
@@ -75,7 +77,7 @@ void StringListToVector(std::string& Input, std::vector<std::string>& Output, ch
 int AlignFromSize(int Size);
 const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCode, std::vector<std::string>& Operands);
 bool SetAlignFromKeyword(std::string Alignment, long& Align);
-
+int GetAlignExtraBytes(int ProgramCounter, int Align);
 bool NoRegisters = false;   // Suppress pre-defined Register equates
 bool NoPorts     = false;   // Suppress pre-defined Port equates
 
@@ -840,7 +842,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                                 throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
                                                                             }
                                                                         }
-                                                                        ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                                        ProgramCounter = ProgramCounter + GetAlignExtraBytes(ProgramCounter, Align);
                                                                         MainTable.Symbols[Label].Value = ProgramCounter;
                                                                     }
                                                                     break;
@@ -849,6 +851,9 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                     if(SubOptions.size() != 1)
                                                                         throw AssemblyException("SUBROUTINE STATIC option does not take any arguments", AssemblyErrorSeverity::SEVERITY_Error);
                                                                     CurrentTable->Static = true;
+                                                                    break;
+
+                                                                case SubroutineOptionsEnum::SUBOPT_PAD:
                                                                     break;
 
                                                                 default:
@@ -1068,7 +1073,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                 {
                                                     if(InAutoAlignedSub)
                                                         throw AssemblyException("ALIGN cannot be used inside an AUTO Aligned SUBROUTINE", AssemblyErrorSeverity::SEVERITY_Error);
-                                                    if(Operands.size() != 1)
+                                                    if(Operands.size() == 0 || Operands.size() > 2)
                                                         throw AssemblyException("ALIGN Requires a single argument <alignment>", AssemblyErrorSeverity::SEVERITY_Error);
                                                     try
                                                     {
@@ -1082,7 +1087,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             if(Align != 2 && Align != 4 && Align != 8 && Align != 16 && Align != 32 && Align != 64 && Align != 128 && Align !=256)
                                                                 throw AssemblyException("ALIGN must be 2,4,8,16,32,64,128 or 256", AssemblyErrorSeverity::SEVERITY_Error);
                                                         }
-                                                        ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                        ProgramCounter = ProgramCounter + GetAlignExtraBytes(ProgramCounter, Align);
                                                     }
                                                     catch(ExpressionException Ex)
                                                     {
@@ -1175,6 +1180,9 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     {
                                                         CurrentTable = &SubTables[Label];
                                                         SubDefinitionFile = CurrentFile;
+                                                        long Align = 0;
+                                                        bool Pad = false;
+                                                        int PadByte = 0;
                                                         for(int i = 0; i < Operands.size(); i++)
                                                         {
                                                             std::vector<std::string> SubOptions;
@@ -1183,12 +1191,11 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             auto Option = SubroutineOptionsLookup.find(SubOptions[0]);
                                                             if(Option == SubroutineOptionsLookup.end())
                                                                 throw AssemblyException("Unrecognised SUBROUTINE option", AssemblyErrorSeverity::SEVERITY_Warning);
-                                                            switch(Option->second)
+                                                            try
                                                             {
-                                                                case SubroutineOptionsEnum::SUBOPT_ALIGN:
-                                                                    try
-                                                                    {
-                                                                        long Align;
+                                                                switch(Option->second)
+                                                                {
+                                                                    case SubroutineOptionsEnum::SUBOPT_ALIGN:
                                                                         if(SubOptions[1] == "AUTO")
                                                                             Align = AlignFromSize(CurrentTable->CodeSize);
                                                                         else if(!SetAlignFromKeyword(SubOptions[1], Align))
@@ -1196,18 +1203,36 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                             AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                                             Align = E.Evaluate(SubOptions[1]);
                                                                         }
-                                                                        ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
-                                                                        CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
-                                                                    }
-                                                                    catch(ExpressionException Ex)
+
+                                                                        break;
+                                                                    case SubroutineOptionsEnum::SUBOPT_STATIC:
+                                                                        break;
+                                                                    case SubroutineOptionsEnum::SUBOPT_PAD:
                                                                     {
-                                                                        throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                                        if(CurrentTable != &MainTable)
+                                                                            E.AddLocalSymbols(CurrentTable);
+                                                                        PadByte = E.Evaluate(SubOptions[1]);
+                                                                        Pad = true;
                                                                     }
                                                                     break;
-                                                                case SubroutineOptionsEnum::SUBOPT_STATIC:
-                                                                    break;
+                                                                }
+                                                            }
+                                                            catch(ExpressionException Ex)
+                                                            {
+                                                                throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
                                                             }
                                                         }
+                                                        if(Pad && Align == 0)
+                                                            throw AssemblyException("PAD cannot be used without ALIGN=...", AssemblyErrorSeverity::SEVERITY_Error);
+                                                        if(Align > 0)
+                                                            if(Pad)
+                                                                for(int i = 0; i < GetAlignExtraBytes(ProgramCounter, Align); i++)
+                                                                    CurrentCode->second.push_back(PadByte);
+                                                            else
+                                                                CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                        ProgramCounter = ProgramCounter + GetAlignExtraBytes(ProgramCounter, Align);
+
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                     }
                                                     break;
@@ -1507,8 +1532,30 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 E.AddLocalSymbols(CurrentTable);
                                                             Align = E.Evaluate(Operands[0]);
                                                         }
-                                                        ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
-                                                        CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+
+                                                        bool Pad = false;
+                                                        int PadByte = 0;
+                                                        if(Operands.size() == 2)
+                                                        {
+                                                            std::vector<std::string> SubOptions;
+                                                            StringListToVector(Operands[1], SubOptions, '=');
+                                                            ToUpper(SubOptions[0]);
+                                                            if(SubOptions[0] == "PAD")
+                                                            {
+                                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                                if(CurrentTable != &MainTable)
+                                                                    E.AddLocalSymbols(CurrentTable);
+                                                                PadByte = E.Evaluate(SubOptions[1]);
+                                                                Pad = true;
+                                                            }
+                                                        }
+                                                        int ExtraBytes = GetAlignExtraBytes(Align, ProgramCounter);
+                                                        if(Pad)
+                                                            for(int i = 0; i < GetAlignExtraBytes(ProgramCounter, Align); i++)
+                                                                CurrentCode->second.push_back(PadByte);
+                                                        else
+                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                        ProgramCounter = ProgramCounter + GetAlignExtraBytes(ProgramCounter, Align);
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                         break;
                                                     }
@@ -2208,6 +2255,12 @@ void PrintError(const std::string& FileName, const int LineNumber, const std::st
     }
 }
 
+//!
+//! \brief PrintError
+//! Print an error message
+//! \param Message
+//! \param Severity
+//!
 void PrintError(const std::string& Message, AssemblyErrorSeverity Severity)
 {
     fmt::println("***************{severity:*>15}: {message}",
@@ -2215,6 +2268,13 @@ void PrintError(const std::string& Message, AssemblyErrorSeverity Severity)
                  fmt::arg("message", Message));
 }
 
+//!
+//! \brief SetAlignFromKeyword
+//! Return an integer representation from an alignment keyword
+//! \param Alignment
+//! \param Align
+//! \return
+//!
 bool SetAlignFromKeyword(std::string Alignment, long& Align)
 {
     static std::map<std::string, int> Lookup =
@@ -2234,4 +2294,16 @@ bool SetAlignFromKeyword(std::string Alignment, long& Align)
         Align = i->second;
         return true;
     }
+}
+
+//!
+//! \brief GetAlignExtraBytes
+//! Calculate the number of bytes to add to the program counter to align on an 'align' byte boundary
+//! \param ProgramCounter
+//! \param Align
+//! \return
+//!
+int GetAlignExtraBytes(int ProgramCounter, int Align)
+{
+    return (Align - ProgramCounter % Align) % Align;
 }

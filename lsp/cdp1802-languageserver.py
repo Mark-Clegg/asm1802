@@ -143,18 +143,23 @@ OpCodeTable = {
     "xor":   OpCode("Exclusive OR",CPU1802,"M(R(X)) XOR D -> D"),
     "xri":   OpCode("Exclusive OR Immediate",CPU1802,"M(R(P)) XOR D -> D\nR(P)+1 -> R(P)"),
 
-    "db":         OpCode("Define Byte(s)",CPU1802,"Inserts a sequence of comma separated bytes into the code stream. Parameters can either evaluate to single bytes, or be parsed as a double quoted string.\n\ne.g. DB 1,2,\"Hello World\""),
-    "dw":         OpCode("Define Word(s)",CPU1802,"Inserts a sequence of comma separated words into the code stream. Each parameter is treated as a 16 bit number stored in big-endian format"),
-    "dl":         OpCode("Define Long(s)",CPU1802,"Inserts a sequence of comma separated long words into the code stream. Each parameter is treated as a 32 bit number stored in big-endian format"),
-    "assert":     OpCode("Assert a condition is true",CPU1802,"Throws an error if the given expression evaluates to false"),
-    "align":      OpCode("Align Code to Boundary",CPU1802,"Pad the code stream to the next address divisible by the given expression.\n\nExpression must evaluate to a power of 2"),
+    "db":         OpCode("DB value,...,value",CPU1802,"Inserts a sequence of comma separated bytes into the code stream. Parameters can either evaluate to single bytes, or be parsed as a double quoted string.\n\ne.g. DB 1,2,\"Hello World\""),
+    "dw":         OpCode("DW value,...,value",CPU1802,"Inserts a sequence of comma separated words into the code stream. Each parameter is treated as a 16 bit number stored in big-endian format"),
+    "dl":         OpCode("DL value,...,value",CPU1802,"Inserts a sequence of comma separated long words into the code stream. Each parameter is treated as a 32 bit number stored in big-endian format"),
+    "dq":         OpCode("DQ value,...,value",CPU1802,"Inserts a sequence of comma separated quad words into the code stream. Each parameter is treated as a 64 bit number stored in big-endian format"),
+    "rb":         OpCode("RB count",CPU1802,"Reserve count bytes of memory. No code iw written to the code stream, but the Program Counter is incremented accordingly"),
+    "rw":         OpCode("RW count",CPU1802,"Reserve count words (2 bytes) of memory. No code iw written to the code stream, but the Program Counter is incremented accordingly"),
+    "rl":         OpCode("RL count",CPU1802,"Reserve count longs (4 bytes) of memory. No code iw written to the code stream, but the Program Counter is incremented accordingly"),
+    "rq":         OpCode("RQ count",CPU1802,"Reserve count quadwords (8 bytes) of memory. No code iw written to the code stream, but the Program Counter is incremented accordingly"),
+    "assert":     OpCode("ASSERT expression",CPU1802,"Throws an error if the given expression evaluates to false"),
+    "align":      OpCode("ALIGN expression {,PAD=byte}",CPU1802,"Increment the current address to the next 'expression' byte boundary.\nExpression must evaluate to a power of 2.\nOptionally pad skipped bytes with the 'byte' value given"),
     "macro":      OpCode("Label MACRO {parameters}",CPU1802,"Define a Macro. A label must be supplied, which names the macro. Any parameters listed can be used as tokens within the definition"),
     "endm":       OpCode("End Macro",CPU1802,"Marks the end of a Macro definition"),
     "endmacro":   OpCode("End Macro",CPU1802,"Marks the end of a Macro definition"),
-    "subroutine": OpCode("Label SUBROUTINE {ALIGN=n|AUTO} {STATIC}",CPU1802,"Define a Subroutine. A label mus be supplied, which names the Subroutine. The following optional parameters can be supplied:\n\n"+
+    "subroutine": OpCode("Label SUBROUTINE {ALIGN=n|AUTO}, {STATIC}",CPU1802,"Define a Subroutine. A label mus be supplied, which names the Subroutine. The following optional parameters can be supplied:\n\n"+
                                                        "ALIGN=<number>|AUTO\n: Align the subroutine to the given byte boundary, or Auto-Align to the nearest enclosing power of 2 sized block\n\n"+
                                                        "STATIC\n: Prevents the optimiser skipping assembly of the subroutine if it is not referenced elsewhere in the code."),
-    "sub":        OpCode("Label SUBROUTINE {ALIGN=n|AUTO} {STATIC}",CPU1802,"Define a Subroutine. A label mus be supplied, which names the Subroutine. The following optional parameters can be supplied:\n\n"+
+    "sub":        OpCode("Label SUBROUTINE {ALIGN=n|AUTO}, {STATIC}",CPU1802,"Define a Subroutine. A label mus be supplied, which names the Subroutine. The following optional parameters can be supplied:\n\n"+
                                                        "ALIGN=<number>|AUTO\n: Align the subroutine to the given byte boundary, or Auto-Align to the nearest enclosing power of 2 sized block\n\n"+
                                                        "STATIC\n: Prevents the optimiser skipping assembly of the subroutine if it is not referenced elsewhere in the code."),
     "endsub":     OpCode("ENDSUB {EntryPoint}",CPU1802,"Ends a Subroutine definition. ENDSUB can be followed by an optional Label, which sets the entry point for the subroutine."),

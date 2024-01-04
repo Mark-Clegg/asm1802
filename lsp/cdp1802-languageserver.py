@@ -156,11 +156,13 @@ OpCodeTable = {
     "macro":      OpCode("Label MACRO {parameters}",CPU1802,"Define a Macro. A label must be supplied, which names the macro. Any parameters listed can be used as tokens within the definition"),
     "endm":       OpCode("End Macro",CPU1802,"Marks the end of a Macro definition"),
     "endmacro":   OpCode("End Macro",CPU1802,"Marks the end of a Macro definition"),
-    "subroutine": OpCode("Label SUBROUTINE {ALIGN=n|AUTO}, {STATIC}",CPU1802,"Define a Subroutine. A label mus be supplied, which names the Subroutine. The following optional parameters can be supplied:\n\n"+
+    "subroutine": OpCode("Label SUBROUTINE {ALIGN=n|AUTO}, {PAD=padbyte}, {STATIC}",CPU1802,"Define a Subroutine. A label mus be supplied, which names the Subroutine. The following optional parameters can be supplied:\n\n"+
                                                        "ALIGN=<number>|AUTO\n: Align the subroutine to the given byte boundary, or Auto-Align to the nearest enclosing power of 2 sized block\n\n"+
+                                                       "PAD=<padbyte>: When align is specified, fill missing bytes with padbyte.\n\n"+
                                                        "STATIC\n: Prevents the optimiser skipping assembly of the subroutine if it is not referenced elsewhere in the code."),
     "sub":        OpCode("Label SUBROUTINE {ALIGN=n|AUTO}, {STATIC}",CPU1802,"Define a Subroutine. A label mus be supplied, which names the Subroutine. The following optional parameters can be supplied:\n\n"+
                                                        "ALIGN=<number>|AUTO\n: Align the subroutine to the given byte boundary, or Auto-Align to the nearest enclosing power of 2 sized block\n\n"+
+                                                       "PAD=<padbyte>: When align is specified, fill missing bytes with padbyte.\n\n"+
                                                        "STATIC\n: Prevents the optimiser skipping assembly of the subroutine if it is not referenced elsewhere in the code."),
     "endsub":     OpCode("ENDSUB {EntryPoint}",CPU1802,"Ends a Subroutine definition. ENDSUB can be followed by an optional Label, which sets the entry point for the subroutine."),
     "end":        OpCode("End of Source Code",CPU1802,"Marks the end of the source coe. No further lines are assembled. The optional parameter should evaluate to an address which is used as the entry point if the binary output format supports it."),

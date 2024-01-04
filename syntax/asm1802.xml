@@ -204,8 +204,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
             <item>align</item>
             <item>assert</item>
             <item>db</item>
-            <item>dl</item>
             <item>dw</item>
+            <item>dl</item>
+            <item>dq</item>
+            <item>rb</item>
+            <item>rw</item>
+            <item>rl</item>
+            <item>rq</item>
             <item>end</item>
             <item>endm</item>
             <item>endmacro</item>
@@ -213,6 +218,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
             <item>equ</item>
             <item>macro</item>
             <item>org</item>
+            <item>rorg</item>
+            <item>rend</item>
             <item>sub</item>
             <item>subroutine</item>
         </list>

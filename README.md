@@ -221,7 +221,7 @@ For Logical operators, 0 = false, 1 = true.
 | ORG arg | Set Address |
 | RORG arg | Set relocation address |
 | REND | End relocated code |
-| SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO }, STATIC | Define a Subroutine, optionally aligned to boundary, optionally prevent removal if unreferenced |
+| SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO }, STATIC, PAD=padbyte | Define a Subroutine, optionally aligned to boundary, optionally prevent removal if unreferenced |
 | ENDSUB | End of Subroutine Definition |
 | MACRO parameters | Define a Macro |
 | ENDM | End of Macro Definition |

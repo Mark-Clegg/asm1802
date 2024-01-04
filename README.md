@@ -147,6 +147,7 @@ The following labels are pre-defined
 | R0 - R15 | 0 - 15 |
 | R0 - RF | 0 - 15 |
 | P1 - P7 | 1 -7 |
+| \_\_HIMEM\_\_ | Calculated to the first free address after all code |
 
 ## Operands
 

@@ -327,6 +327,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
     {
         SymbolTable* CurrentTable = &MainTable;
         uint16_t ProgramCounter = 0;
+        uint16_t HiMem = 0;
         uint16_t RorgOffset = 0;
         uint16_t SubroutineSize = 0;
         CPUTypeEnum Processor = InitialProcessor;
@@ -1482,6 +1483,10 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                 }
                 if(!Source.InMacro())
                     LineNumber++;
+
+                if(ProgramCounter > HiMem)
+                    HiMem = ProgramCounter;
+
             } // while(Source.getLine())...
 
             // Custom processing at the end of each pass
@@ -1493,6 +1498,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                         throw AssemblyException("#if Nesting Error or missing #endif", AssemblyErrorSeverity::SEVERITY_Warning);
                     break;
                 case 2:
+                    MainTable.Symbols["__HIMEM__"] = { HiMem };
                     break;
                 case 3:
                 {
@@ -1528,6 +1534,10 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
 
                         // Reset Listing File
                         ListingFile.Reset();
+
+                        // Reset HiMme
+                        HiMem = 0;
+                        MainTable.Symbols.erase("__HIMEM__");
                         break;
                     }
 

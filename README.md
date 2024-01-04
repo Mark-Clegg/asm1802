@@ -241,7 +241,7 @@ Ends a relocated block. REND is equivalent to "RORG ." which would calculate to 
 
 ## Subroutines
 
-### SUBROUTINE {ALIGN=x}, {STATIC}
+### SUBROUTINE {ALIGN=x}, {PAD=byte}, {STATIC}
 
 ... defines a subroutine.
 
@@ -251,6 +251,9 @@ ALIGN=...: Align the subroutine to the specified
 power of 2 boudary. (e.g. ALIGN=32). Specifying ALIGN=AUTO will align to the nearest greater
 power of two boundary. This allows the creation of library modules that can be #included
 anywhere in code helping to ensure that short branches remain in range wherever the code is included.
+
+PAD=...: When ALIGN is specified, fill any skipped bytes with the given value, instead of leaving an 
+unintialised gap.
 
 STATIC: By default, SUBROUTINES that are not referenced, are removed from the assembly.
 Flagging a SUBROUTINE as STATIC forces assembly of the SUBROUTINE regardless of whether

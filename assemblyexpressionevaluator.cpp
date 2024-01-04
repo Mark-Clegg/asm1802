@@ -32,9 +32,9 @@ void AssemblyExpressionEvaluator::AddLocalSymbols(const SymbolTable* Local)
     LocalSymbols = true;
 }
 
-int AssemblyExpressionEvaluator::AtomValue()
+long AssemblyExpressionEvaluator::AtomValue()
 {
-    int Result = 0;
+    long Result = 0;
     auto Token = TokenStream.Get();
     switch(Token)
     {
@@ -69,7 +69,7 @@ int AssemblyExpressionEvaluator::AtomValue()
                 if(FunctionSpec == FunctionTable.end())
                     throw ExpressionException("Unknown function call");
 
-                std::vector<int> Arguments = { };
+                std::vector<long> Arguments = { };
                 switch(FunctionSpec->second.ID)
                 {
                     case FunctionEnum::FN_PROCESSOR:

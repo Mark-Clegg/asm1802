@@ -210,8 +210,13 @@ For Logical operators, 0 = false, 1 = true.
 | ALIGN arg | Pad code output with 0 to align to boundary (arg = 2,4,8,16,32,64,128 or 256) |
 | ASSERT expression | Throw an error if expression evaluates to false (0) |
 | DB value list | Define Bytes, each value can be numeric or "string" |
-| DW value list | Define Word (double bytes) |
-| DL value list | Define Long (quad bytes) |
+| DW value list | Define Word (2 bytes) |
+| DL value list | Define Long (4 bytes) |
+| DQ value list | Define QuadWord (8 bytes) |
+| RB count | Reserve count Bytes |
+| RW count | Reserve count Words (2 bytes) |
+| RL count | Reserve count Longs (4 bytes) |
+| RQ count | Reserve count QuadWorda (8 bytes) |
 | EQU value | Assign value to label |
 | ORG arg | Set Address |
 | RORG arg | Set relocation address |

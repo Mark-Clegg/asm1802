@@ -47,7 +47,7 @@ public:
     TokenEnum Peek();
     TokenEnum Get();
     bool GetCustomToken(std::regex Pattern);
-    int IntegerValue;
+    long IntegerValue;
     std::string StringValue;
 private:
     std::istringstream InputStream;

@@ -5,10 +5,10 @@ ExpressionEvaluatorBase::ExpressionEvaluatorBase()
 {
 }
 
-int ExpressionEvaluatorBase::Evaluate(std::string& Expression)
+long ExpressionEvaluatorBase::Evaluate(std::string& Expression)
 {
     TokenStream.Initialize(Expression);
-    int Result = EvaluateSubExpression();
+    long Result = EvaluateSubExpression();
     auto Token = TokenStream.Peek();
     if(Token != ExpressionTokenizer::TokenEnum::TOKEN_END && Token != ExpressionTokenizer::TokenEnum::TOKEN_CLOSE_BRACE)
         throw ExpressionException("Extra Characters at end of expression");
@@ -21,13 +21,13 @@ int ExpressionEvaluatorBase::Evaluate(std::string& Expression)
 //! Logical OR
 //! \return
 //!
-int ExpressionEvaluatorBase::EvaluateSubExpression()
+long ExpressionEvaluatorBase::EvaluateSubExpression()
 {
-    int Result = SubExp1();
+    long Result = SubExp1();
     while(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_LOGICAL_OR)
     {
         TokenStream.Get();
-        int rhs = SubExp1();
+        long rhs = SubExp1();
         Result = ((Result != 0) || (rhs != 0))  ? 1 : 0;
     }
     return Result;
@@ -38,13 +38,13 @@ int ExpressionEvaluatorBase::EvaluateSubExpression()
 //! Logical AND
 //! \return
 //!
-int ExpressionEvaluatorBase::SubExp1()
+long ExpressionEvaluatorBase::SubExp1()
 {
-    int Result = SubExp2();
+    long Result = SubExp2();
     while(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_LOGICAL_AND)
     {
         TokenStream.Get();
-        int rhs = SubExp2();
+        long rhs = SubExp2();
         Result = ((Result != 0) && (rhs != 0)) ? 1 : 0;
     }
     return Result;
@@ -55,9 +55,9 @@ int ExpressionEvaluatorBase::SubExp1()
 //! Bitwise OR
 //! \return
 //!
-int ExpressionEvaluatorBase::SubExp2()
+long ExpressionEvaluatorBase::SubExp2()
 {
-    int Result = SubExp3();
+    long Result = SubExp3();
     while(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_BITWISE_OR)
     {
         TokenStream.Get();
@@ -71,9 +71,9 @@ int ExpressionEvaluatorBase::SubExp2()
 //! Bitwise XOR
 //! \return
 //!
-int ExpressionEvaluatorBase::SubExp3()
+long ExpressionEvaluatorBase::SubExp3()
 {
-    int Result = SubExp4();
+    long Result = SubExp4();
     while(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_BITWISE_XOR)
     {
         TokenStream.Get();
@@ -87,9 +87,9 @@ int ExpressionEvaluatorBase::SubExp3()
 //! Bitwise AND
 //! \return
 //!
-int ExpressionEvaluatorBase::SubExp4()
+long ExpressionEvaluatorBase::SubExp4()
 {
-    int Result = SubExp5();
+    long Result = SubExp5();
     while(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_BITWISE_AND)
     {
         TokenStream.Get();
@@ -103,9 +103,9 @@ int ExpressionEvaluatorBase::SubExp4()
 //! EQUAL / NOT EQUAL
 //! \return
 //!
-int ExpressionEvaluatorBase::SubExp5()
+long ExpressionEvaluatorBase::SubExp5()
 {
-    int Result = SubExp6();
+    long Result = SubExp6();
     auto Token = TokenStream.Peek();
     while(Token == ExpressionTokenizer::TokenEnum::TOKEN_EQUAL || Token == ExpressionTokenizer::TokenEnum::TOKEN_NOT_EQUAL)
     {
@@ -131,9 +131,9 @@ int ExpressionEvaluatorBase::SubExp5()
 //! LESS / LESS or EQUAL / GREATER / GREATER or EQUAL
 //! \return
 //!
-int ExpressionEvaluatorBase::SubExp6()
+long ExpressionEvaluatorBase::SubExp6()
 {
-    int Result = SubExp7();
+    long Result = SubExp7();
     auto Token = TokenStream.Peek();
     while(Token == ExpressionTokenizer::TokenEnum::TOKEN_LESS || Token == ExpressionTokenizer::TokenEnum::TOKEN_LESS_OR_EQUAL || Token == ExpressionTokenizer::TokenEnum::TOKEN_GREATER || Token == ExpressionTokenizer::TokenEnum::TOKEN_GREATER_OR_EQUAL)
     {
@@ -165,9 +165,9 @@ int ExpressionEvaluatorBase::SubExp6()
 //! Shift LEFT / RIGHT
 //! \return
 //!
-int ExpressionEvaluatorBase::SubExp7()
+long ExpressionEvaluatorBase::SubExp7()
 {
-    int Result = SubExp8();
+    long Result = SubExp8();
     auto Token = TokenStream.Peek();
     while(Token == ExpressionTokenizer::TokenEnum::TOKEN_SHIFT_LEFT || Token == ExpressionTokenizer::TokenEnum::TOKEN_SHIFT_RIGHT)
     {
@@ -193,9 +193,9 @@ int ExpressionEvaluatorBase::SubExp7()
 //! ADDITION / SUPTRACTION
 //! \return
 //!
-int ExpressionEvaluatorBase::SubExp8()
+long ExpressionEvaluatorBase::SubExp8()
 {
-    int Result = SubExp9();
+    long Result = SubExp9();
     auto Token = TokenStream.Peek();
     while(Token == ExpressionTokenizer::TokenEnum::TOKEN_PLUS || Token == ExpressionTokenizer::TokenEnum::TOKEN_MINUS)
     {
@@ -221,9 +221,9 @@ int ExpressionEvaluatorBase::SubExp8()
 //! MULTIPLY / DIVIDE / REMAINDER
 //! \return
 //!
-int ExpressionEvaluatorBase::SubExp9()
+long ExpressionEvaluatorBase::SubExp9()
 {
-    int Result = SubExp10();
+    long Result = SubExp10();
     auto Token = TokenStream.Peek();
     while(Token == ExpressionTokenizer::TokenEnum::TOKEN_MULTIPLY || Token == ExpressionTokenizer::TokenEnum::TOKEN_DIVIDE || Token == ExpressionTokenizer::TokenEnum::TOKEN_REMAINDER)
     {
@@ -235,7 +235,7 @@ int ExpressionEvaluatorBase::SubExp9()
                 break;
             case ExpressionTokenizer::TokenEnum::TOKEN_DIVIDE:
             {
-                int Operand = SubExp10();
+                long Operand = SubExp10();
                 if(Operand == 0)
                     throw ExpressionException("Divide by zero");
                 Result /= Operand;
@@ -243,7 +243,7 @@ int ExpressionEvaluatorBase::SubExp9()
             }
             case ExpressionTokenizer::TokenEnum::TOKEN_REMAINDER:
             {
-                int Operand = SubExp10();
+                long Operand = SubExp10();
                 if(Operand == 0)
                     throw ExpressionException("Divide by zero");
                 Result %= Operand;
@@ -262,13 +262,13 @@ int ExpressionEvaluatorBase::SubExp9()
 //! . Postfix operator - select Low ot High byte
 //! \return
 //!
-int ExpressionEvaluatorBase::SubExp10()
+long ExpressionEvaluatorBase::SubExp10()
 {
-    int Result = SubExp11();
+    long Result = SubExp11();
     if(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_DOT)
     {
         TokenStream.Get();
-        int Selector = SubExp11();
+        long Selector = SubExp11();
         switch(Selector)
         {
             case 0:
@@ -289,7 +289,7 @@ int ExpressionEvaluatorBase::SubExp10()
 //! Unary PLUS / MINUS / Bitwise NOT / Logical NOT
 //! \return
 //!
-int ExpressionEvaluatorBase::SubExp11()
+long ExpressionEvaluatorBase::SubExp11()
 {
     auto Token = TokenStream.Peek();
     if(Token == ExpressionTokenizer::TokenEnum::TOKEN_PLUS || Token == ExpressionTokenizer::TokenEnum::TOKEN_MINUS || Token == ExpressionTokenizer::TokenEnum::TOKEN_BITWISE_NOT || Token == ExpressionTokenizer::TokenEnum::TOKEN_LOGICAL_NOT)
@@ -323,7 +323,7 @@ int ExpressionEvaluatorBase::SubExp11()
 //! \param Count
 //! \return True if correct number of arguments were found
 //!
-bool ExpressionEvaluatorBase::GetFunctionArguments(std::vector<int> &Arguments, int Count)
+bool ExpressionEvaluatorBase::GetFunctionArguments(std::vector<long> &Arguments, int Count)
 {
     if(TokenStream.Peek() == ExpressionTokenizer::TokenEnum::TOKEN_CLOSE_BRACE)
         TokenStream.Get();

@@ -10,27 +10,27 @@ class ExpressionEvaluatorBase
 {
 public:
     ExpressionEvaluatorBase();
-    int Evaluate(std::string& Expression);
+    long Evaluate(std::string& Expression);
 
 protected:
-    bool GetFunctionArguments(std::vector<int>& Arguments, int Count);
+    bool GetFunctionArguments(std::vector<long>& Arguments, int Count);
     ExpressionTokenizer TokenStream;
 
 private:
-    int SubExp1();
-    int SubExp2();
-    int SubExp3();
-    int SubExp4();
-    int SubExp5();
-    int SubExp6();
-    int SubExp7();
-    int SubExp8();
-    int SubExp9();
-    int SubExp10();
-    int SubExp11();
+    long SubExp1();
+    long SubExp2();
+    long SubExp3();
+    long SubExp4();
+    long SubExp5();
+    long SubExp6();
+    long SubExp7();
+    long SubExp8();
+    long SubExp9();
+    long SubExp10();
+    long SubExp11();
 protected:
-    int EvaluateSubExpression();
-    virtual int AtomValue() = 0;
+    long EvaluateSubExpression();
+    virtual long AtomValue() = 0;
 };
 
 #endif // EXPRESSIONEVALUATORBASE_H

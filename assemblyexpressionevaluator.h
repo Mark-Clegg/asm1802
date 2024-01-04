@@ -36,7 +36,7 @@ private:
     CPUTypeEnum Processor;
     const uint16_t ProgramCounter;
     uint16_t SymbolValue(std::string Label);
-    int AtomValue();
+    long AtomValue();
 };
 
 #endif // ASSEMBLYEXPRESSIONEVALUATOR_H

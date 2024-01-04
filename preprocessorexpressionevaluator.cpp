@@ -21,9 +21,9 @@ PreProcessorExpressionEvaluator::PreProcessorExpressionEvaluator(const CPUTypeEn
 //! Constant / Label / Function Call / Bracketed Expression
 //! \return
 //!
-int PreProcessorExpressionEvaluator::AtomValue()
+long PreProcessorExpressionEvaluator::AtomValue()
 {
-    int Result = 0;
+    long Result = 0;
     auto Token = TokenStream.Get();
     switch(Token)
     {
@@ -54,7 +54,7 @@ int PreProcessorExpressionEvaluator::AtomValue()
                 if(FunctionSpec == FunctionTable.end())
                     throw ExpressionException("Unknown function call");
 
-                std::vector<int> Arguments = { };
+                std::vector<long> Arguments = { };
                 switch(FunctionSpec->second.ID)
                 {
                     case FunctionEnum::FN_LOW:

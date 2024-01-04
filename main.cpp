@@ -74,11 +74,10 @@ void StringToByteVector(const std::string& Operand, std::vector<uint8_t>& Data);
 void StringListToVector(std::string& Input, std::vector<std::string>& Output, char Delimiter);
 int AlignFromSize(int Size);
 const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCode, std::vector<std::string>& Operands);
-bool SetAlignFromKeyword(std::string Alignment, int& Align);
+bool SetAlignFromKeyword(std::string Alignment, long& Align);
 
 bool NoRegisters = false;   // Suppress pre-defined Register equates
 bool NoPorts     = false;   // Suppress pre-defined Port equates
-bool PadAlign    = true;    // Pad "align"s with "zero" bytes
 
 //!
 //! \brief main
@@ -100,7 +99,6 @@ int main(int argc, char **argv)
         { "symbols",            no_argument,        0, 's' }, // Include Symbol Table in listing file
         { "noregisters",        no_argument,        0, 'r' }, // Do not pre-define labels for Registers (R0-F, R0-15)
         { "noports",            no_argument,        0, 'p' }, // No not pre-define labels for Ports (P1-7)
-        { "nopadalign",         no_argument,        0, 'z' }, // Do not pad "align"s with "zero" bytes
         { "output",             required_argument,  0, 'o' }, // Set output file type (default = Intel Hex)
         { "version",            no_argument,        0, 'v' }, // Print version number and exit
         { "help",               no_argument,        0, '?' }, // Print using information
@@ -121,7 +119,7 @@ int main(int argc, char **argv)
 
     while (1)
     {
-        const int opt = getopt_long(argc, argv, "C:D:U:klszo:v?", longopts, 0);
+        const int opt = getopt_long(argc, argv, "C:D:U:klso:v?", longopts, 0);
 
         if (opt == -1)
             break;
@@ -185,10 +183,6 @@ int main(int argc, char **argv)
 
             case 'p': // Do Not pre-define P1-P7
                 NoPorts = true;
-                break;
-
-            case 'z': // Do Not pad "align"s with "zero" bytes
-                PadAlign = false;
                 break;
 
             case 'o': // Set Binary Output format
@@ -600,6 +594,99 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     SubroutineSize += Operands.size() * 4;
                                                     break;
                                                 }
+                                                case OpCodeEnum::DQ:
+                                                {
+                                                    SubroutineSize += Operands.size() * 8;
+                                                    break;
+                                                }
+                                                case OpCodeEnum::RB:
+                                                {
+                                                    long Count = 1;
+                                                    if (Operands.size() > 1)
+                                                        throw AssemblyException("RB takes one optional argument {count}", AssemblyErrorSeverity::SEVERITY_Error);
+                                                    if (Operands.size() == 1)
+                                                    {
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            Count = E.Evaluate((Operands[0]));
+                                                        }
+                                                        catch (ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                        }
+                                                    }
+                                                    SubroutineSize += Count;
+                                                    break;
+                                                }
+                                                case OpCodeEnum::RW:
+                                                {
+                                                    long Count = 1;
+                                                    if (Operands.size() > 1)
+                                                        throw AssemblyException("RW takes one optional argument {count}", AssemblyErrorSeverity::SEVERITY_Error);
+                                                    if (Operands.size() == 1)
+                                                    {
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            Count = E.Evaluate((Operands[0]));
+                                                        }
+                                                        catch (ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                        }
+                                                    }
+                                                    SubroutineSize += Count * 2;
+                                                    break;
+                                                }
+                                                case OpCodeEnum::RL:
+                                                {
+                                                    long Count = 1;
+                                                    if (Operands.size() > 1)
+                                                        throw AssemblyException("RL takes one optional argument {count}", AssemblyErrorSeverity::SEVERITY_Error);
+                                                    if (Operands.size() == 1)
+                                                    {
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            Count = E.Evaluate((Operands[0]));
+                                                        }
+                                                        catch (ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                        }
+                                                    }
+                                                    SubroutineSize += Count * 4;
+                                                    break;
+                                                }
+                                                case OpCodeEnum::RQ:
+                                                {
+                                                    long Count = 1;
+                                                    if (Operands.size() > 1)
+                                                        throw AssemblyException("RQ takes one optional argument {count}", AssemblyErrorSeverity::SEVERITY_Error);
+                                                    if (Operands.size() == 1)
+                                                    {
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            Count = E.Evaluate((Operands[0]));
+                                                        }
+                                                        catch (ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                        }
+                                                    }
+                                                    SubroutineSize += Count * 8;
+                                                    break;
+                                                }
                                                 case OpCodeEnum::END:
                                                     if(InSub)
                                                         throw AssemblyException("END cannot appear inside a SUBROUTINE", AssemblyErrorSeverity::SEVERITY_Error);
@@ -654,7 +741,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                         if(CurrentTable != &MainTable)
                                                             E.AddLocalSymbols(CurrentTable);
-                                                        int Value = E.Evaluate(Operands[0]);
+                                                        long Value = E.Evaluate(Operands[0]);
                                                         CurrentTable->Symbols[Label].Value = Value;
                                                     }
                                                     catch (ExpressionException Ex)
@@ -733,7 +820,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                         throw AssemblyException("Unrecognised SUBROUTINE ALIGN option", AssemblyErrorSeverity::SEVERITY_Error);
                                                                     else
                                                                     {
-                                                                        int Align;
+                                                                        long Align;
                                                                         if(SubOptions[1] == "AUTO")
                                                                         {
                                                                             Align = AlignFromSize(CurrentTable->CodeSize);
@@ -785,7 +872,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             try
                                                             {
                                                                 AssemblyExpressionEvaluator E(*CurrentTable, ProgramCounter, Processor);
-                                                                auto EntryPoint = E.Evaluate(Operands[0]);
+                                                                long EntryPoint = E.Evaluate(Operands[0]);
                                                                 MainTable.Symbols[CurrentTable->Name].Value = EntryPoint;
                                                                 CurrentTable->Symbols[CurrentTable->Name].Value = EntryPoint;
                                                                 break;
@@ -852,7 +939,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     try
                                                     {
                                                         AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                        int x = E.Evaluate(Operands[0]);
+                                                        long x = E.Evaluate(Operands[0]);
                                                         if(x >= 0 && x < 0x10000)
                                                             ProgramCounter = x;
                                                         else
@@ -892,6 +979,91 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     ProgramCounter += Operands.size() * 4;
                                                     break;
                                                 }
+                                                case OpCodeEnum::DQ:
+                                                {
+                                                    ProgramCounter += Operands.size() * 8;
+                                                    break;
+                                                }
+                                                case OpCodeEnum::RB:
+                                                {
+                                                    long Count = 1;
+                                                    if (Operands.size() == 1)
+                                                    {
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            Count = E.Evaluate((Operands[0]));
+                                                        }
+                                                        catch (ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                        }
+                                                    }
+                                                    ProgramCounter += Count;
+                                                    break;
+                                                }
+                                                case OpCodeEnum::RW:
+                                                {
+                                                    long Count = 1;
+                                                    if (Operands.size() == 1)
+                                                    {
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            Count = E.Evaluate((Operands[0]));
+                                                        }
+                                                        catch (ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                        }
+                                                    }
+                                                    ProgramCounter += Count * 2;
+                                                    break;
+                                                }
+                                                case OpCodeEnum::RL:
+                                                {
+                                                    long Count = 1;
+                                                    if (Operands.size() == 1)
+                                                    {
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            Count = E.Evaluate((Operands[0]));
+                                                        }
+                                                        catch (ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                        }
+                                                    }
+                                                    ProgramCounter += Count * 4;
+                                                    break;
+                                                }
+                                                case OpCodeEnum::RQ:
+                                                {
+                                                    long Count = 1;
+                                                    if (Operands.size() == 1)
+                                                    {
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            Count = E.Evaluate((Operands[0]));
+                                                        }
+                                                        catch (ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                        }
+                                                    }
+                                                    ProgramCounter += Count * 8;
+                                                    break;
+                                                }
                                                 case OpCodeEnum::ALIGN:
                                                 {
                                                     if(InAutoAlignedSub)
@@ -900,7 +1072,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         throw AssemblyException("ALIGN Requires a single argument <alignment>", AssemblyErrorSeverity::SEVERITY_Error);
                                                     try
                                                     {
-                                                        int Align;
+                                                        long Align;
                                                         if(!SetAlignFromKeyword(Operands[0], Align))
                                                         {
                                                             AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
@@ -1016,7 +1188,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 case SubroutineOptionsEnum::SUBOPT_ALIGN:
                                                                     try
                                                                     {
-                                                                        int Align;
+                                                                        long Align;
                                                                         if(SubOptions[1] == "AUTO")
                                                                             Align = AlignFromSize(CurrentTable->CodeSize);
                                                                         else if(!SetAlignFromKeyword(SubOptions[1], Align))
@@ -1024,18 +1196,8 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                             AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                                             Align = E.Evaluate(SubOptions[1]);
                                                                         }
-                                                                        if(PadAlign)
-                                                                        {
-                                                                            int PadSize = Align - ProgramCounter % Align;
-                                                                            for(int i = 0; i < PadSize; i++)
-                                                                                CurrentCode->second.push_back(0);
-                                                                            ProgramCounter += PadSize;
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
-                                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
-                                                                        }
+                                                                        ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                                        CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
                                                                     }
                                                                     catch(ExpressionException Ex)
                                                                     {
@@ -1122,7 +1284,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     try
                                                     {
                                                         AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                        int x = E.Evaluate(Operands[0]);
+                                                        long x = E.Evaluate(Operands[0]);
                                                         if(x >= 0 && x < 0x10000)
                                                         {
                                                             RorgOffset = x - ProgramCounter;
@@ -1157,7 +1319,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         else
                                                             try
                                                             {
-                                                                int x = E.Evaluate(Operand);
+                                                                long x = E.Evaluate(Operand);
                                                                 if(x > 255)
                                                                     throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got: ${value:X})", fmt::arg("value", x)), AssemblyErrorSeverity::SEVERITY_Error);
                                                                 Data.push_back(x & 0xFF);
@@ -1181,7 +1343,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     for(auto& Operand : Operands)
                                                         try
                                                         {
-                                                            int x = E.Evaluate(Operand);
+                                                            long x = E.Evaluate(Operand);
                                                             Data.push_back((x >> 8) & 0xFF);
                                                             Data.push_back(x & 0xFF);
                                                         }
@@ -1203,7 +1365,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     for(auto& Operand : Operands)
                                                         try
                                                         {
-                                                            int x = E.Evaluate(Operand);
+                                                            long x = E.Evaluate(Operand);
                                                             Data.push_back((x >> 24) & 0xFF);
                                                             Data.push_back((x >> 16) & 0xFF);
                                                             Data.push_back((x >> 8) & 0xFF);
@@ -1218,10 +1380,126 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     ProgramCounter += Data.size();
                                                     break;
                                                 }
+                                                case OpCodeEnum::DQ:
+                                                {
+                                                    std::vector<std::uint8_t> Data;
+                                                    AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                    if(CurrentTable != &MainTable)
+                                                        E.AddLocalSymbols(CurrentTable);
+                                                    for(auto& Operand : Operands)
+                                                        try
+                                                        {
+                                                            long x = E.Evaluate(Operand);
+                                                            Data.push_back((x >> 56) & 0xFF);
+                                                            Data.push_back((x >> 48) & 0xFF);
+                                                            Data.push_back((x >> 40) & 0xFF);
+                                                            Data.push_back((x >> 32) & 0xFF);
+                                                            Data.push_back((x >> 24) & 0xFF);
+                                                            Data.push_back((x >> 16) & 0xFF);
+                                                            Data.push_back((x >>  8) & 0xFF);
+                                                            Data.push_back(x & 0xFF);
+                                                        }
+                                                        catch(ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                        }
+                                                    CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
+                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, Data);
+                                                    ProgramCounter += Data.size();
+                                                    break;
+                                                }
+                                                case OpCodeEnum::RB:
+                                                {
+                                                    long Count = 1;
+                                                    if (Operands.size() == 1)
+                                                    {
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            Count = E.Evaluate((Operands[0]));
+                                                        }
+                                                        catch (ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                        }
+                                                    }
+                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, {});
+                                                    ProgramCounter += Count;
+                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                    break;
+                                                }
+                                                case OpCodeEnum::RW:
+                                                {
+                                                    long Count = 1;
+                                                    if (Operands.size() == 1)
+                                                    {
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            Count = E.Evaluate((Operands[0]));
+                                                        }
+                                                        catch (ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                        }
+                                                    }
+                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, {});
+                                                    ProgramCounter += Count * 2;
+                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                    break;
+                                                }
+                                                case OpCodeEnum::RL:
+                                                {
+                                                    long Count = 1;
+                                                    if (Operands.size() == 1)
+                                                    {
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            Count = E.Evaluate((Operands[0]));
+                                                        }
+                                                        catch (ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                        }
+                                                    }
+                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, {});
+                                                    ProgramCounter += Count * 4;
+                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                    break;
+                                                }
+                                                case OpCodeEnum::RQ:
+                                                {
+                                                    long Count = 1;
+                                                    if (Operands.size() == 1)
+                                                    {
+                                                        try
+                                                        {
+                                                            AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                            if(CurrentTable != &MainTable)
+                                                                E.AddLocalSymbols(CurrentTable);
+                                                            Count = E.Evaluate((Operands[0]));
+                                                        }
+                                                        catch (ExpressionException Ex)
+                                                        {
+                                                            throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                        }
+                                                    }
+                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, {});
+                                                    ProgramCounter += Count * 8;
+                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                    break;
+                                                }
                                                 case OpCodeEnum::ALIGN:
                                                     try
                                                     {
-                                                        int Align;
+                                                        long Align;
                                                         if(!SetAlignFromKeyword(Operands[0], Align))
                                                         {
                                                             AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
@@ -1229,18 +1507,8 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 E.AddLocalSymbols(CurrentTable);
                                                             Align = E.Evaluate(Operands[0]);
                                                         }
-                                                        if(PadAlign)
-                                                        {
-                                                            int PadSize = Align - ProgramCounter % Align;
-                                                            for(int i = 0; i < PadSize; i++)
-                                                                CurrentCode->second.push_back(0);
-                                                            ProgramCounter += PadSize;
-                                                        }
-                                                        else
-                                                        {
-                                                            ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
-                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
-                                                        }
+                                                        ProgramCounter = ProgramCounter + Align - ProgramCounter % Align;
+                                                        CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                         break;
                                                     }
@@ -1257,7 +1525,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                         if(CurrentTable != &MainTable)
                                                             E.AddLocalSymbols(CurrentTable);
-                                                        int Result = E.Evaluate(Operands[0]);
+                                                        long Result = E.Evaluate(Operands[0]);
                                                         if (Result == 0)
                                                             throw AssemblyException("ASSERT Failed", AssemblyErrorSeverity::SEVERITY_Error);
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
@@ -1306,7 +1574,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("Expected single operand of type Register", AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
 
-                                                        int Register = E.Evaluate(Operands[0]);
+                                                        long Register = E.Evaluate(Operands[0]);
                                                         if(OpCode->OpCode == LDN) // Special Case - LDN R0 is overriden by IDL
                                                         {
                                                             if(Register < 1 || Register > 15)
@@ -1324,7 +1592,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     {
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("Expected single operand of type Byte", AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
-                                                        int Byte = E.Evaluate(Operands[0]);
+                                                        long Byte = E.Evaluate(Operands[0]);
                                                         if(Byte > 0xFF && Byte < 0xFF80)
                                                             throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got: ${value:X})", fmt::arg("value", Byte)), AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
                                                         Data.push_back(OpCode->OpCode);
@@ -1335,7 +1603,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     {
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("Short Branch expected single operand", AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
-                                                        int Address = E.Evaluate(Operands[0]);
+                                                        long Address = E.Evaluate(Operands[0]);
                                                         if(((ProgramCounter + 1) & 0xFF00) != (Address & 0xFF00))
                                                             throw AssemblyException("Short Branch out of range", AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
                                                         Data.push_back(OpCode->OpCode);
@@ -1346,7 +1614,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     {
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("Long Branch expected single operand", AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
-                                                        int Address = E.Evaluate(Operands[0]);
+                                                        long Address = E.Evaluate(Operands[0]);
                                                         if(Address < 0 || Address > 0xFFFF)
                                                             throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FFFF, got: ${value:X})", fmt::arg("value", Address)), AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
                                                         Data.push_back(OpCode->OpCode);
@@ -1359,7 +1627,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("Expected single operand of type Port", AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
 
-                                                        int Port = E.Evaluate(Operands[0]);
+                                                        long Port = E.Evaluate(Operands[0]);
                                                         if(Port == 0 || Port > 7)
                                                             throw AssemblyException("Port out of range (1-7)", AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
                                                         Data.push_back(OpCode->OpCode | Port);
@@ -1376,7 +1644,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("Expected single operand of type Register", AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
 
-                                                        int Register = E.Evaluate(Operands[0]);
+                                                        long Register = E.Evaluate(Operands[0]);
                                                         if(Register < 0 || Register > 15)
                                                             throw AssemblyException("Register out of range (0-F)", AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
                                                         Data.push_back(OpCode->OpCode >> 8);
@@ -1387,7 +1655,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     {
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("Expected single operand of type Byte", AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
-                                                        int Byte = E.Evaluate(Operands[0]);
+                                                        long Byte = E.Evaluate(Operands[0]);
                                                         if(Byte > 0xFF && Byte < 0xFF80)
                                                             throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got :${value:X})", fmt::arg("value", Byte)), AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
                                                         Data.push_back(OpCode->OpCode >> 8);
@@ -1399,7 +1667,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     {
                                                         if(Operands.size() != 1)
                                                             throw AssemblyException("Short Branch expected single operand", AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
-                                                        int Address = E.Evaluate(Operands[0]);
+                                                        long Address = E.Evaluate(Operands[0]);
                                                         if(((ProgramCounter + 2) & 0xFF00) != (Address & 0xFF00))
                                                             throw AssemblyException("Short Branch out of range", AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
                                                         Data.push_back(OpCode->OpCode >> 8);
@@ -1411,10 +1679,10 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     {
                                                         if(Operands.size() != 2)
                                                             throw AssemblyException("Expected Register and Immediate operands", AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
-                                                        int Register = E.Evaluate(Operands[0]);
+                                                        long Register = E.Evaluate(Operands[0]);
                                                         if(Register > 15)
                                                             throw AssemblyException("Register out of range (0-F)", AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
-                                                        int Address = E.Evaluate(Operands[1]);
+                                                        long Address = E.Evaluate(Operands[1]);
                                                         if(Address < -32768 || Address > 0xFFFF)
                                                             throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FFFF, got :${value:X})", fmt::arg("value", Address)), AssemblyErrorSeverity::SEVERITY_Error, OpCode->OpCodeType);
                                                         Data.push_back(OpCode->OpCode >> 8);
@@ -1947,7 +2215,7 @@ void PrintError(const std::string& Message, AssemblyErrorSeverity Severity)
                  fmt::arg("message", Message));
 }
 
-bool SetAlignFromKeyword(std::string Alignment, int& Align)
+bool SetAlignFromKeyword(std::string Alignment, long& Align)
 {
     static std::map<std::string, int> Lookup =
     {

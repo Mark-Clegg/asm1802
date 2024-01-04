@@ -27,7 +27,7 @@ public:
 private:
     static const std::map<std::string, FunctionSpec> FunctionTable;
     const CPUTypeEnum Processor;
-    int AtomValue();
+    long AtomValue();
 
 };
 

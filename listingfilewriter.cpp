@@ -76,36 +76,55 @@ void ListingFileWriter::Append(const std::string& FileName, int LineNumber, cons
         {
             ListStream.open(ListFileName, std::ofstream::out | std::ofstream::trunc);
         }
-        for(int i = 0; i < (Data.size() - 1) / 4 + 1; i++)
+        if(Data.size() == 0)
         {
-            if(i == 0)
-                if(InMacro)
-                    fmt::print(ListStream, "[{filename:21.21} :{linenumber:05}.{macrolinenumber:02}]  {address:04X}   ",
-                               fmt::arg("filename", FileRef),
-                               fmt::arg("linenumber", LineNumber - 1),
-                               fmt::arg("macrolinenumber", MacroLineNumber),
-                               fmt::arg("address", Address)
-                              );
-                else
-                    fmt::print(ListStream, "[{filename:21.21} :{linenumber:05}   ]  {address:04X}   ",
-                               fmt::arg("filename", FileName),
-                               fmt::arg("linenumber", LineNumber),
-                               fmt::arg("address", Address)
-                              );
+            if(InMacro)
+                fmt::println(ListStream, "[{filename:21.21} :{linenumber:05}.{macrolinenumber:02}]  {address:04X}                 {line}",
+                             fmt::arg("filename", FileRef),
+                             fmt::arg("linenumber", LineNumber - 1),
+                             fmt::arg("macrolinenumber", MacroLineNumber),
+                             fmt::arg("address", Address),
+                             fmt::arg("line", Line)
+                            );
             else
-                fmt::print(ListStream, "{space:42}", fmt::arg("space", " "));
-
-            for(int j = 0; j < 4; j++)
-                if((i*4)+j < Data.size())
-                    fmt::print(ListStream, "{byte:02X} ", fmt::arg("byte", Data[i*4+j]));
-                else
-                    fmt::print(ListStream, "{space:2} ", fmt::arg("space", ""));
-            if(i == 0)
-                fmt::print(ListStream, "  {line}", // Initial spaces to pad line start to an 8 character boundary (to align tabs)
-                           fmt::arg("line", Line)
-                          );
-            fmt::println(ListStream, "");
+                fmt::println(ListStream, "[{filename:21.21} :{linenumber:05}   ]  {address:04X}                 {line}",
+                             fmt::arg("filename", FileName),
+                             fmt::arg("linenumber", LineNumber),
+                             fmt::arg("address", Address),
+                             fmt::arg("line", Line)
+                            );
         }
+        else
+            for(int i = 0; i < (Data.size() - 1) / 4 + 1; i++)
+            {
+                if(i == 0)
+                    if(InMacro)
+                        fmt::print(ListStream, "[{filename:21.21} :{linenumber:05}.{macrolinenumber:02}]  {address:04X}   ",
+                                   fmt::arg("filename", FileRef),
+                                   fmt::arg("linenumber", LineNumber - 1),
+                                   fmt::arg("macrolinenumber", MacroLineNumber),
+                                   fmt::arg("address", Address)
+                                  );
+                    else
+                        fmt::print(ListStream, "[{filename:21.21} :{linenumber:05}   ]  {address:04X}   ",
+                                   fmt::arg("filename", FileName),
+                                   fmt::arg("linenumber", LineNumber),
+                                   fmt::arg("address", Address)
+                                  );
+                else
+                    fmt::print(ListStream, "{space:42}", fmt::arg("space", " "));
+
+                for(int j = 0; j < 4; j++)
+                    if((i*4)+j < Data.size())
+                        fmt::print(ListStream, "{byte:02X} ", fmt::arg("byte", Data[i*4+j]));
+                    else
+                        fmt::print(ListStream, "{space:2} ", fmt::arg("space", ""));
+                if(i == 0)
+                    fmt::print(ListStream, "  {line}", // Initial spaces to pad line start to an 8 character boundary (to align tabs)
+                               fmt::arg("line", Line)
+                              );
+                fmt::println(ListStream, "");
+            }
 
         PrintError(FileName, LineNumber, MacroName, MacroLineNumber, InMacro);
     }

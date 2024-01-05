@@ -185,11 +185,7 @@ void ListingFileWriter::AppendSymbols(const std::string& Name, const SymbolTable
     if(Enabled)
     {
         fmt::println(ListStream, "");
-
-        if(Blob.Name.empty())
-            fmt::println(ListStream, "{Name:-^116}", fmt::arg("Name", Name));
-        else
-            fmt::println(ListStream, "{Name:-^116}", fmt::arg("Name", fmt::format("Subroutine: {Name} ({size} bytes)",fmt::arg("Name", Name), fmt::arg("size", Blob.CodeSize))));
+        fmt::println(ListStream, "{Name:-^116}", fmt::arg("Name", Name));
 
         int c = 0;
         for(auto& Symbol : Blob.Symbols)

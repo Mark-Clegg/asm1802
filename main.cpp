@@ -1234,9 +1234,8 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                     CurrentCode->second.push_back(PadByte);
                                                             else
                                                                 CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                            ProgramCounter = ProgramCounter + GetAlignExtraBytes(ProgramCounter, Align);
                                                         }
-                                                        ProgramCounter = ProgramCounter + GetAlignExtraBytes(ProgramCounter, Align);
-
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                     }
                                                     break;

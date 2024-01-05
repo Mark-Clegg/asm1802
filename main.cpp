@@ -598,6 +598,8 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                 }
                                                 case OpCodeEnum::DQ:
                                                 {
+                                                    if(sizeof(long) < 8)
+                                                        throw AssemblyException("DQ Not supported in this build", AssemblyErrorSeverity::SEVERITY_Error);
                                                     SubroutineSize += Operands.size() * 8;
                                                     break;
                                                 }
@@ -1226,11 +1228,13 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         if(Pad && Align == 0)
                                                             throw AssemblyException("PAD cannot be used without ALIGN=...", AssemblyErrorSeverity::SEVERITY_Error);
                                                         if(Align > 0)
+                                                        {
                                                             if(Pad)
                                                                 for(int i = 0; i < GetAlignExtraBytes(ProgramCounter, Align); i++)
                                                                     CurrentCode->second.push_back(PadByte);
                                                             else
                                                                 CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                        }
                                                         ProgramCounter = ProgramCounter + GetAlignExtraBytes(ProgramCounter, Align);
 
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());

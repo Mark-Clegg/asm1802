@@ -35,7 +35,7 @@ private:
     bool LocalSymbols;      // Denotess if a local blob is available for symbol lookups
     CPUTypeEnum Processor;
     const uint16_t ProgramCounter;
-    uint16_t SymbolValue(std::string Label);
+    long SymbolValue(std::string Label);
     long AtomValue();
 };
 

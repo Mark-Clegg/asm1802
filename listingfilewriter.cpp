@@ -193,7 +193,23 @@ void ListingFileWriter::AppendSymbols(const std::string& Name, const SymbolTable
             {
                 fmt::print(ListStream, "{Name:15} ", fmt::arg("Name", Symbol.first));
                 if(Symbol.second.Value.has_value())
-                    fmt::print(ListStream, "{Address:04X}", fmt::arg("Address", Symbol.second.Value.value()));
+                {
+                    if(Symbol.second.Value.value() >= -65536 && Symbol.second.Value.value() <= 65535)
+                        fmt::print(ListStream, "{Address:04X}", fmt::arg("Address", Symbol.second.Value.value() & 0xFFFF));
+                    else
+                    {
+                        // Fixup for values over 2 bytes long
+                        if(c == 3)
+                        {
+                            fmt::println(ListStream, "");
+                            c++;
+                        }
+                        fmt::print(ListStream, "{Address:08X}", fmt::arg("Address", (unsigned long)Symbol.second.Value.value()));
+                        c++;
+                        if(c % 5 != 0)
+                            fmt::print(ListStream, "            ");
+                    }
+                }
                 else
                     fmt::print(ListStream, "----");
                 if(++c % 5 == 0)

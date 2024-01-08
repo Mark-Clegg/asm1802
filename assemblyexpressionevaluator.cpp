@@ -165,7 +165,7 @@ long AssemblyExpressionEvaluator::AtomValue()
 //! \param Label
 //! \return
 //!
-uint16_t AssemblyExpressionEvaluator::SymbolValue(std::string Label)
+long AssemblyExpressionEvaluator::SymbolValue(std::string Label)
 {
     if(LocalSymbols)
     {

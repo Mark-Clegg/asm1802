@@ -30,7 +30,7 @@ $ make
 
 ## Command Line Options
 
-asm1802 {options} file {options} file ... file
+asm1802 {options} file.asm
 
 All Options are processed first, before assembling any files.
 
@@ -41,8 +41,12 @@ All Options are processed first, before assembling any files.
 | -U name | --undefine name | Remove pre-processor variable |
 | -L | --list | Create listing file (.lst) |
 | -S | --symbols | Append Symbol Table to listing |
+| -k | --keep-preprocessor | Do not delete intermediate pre-processor output (saved as file.pp) |
+| -o format | --output format | Binary output format. "intel-hex" (default) or "idiot4" |
 | | --noregisters | Do not predefine Register equates (R0-RF) |
 | | --noports | Do not predefine Port equates (P1-P7) |
+| -v | --version | Display version number |
+| -? | --help | display usage information |
 
 ## Pre-Processor
 
@@ -69,8 +73,8 @@ Conditional assembly if \<condition\> evaluates to true (non-zero). In addition 
 
 | Function | Meaning |
 | --- | --- |
-| HIGH(expression) | Returns the high byte of expression |
-| LOW(expression) | Returns the low byte of expression |
+| HIGH(expression) | Returns the high byte of expression (bits 8-15) |
+| LOW(expression) | Returns the low byte of expression (bits 0-7) |
 | PROCESSOR(designation) | Returns true(1) if designation is the currently selected processor model |
 
 - #ifdef variable
@@ -178,7 +182,7 @@ precedence shown.
 | Precedence | Operator | Meaning |
 | :---: | :---: | --- |
 | 1 | + - ~ ! | Unary +, -, Bitwise NOT, Logical NOT |
-| 2 | . | High Low selector e.g. (label.1) (label.0) |
+| 2 | . | Byte selector e.g. (label.7) ... (label.1) (label.0) |
 | 2 | * / % | Multiply, Divide, Remainder |
 | 3 | + - | Addition, Subtraction |
 | 4 | << >> | Shift Left / Right |

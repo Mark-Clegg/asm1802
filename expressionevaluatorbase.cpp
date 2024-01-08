@@ -259,7 +259,7 @@ long ExpressionEvaluatorBase::SubExp9()
 
 //!
 //! \brief ExpressionEvaluator::SubExp10
-//! . Postfix operator - select Low ot High byte
+//! . Postfix operator - select byte
 //! \return
 //!
 long ExpressionEvaluatorBase::SubExp10()
@@ -276,6 +276,32 @@ long ExpressionEvaluatorBase::SubExp10()
                 break;
             case 1:
                 Result = (Result >> 8) & 0xFF;
+                break;
+            case 2:
+                Result = (Result >> 16) & 0xFF;
+                break;
+            case 3:
+                Result = (Result >> 24) & 0xFF;
+                break;
+            case 4:
+                if(sizeof(long) < 8)
+                    throw ExpressionException(".4 Not supported in this build");
+                Result = (Result >> 32) & 0xFF;
+                break;
+            case 5:
+                if(sizeof(long) < 8)
+                    throw ExpressionException(".5 Not supported in this build");
+                Result = (Result >> 40) & 0xFF;
+                break;
+            case 6:
+                if(sizeof(long) < 8)
+                    throw ExpressionException(".6 Not supported in this build");
+                Result = (Result >> 48) & 0xFF;
+                break;
+            case 7:
+                if(sizeof(long) < 8)
+                    throw ExpressionException(".7 Not supported in this build");
+                Result = (Result >> 56) & 0xFF;
                 break;
             default:
                 throw ExpressionException("Expected .0 or .1 High/Low selector");

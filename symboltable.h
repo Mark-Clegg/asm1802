@@ -10,7 +10,7 @@
 
 struct SymbolDefinition
 {
-    std::optional<uint16_t> Value;
+    std::optional<long> Value;
     bool HideFromSymbolTable = false;
     mutable int RefCount = 0;
 };

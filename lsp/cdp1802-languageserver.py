@@ -205,8 +205,8 @@ def hover(ls, params: lsp.TextDocumentPositionParams) -> lsp.Hover:
         if GotoURI:
             targetDoc = ls.workspace.get_text_document(GotoURI)
             line = targetDoc.lines[GotoLine]
-            line = Trim(line)
-            SourceLine = SourceLineRE.match(line)
+            trimmedline = Trim(line)
+            SourceLine = SourceLineRE.match(trimmedline)
             if SourceLine:
                 Label, Mnemonic, Operands = SourceLine.group(3,5,7)
                 if Mnemonic.lower() == "equ":
@@ -437,9 +437,8 @@ class SymbolTable:
             document = ls.workspace.get_text_document(M.uri)
 
             startLine = M.startLine
-            while startLine > 0 and Trim(document.lines[startLine - 1]).lstrip(" \t") == "":
+            while startLine > 0 and len(document.lines[startLine - 1]) > 1 and document.lines[startLine-1].startswith(";;"):
                 startLine -= 1
-
             output = ""
             for Line in document.lines[startLine : M.endLine + 1]:
                 if Line.rstrip(" \n\r\t"):
@@ -454,7 +453,7 @@ class SymbolTable:
             document = ls.workspace.get_text_document(S.uri)
 
             startLine = S.startLine
-            while startLine > 0 and Trim(document.lines[startLine - 1]).lstrip(" \t") == "":
+            while startLine > 0 and len(document.lines[startLine - 1]) > 1 and document.lines[startLine-1].startswith(";;"):
                 startLine -= 1
 
             output = ""

@@ -11,6 +11,7 @@ find_package(fmt)
 
 add_executable(asm1802 main.cpp
     README.md
+    LICENSE
 
     sourcecodereader.h sourcecodereader.cpp
     assemblyexception.h assemblyexception.cpp

@@ -7,7 +7,7 @@ asm1802 is a multi-pass assembler:
 - Pre-Processor: Processes # directives
 - Pass 1: Define and expand Macros, and calculate the size of any SUBROUTINEs.
 - Pass 2: Expand MACROs and assign values to Labels
-- Pass 3: Expand MACOs, generate output and listing file.
+- Pass 3: Expand MACROs, generate output and listing file.
 
 After Pass 3, any unreferenced non-STATIC SUBROUTINE's are flagged for removal, and 
 assembly restarts on Pass 2 until no unreferenced SUBs are found.

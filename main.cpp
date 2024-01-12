@@ -323,7 +323,6 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
     {
         SymbolTable* CurrentTable = &MainTable;
         uint16_t ProgramCounter = 0;
-        uint16_t RorgOffset = 0;
         uint16_t SubroutineSize = 0;
         CPUTypeEnum Processor = InitialProcessor;
         std::string CurrentFile = "";
@@ -880,7 +879,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 AssemblyExpressionEvaluator E(*CurrentTable, ProgramCounter, Processor);
                                                                 long EntryPoint = E.Evaluate(Operands[0]);
                                                                 MainTable.Symbols[CurrentTable->Name].Value = EntryPoint;
-                                                                CurrentTable->Symbols[CurrentTable->Name].Value = EntryPoint;
+                                                                //CurrentTable->Symbols[CurrentTable->Name].Value = EntryPoint;
                                                                 break;
                                                             }
                                                             catch (ExpressionException Ex)
@@ -1232,7 +1231,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 for(int i = 0; i < GetAlignExtraBytes(ProgramCounter, Align); i++)
                                                                     CurrentCode->second.push_back(PadByte);
                                                             else
-                                                                CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                                CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
                                                             ProgramCounter = ProgramCounter + GetAlignExtraBytes(ProgramCounter, Align);
                                                         }
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
@@ -1295,43 +1294,13 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     {
                                                         AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
                                                         ProgramCounter = E.Evaluate(Operands[0]);
-                                                        CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                        CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                     }
                                                     catch(ExpressionException Ex)
                                                     {
                                                         throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
                                                     }
-                                                    break;
-                                                case OpCodeEnum::RORG:
-                                                    if(CurrentTable != &MainTable)
-                                                        throw AssemblyException("RORG Cannot be used in a SUBROUTINE", AssemblyErrorSeverity::SEVERITY_Error);
-                                                    if(Operands.size() != 1)
-                                                        throw AssemblyException("RORG Requires a single argument <address>", AssemblyErrorSeverity::SEVERITY_Error);
-                                                    try
-                                                    {
-                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                        long x = E.Evaluate(Operands[0]);
-                                                        if(x >= 0 && x < 0x10000)
-                                                        {
-                                                            RorgOffset = x - ProgramCounter;
-                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
-                                                            ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
-                                                        }
-                                                        else
-                                                            throw AssemblyException("Overflow: Address must be in range 0-FFFF", AssemblyErrorSeverity::SEVERITY_Error);
-                                                    }
-                                                    catch(ExpressionException Ex)
-                                                    {
-                                                        throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
-                                                    }
-                                                    break;
-                                                case OpCodeEnum::REND:
-                                                    if(Operands.size() != 0)
-                                                        throw AssemblyException("REND does not take any arguments", AssemblyErrorSeverity::SEVERITY_Error);
-                                                    RorgOffset = 0;
-                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
-                                                    ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                     break;
                                                 case OpCodeEnum::DB:
                                                 {
@@ -1454,7 +1423,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     }
                                                     ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, {});
                                                     ProgramCounter += Count;
-                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
                                                     break;
                                                 }
                                                 case OpCodeEnum::RW:
@@ -1476,7 +1445,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     }
                                                     ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, {});
                                                     ProgramCounter += Count * 2;
-                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
                                                     break;
                                                 }
                                                 case OpCodeEnum::RL:
@@ -1498,7 +1467,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     }
                                                     ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, {});
                                                     ProgramCounter += Count * 4;
-                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
                                                     break;
                                                 }
                                                 case OpCodeEnum::RQ:
@@ -1520,7 +1489,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     }
                                                     ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, {});
                                                     ProgramCounter += Count * 8;
-                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                    CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
                                                     break;
                                                 }
                                                 case OpCodeEnum::ALIGN:
@@ -1556,7 +1525,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                             for(int i = 0; i < GetAlignExtraBytes(ProgramCounter, Align); i++)
                                                                 CurrentCode->second.push_back(PadByte);
                                                         else
-                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + RorgOffset, {})).first;
+                                                            CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
                                                         ProgramCounter = ProgramCounter + GetAlignExtraBytes(ProgramCounter, Align);
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                         break;

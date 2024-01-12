@@ -138,8 +138,6 @@ enum OpCodeEnum
     SUB,
     ENDSUB,
     ORG,
-    RORG,
-    REND,
     DB,
     DW,
     DL,

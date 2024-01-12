@@ -180,7 +180,7 @@ Numerical constants can be specified in decimal, octal or hex.
 ### Operator Precedence
 
 The following operators are supported, and are evaluated according to the
-precedence shown.
+precedence shown. Parentheses can be used to group sub-expressions.
 
 | Precedence | Operator | Meaning |
 | :---: | :---: | --- |
@@ -189,7 +189,7 @@ precedence shown.
 | 2 | * / % | Multiply, Divide, Remainder |
 | 3 | + - | Addition, Subtraction |
 | 4 | << >> | Shift Left / Right |
-| 5 | < <= >= > | Less, Less or Equal, Greater or Euqal, Greater |
+| 5 | < <= >= > | Less, Less or Equal, Greater or Equal, Greater |
 | 6 | = == != | Equality, Non-Equality (= and == treated the same |
 | 7 | & | Bitwise AND |
 | 8 | ^ | Bitwise Exclusive OR |
@@ -203,8 +203,8 @@ For Logical operators, 0 = false, 1 = true.
 
  | Function | Meaning |
  | --- | --- |
- | HIGH(expression) | HIGH order 8 bits of value |
- | LOW(expression) | LOW order 8 bits of value |
+ | HIGH(expression) | HIGH order 8 bits of 16 bit value. (same as value.1) |
+ | LOW(expression) | LOW order 8 bits of 16 bit value. (Same as value.0) |
  | ISDEF(label) | True if label is defined |
  | ISNDEF(label) | True if label is not defined |
  | PROCESSOR(designation) | True if designated processor is suppported |
@@ -226,25 +226,11 @@ For Logical operators, 0 = false, 1 = true.
 | RQ count | Reserve count QuadWorda (8 bytes) |
 | EQU value | Assign value to label |
 | ORG arg | Set Address |
-| RORG arg | Set relocation address |
-| REND | End relocated code |
-| SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO }, STATIC, PAD=padbyte | Define a Subroutine, optionally aligned to boundary, optionally prevent removal if unreferenced |
-| ENDSUB | End of Subroutine Definition |
+| SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO }, STATIC, PAD=padbyte | Define a Subroutine, optionally aligned to boundary, optionally padding with padbyte, and optionally prevent removal if unreferenced |
+| ENDSUB {expression}| End of Subroutine Definition. Optionally set the entypoint to expression |
 | MACRO parameters | Define a Macro |
 | ENDM | End of Macro Definition |
 | END expression | End of source code. Expression sets the start address |
-
-## Relocation
-
-### RORG address
-
-Causes any following code to be assembled as normal, but stored in memory starting at address.
-This is achieved by calculating the offset between the supplied address and the current program counter.
-This offset is then applied to all subseuent code, including new ORG'ed sections.
-
-### REND
-
-Ends a relocated block. REND is equivalent to "RORG ." which would calculate to an offset of 0.
 
 ## Subroutines
 
@@ -255,9 +241,10 @@ Ends a relocated block. REND is equivalent to "RORG ." which would calculate to 
 #### Optional arguments
 
 ALIGN=...: Align the subroutine to the specified 
-power of 2 boudary. (e.g. ALIGN=32). Specifying ALIGN=AUTO will align to the nearest greater
-power of two boundary. This allows the creation of library modules that can be #included
-anywhere in code helping to ensure that short branches remain in range wherever the code is included.
+power of 2 boudary. (e.g. ALIGN=32). Specifying ALIGN=AUTO will align to the nearest
+power of 2 boundary greater or equal to the SUBROUTINE size. This allows the creation of library modules 
+that can be #included anywhere in code helping to ensure that short branches remain 
+in range wherever the code is included.
 
 PAD=...: When ALIGN is specified, fill any skipped bytes with the given value, instead of leaving an 
 unintialised gap.
@@ -267,15 +254,14 @@ Flagging a SUBROUTINE as STATIC forces assembly of the SUBROUTINE regardless of 
 or not it is used.
 
 Any labels defined within the subroutine are local to that subroutine, and
-cannot be referenced elsewhere. The subroutine name itself appears only in global symbol table,
-with it's value defaulting to the current address at assembly, or as set in the matching ENDSUB, if
-specified.
+cannot be referenced elsewhere. The subroutine name is added to the symbol table with the current assemly
+address, or as set in the matching ENDSUB, if specified.
 
 ### ENDSUB {expression}
 
 Marks the end of a SUBROUTINE definition. If an optional expression is supplied, this is evaluated
 and marks the entry point of that subroutine. This modifies the value of the SUBROUTINE's label 
-in the Master symbol table.
+in the master symbol table.
 
 e.g.
 ```
@@ -295,22 +281,24 @@ e.g.
                             ENDSUB  START
 ```
 
-Main code loads R6 with the address of the local START label (1001). Also, within the
-subroutine, FlashQ will have it's initial address of START (1001)
+Main code loads R6 with the entry point address of the Flashq Subroutine, as specified by the ENDSUB
+statement. This evaluates to the subroutines local START label: 1001. 
+
+Within the subroutine, FlashQ retains it's initial address 1000.
 
 ## Macros
 
 ```
 ; Definition
-NAME    MACRO   Param1, Param2... , ParamN
+MAC     MACRO    Param1, Param2... , ParamN
         Assembly code
         ENDMACRO
 ; usage        
-        NAME    1, "Hello", 'C'
+        MAC      1, "Hello", 'C'
 ```
-... defines a Macro named LABEL. Macros can be used anywhere in code, by using 
-LABEL as the OpCode, followed by a matching list of arguments.
-During assembly, Param1..N are substituted from the call.
+... defines a Macro named MAC. Macros can be used anywhere in code, by using 
+the macro name as the OpCode, followed by a matching list of arguments.
+During assembly, the name is replaced by its content, and Param1..N are substituted where used.
 
 ### Notes
 

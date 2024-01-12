@@ -2,11 +2,15 @@
 
 Assembler for the CDP1802 series microprocessor. 
 
-asm1802 is a three pass assembler, scanning the source file(s) 3 times:
+asm1802 is a multi-pass assembler:
 
-- Pass 1: Define and expand Macros, and calculate the size of any subroutines.
-- Pass 2: Expand Macros and assign values to Labels
-- Pass 3: Expand Macros, generate output and listing file.
+- Pre-Processor: Processes # directives
+- Pass 1: Define and expand Macros, and calculate the size of any SUBROUTINEs.
+- Pass 2: Expand MACROs and assign values to Labels
+- Pass 3: Expand MACOs, generate output and listing file.
+
+After Pass 3, any unreferenced non-STATIC SUBROUTINE's are flagged for removal, and 
+assembly restarts on Pass 2 until no unreferenced SUBs are found.
 
 ## Features
 
@@ -103,7 +107,7 @@ Include the contents of the specified file into the input stream.
 
 - #list on|off
 
-Turn on listing output
+Turn on/off listing output
 
 - #symbols on|off
 
@@ -121,7 +125,7 @@ Append symbol table to end of listing file
 
 Note that Pre-processor variables are distinct from labels specified 
 during assembly. During pre-processing, any reference to a pre-processor
-variable in the source code, is replaced by it's correspinding value.
+variable in the source code, is replaced by it's corresponding value.
 
 ## Source code syntax
 
@@ -130,7 +134,7 @@ Each source line should be formatted as follows:
 ```
 ; Comment
 #pre-proccessor direcive
-{Label}   {Mnemonic    {Operands}}    ; Comment
+{Label}   {Mnemonic    {Operands}    ; Comment
 ```
 
 Labels *MUST* begin in column 1, start with 'A'-'Z' or '\_' and can 
@@ -144,14 +148,13 @@ Any text following a ';' is treated as a comment.
 
 ### Pre-Defined Labels
 
-The following labels are pre-defined
+The following labels are pre-defined (see --noregisters/--noports command line options)
 
 | Label | Value |
 | --- | --- |
 | R0 - R15 | 0 - 15 |
 | R0 - RF | 0 - 15 |
 | P1 - P7 | 1 -7 |
-| \_\_HIMEM\_\_ | Calculated to the first free address after all code |
 
 ## Operands
 

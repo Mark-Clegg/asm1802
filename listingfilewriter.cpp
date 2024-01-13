@@ -95,7 +95,9 @@ void ListingFileWriter::Append(const std::string& FileName, int LineNumber, cons
                             );
         }
         else
-            for(int i = 0; i < (Data.size() - 1) / 4 + 1; i++)
+        {
+            int LineCount = (Data.size() - 1) / 4 + 1;
+            for(int i = 0; i < std::min(LineCount, 16); i++)
             {
                 if(i == 0)
                     if(InMacro)
@@ -125,7 +127,13 @@ void ListingFileWriter::Append(const std::string& FileName, int LineNumber, cons
                               );
                 fmt::println(ListStream, "");
             }
-
+            if(LineCount > 16)
+            {
+                fmt::println(ListStream, "{space:42}.. .. .. ..           (remaining {bytes} bytes omitted from listing)",
+                             fmt::arg("space", " "),
+                             fmt::arg("bytes", Data.size()-64));
+            }
+        }
         PrintError(FileName, LineNumber, MacroName, MacroLineNumber, InMacro);
     }
 }

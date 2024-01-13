@@ -22,6 +22,7 @@ namespace fs = std::filesystem;
 class BinaryWriter
 {
 public:
+    BinaryWriter();
     BinaryWriter(const std::string& FileName, const std::string& Extension);
     virtual ~BinaryWriter();
     virtual void Write(std::map<uint16_t, std::vector<uint8_t>>& Code, std::optional<uint16_t> StartAddress) = 0;

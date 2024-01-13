@@ -21,9 +21,6 @@ add_executable(asm1802 main.cpp
     symboltable.h symboltable.cpp
     errortable.h errortable.cpp
     assemblyexpressionevaluator.h assemblyexpressionevaluator.cpp
-    binarywriter.h binarywriter.cpp
-    binarywriter_intelhex.h binarywriter_intelhex.cpp
-    binarywriter_idiot4.h binarywriter_idiot4.cpp
     macro.h macro.cpp
     preprocessor.h preprocessor.cpp
     preprocessorexception.h preprocessorexception.cpp
@@ -31,6 +28,10 @@ add_executable(asm1802 main.cpp
     preprocessorexpressionevaluator.h preprocessorexpressionevaluator.cpp
     expressionexception.h expressionexception.cpp
     expressionevaluatorbase.h expressionevaluatorbase.cpp
+    binarywriter.h binarywriter.cpp
+    binarywriter_intelhex.h binarywriter_intelhex.cpp
+    binarywriter_idiot4.h binarywriter_idiot4.cpp
+    binarywriter_binary.h binarywriter_binary.cpp
 
     lsp/cdp1802-languageserver.py
     syntax/asm1802.xml

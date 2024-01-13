@@ -20,6 +20,7 @@ assembly restarts on Pass 2 until no unreferenced SUBs are found.
 - C style '#' pre-processor directives
 - Intel HEX compatible output
 - Idiot/4 monitor compatible output
+- Raw Binary output
 
 ## Building asm1802
 
@@ -46,7 +47,7 @@ All Options are processed first, before assembling any files.
 | -L | --list | Create listing file (.lst) |
 | -S | --symbols | Append Symbol Table to listing |
 | -k | --keep-preprocessor | Do not delete intermediate pre-processor output (saved as file.pp) |
-| -o format | --output format | Binary output format. "intel-hex" (default) or "idiot4" |
+| -o format | --output format | Binary output format. "intel-hex" (default), "idiot4" or "bin" |
 | | --noregisters | Do not predefine Register equates (R0-RF) |
 | | --noports | Do not predefine Port equates (P1-P7) |
 | -v | --version | Display version number |
@@ -305,6 +306,23 @@ During assembly, the name is replaced by its content, and Param1..N are substitu
 - Macros defined inside a subroutine, are local to that subroutine.
 
 - Macros cannot contain labels.
+
+# Output Formats
+
+The "-o format" command line option sets the desired assembly output format:
+
+## -o intel_hex
+
+Generates intel hex compatible output. File: filename.hex
+
+## -o idiot4
+
+Generates a sequence of commands suitable for pasting into the idiot4 monitor. File: filename.idiot
+
+## -o bin
+
+Generates one or more files containing a raw memory image for the assembled code. Files: filename.address.bin, 
+where address is the memory address the image should be loaded into.
 
 # Syntax Highlighting
 

@@ -11,6 +11,7 @@
 #include <getopt.h>
 #include "binarywriter_idiot4.h"
 #include "binarywriter_intelhex.h"
+#include "binarywriter_binary.h"
 #include "errortable.h"
 #include "assemblyexception.h"
 #include "assemblyexpressionevaluator.h"
@@ -59,13 +60,15 @@ std::map<std::string, SubroutineOptionsEnum> SubroutineOptionsLookup =
 enum class OutputFormatEnum
 {
     INTEL_HEX,
-    IDIOT4
+    IDIOT4,
+    BIN
 };
 
 std::map<std::string, OutputFormatEnum> OutputFormatLookup =
 {
     { "INTEL_HEX", OutputFormatEnum::INTEL_HEX },
-    { "IDIOT4",    OutputFormatEnum::IDIOT4    }
+    { "IDIOT4",    OutputFormatEnum::IDIOT4    },
+    { "BIN",       OutputFormatEnum::BIN    }
 };
 
 bool assemble(const std::string&, CPUTypeEnum InitialProcessor, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode);
@@ -1883,6 +1886,11 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
             case OutputFormatEnum::IDIOT4:
             {
                 Output = new BinaryWriter_Idiot4(FileName, "idiot");
+                break;
+            }
+            case OutputFormatEnum::BIN:
+            {
+                Output = new BinaryWriter_Binary(FileName, "bin");
                 break;
             }
         }

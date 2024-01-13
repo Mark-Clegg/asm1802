@@ -21,7 +21,7 @@ void BinaryWriter_Binary::Write(std::map<uint16_t, std::vector<uint8_t>>& Code, 
             p.replace_extension(newExtension);
 
             fmt::println("Writing binary file: {FileName}...", fmt::arg("FileName", p.string()));
-            Output.open(p, std::ofstream::out | std::ofstream::trunc);
+            Output.open(p, std::ofstream::out | std::ofstream::trunc | std::ofstream::binary);
 
             Output.write((const char *)&DataIn[0], DataIn.size());
             Output.close();

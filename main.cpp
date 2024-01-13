@@ -81,6 +81,7 @@ int AlignFromSize(int Size);
 const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCode, std::vector<std::string>& Operands);
 bool SetAlignFromKeyword(std::string Alignment, long& Align);
 int GetAlignExtraBytes(int ProgramCounter, int Align);
+std::string GetFileName(std::string Operand);
 bool NoRegisters = false;   // Suppress pre-defined Register equates
 bool NoPorts     = false;   // Suppress pre-defined Port equates
 
@@ -575,16 +576,29 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                 case OpCodeEnum::DB:
                                                 {
                                                     for(auto& Operand : Operands)
-                                                    {
-                                                        if(Operand[0] == '\"')
+                                                        switch(Operand[0])
                                                         {
-                                                            std::vector<std::uint8_t> Data;
-                                                            StringToByteVector(Operand, Data);
-                                                            SubroutineSize += Data.size();
+                                                            case '\"':
+                                                            {
+                                                                std::vector<std::uint8_t> Data;
+                                                                StringToByteVector(Operand, Data);
+                                                                SubroutineSize += Data.size();
+                                                                break;
+                                                            }
+                                                            case '@':
+                                                            {
+                                                                std::string FileName = GetFileName(&Operand[1]);
+                                                                if(!fs::exists(FileName))
+                                                                    throw AssemblyException(fmt::format("File Not Found: '{Filename}'", fmt::arg("FileName", FileName)), AssemblyErrorSeverity::SEVERITY_Error);
+                                                                SubroutineSize += fs::file_size(FileName);
+                                                                break;
+                                                            }
+                                                            default:
+                                                            {
+                                                                SubroutineSize++;
+                                                                break;
+                                                            }
                                                         }
-                                                        else
-                                                            SubroutineSize++;
-                                                    }
                                                     break;
                                                 }
                                                 case OpCodeEnum::DW:
@@ -965,16 +979,25 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                 case OpCodeEnum::DB:
                                                 {
                                                     for(auto& Operand : Operands)
-                                                    {
-                                                        if(Operand[0] == '\"')
+                                                        switch(Operand[0])
                                                         {
-                                                            std::vector<std::uint8_t> Data;
-                                                            StringToByteVector(Operand, Data);
-                                                            ProgramCounter += Data.size();
+                                                            case '\"':
+                                                            {
+                                                                std::vector<std::uint8_t> Data;
+                                                                StringToByteVector(Operand, Data);
+                                                                ProgramCounter += Data.size();
+                                                                break;
+                                                            }
+                                                            case '@':
+                                                            {
+                                                                std::string FileName = GetFileName(&Operand[1]);
+                                                                ProgramCounter += fs::file_size(FileName);
+                                                                break;
+                                                            }
+                                                            default:
+                                                                ProgramCounter++;
+                                                                break;
                                                         }
-                                                        else
-                                                            ProgramCounter++;
-                                                    }
                                                     break;
                                                 }
                                                 case OpCodeEnum::DW:
@@ -1312,22 +1335,34 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                     if(CurrentTable != &MainTable)
                                                         E.AddLocalSymbols(CurrentTable);
                                                     for(auto& Operand : Operands)
-                                                    {
-                                                        if(Operand[0] == '\"')
-                                                            StringToByteVector(Operand, Data);
-                                                        else
-                                                            try
+                                                        switch(Operand[0])
+                                                        {
+                                                            case  '\"':
                                                             {
-                                                                long x = E.Evaluate(Operand);
-                                                                if(x > 255)
-                                                                    throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got: ${value:X})", fmt::arg("value", x)), AssemblyErrorSeverity::SEVERITY_Error);
-                                                                Data.push_back(x & 0xFF);
+                                                                StringToByteVector(Operand, Data);
+                                                                break;
                                                             }
-                                                            catch(ExpressionException Ex)
+                                                            case '@':
                                                             {
-                                                                throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                                std::string FileName = GetFileName(&Operand[1]);
+                                                                std::ifstream Input(FileName, std::ifstream::binary);
+                                                                std::copy(std::istreambuf_iterator<char>(Input), std::istreambuf_iterator<char>(), std::back_inserter(Data));
+                                                                break;
                                                             }
-                                                    }
+                                                            default:
+                                                                try
+                                                                {
+                                                                    long x = E.Evaluate(Operand);
+                                                                    if(x > 255)
+                                                                        throw AssemblyException(fmt::format("Operand out of range (Expteced: $0-$FF, got: ${value:X})", fmt::arg("value", x)), AssemblyErrorSeverity::SEVERITY_Error);
+                                                                    Data.push_back(x & 0xFF);
+                                                                }
+                                                                catch(ExpressionException Ex)
+                                                                {
+                                                                    throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
+                                                                }
+                                                                break;
+                                                        }
                                                     CurrentCode->second.insert(CurrentCode->second.end(), Data.begin(), Data.end());
                                                     ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro(), ProgramCounter, Data);
                                                     ProgramCounter += Data.size();
@@ -1792,35 +1827,39 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                         throw AssemblyException("END Statement is missing", AssemblyErrorSeverity::SEVERITY_Warning);
 
                     // Check for un-used non-static SUBROUTINEs and reset to Pass 2 if found
-                    for(const auto& SubTable : SubTables)
-                        if(MainTable.Symbols[SubTable.first].RefCount == 0 && ! SubTable.second.Static)
+
+                    if(Errors.count(AssemblyErrorSeverity::SEVERITY_Error) == 0)
+                        for(const auto& SubTable : SubTables)
                         {
-                            UnReferencedSubs.insert(SubTable.first);
-                            Pass = 1;
+                            if(MainTable.Symbols[SubTable.first].RefCount == 0 && ! SubTable.second.Static)
+                            {
+                                UnReferencedSubs.insert(SubTable.first);
+                                Pass = 1;
+                            }
+                            if(Pass == 1)
+                            {
+                                fmt::println("Unreferenced SUBROUTINES found, Removing...");
+                                for(auto& Name : UnReferencedSubs)
+                                    fmt::println("\t{Name}",fmt::arg("Name", Name));
+                                fmt::println("Restarting from Pass 2");
+
+                                // Clear Master Symbol Table (Except hidden symbols, i.e. R0-F & P1-7)
+                                for(auto it = MainTable.Symbols.begin(); it != MainTable.Symbols.end(); )
+                                {
+                                    if(!it->second.HideFromSymbolTable)
+                                        it = MainTable.Symbols.erase(it);
+                                    else
+                                        ++it;
+                                }
+
+                                // Clear Sub Symbol Tables
+                                SubTables.clear();
+
+                                // Reset Listing File
+                                ListingFile.Reset();
+                                break;
+                            }
                         }
-                    if(Pass == 1)
-                    {
-                        fmt::println("Unreferenced SUBROUTINES found, Removing...");
-                        for(auto& Name : UnReferencedSubs)
-                            fmt::println("\t{Name}",fmt::arg("Name", Name));
-                        fmt::println("Restarting from Pass 2");
-
-                        // Clear Master Symbol Table (Except hidden symbols, i.e. R0-F & P1-7)
-                        for(auto it = MainTable.Symbols.begin(); it != MainTable.Symbols.end(); )
-                        {
-                            if(!it->second.HideFromSymbolTable)
-                                it = MainTable.Symbols.erase(it);
-                            else
-                                ++it;
-                        }
-
-                        // Clear Sub Symbol Tables
-                        SubTables.clear();
-
-                        // Reset Listing File
-                        ListingFile.Reset();
-                        break;
-                    }
 
                     // Check for overlapping code
                     int Overlap = 0;
@@ -2277,4 +2316,19 @@ bool SetAlignFromKeyword(std::string Alignment, long& Align)
 int GetAlignExtraBytes(int ProgramCounter, int Align)
 {
     return (Align - ProgramCounter % Align) % Align;
+}
+
+//!
+//! \brief GetFileName
+//! Extract the filename component from an @"Filename" DB parameter
+//! \param Operand
+//! \return
+//!
+std::string GetFileName(std::string Operand)
+{
+    std::smatch MatchResult;
+    if(regex_match(Operand, MatchResult, std::regex(R"(^\"(.+)\"$)")))
+        return MatchResult[1];
+    else
+        throw AssemblyException("Not Supported", AssemblyErrorSeverity::SEVERITY_Error);
 }

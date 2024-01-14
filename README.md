@@ -1,11 +1,12 @@
 # asm1802
 
-Assembler for the CDP1802 series microprocessor. 
+asm1802 is a multi-pass assembler for the CDP1802 series microprocessor.
 
-asm1802 is a multi-pass assembler:
+- Pre-Processor: Processes # directives, producing a single intermediate '.pp' file
 
-- Pre-Processor: Processes # directives
-- Pass 1: Define and expand Macros, and calculate the size of any SUBROUTINEs.
+The '.pp' file is then read several times by the main assembler:
+
+- Pass 1: Define and expand MACROs, calculate the size of any SUBROUTINEs.
 - Pass 2: Expand MACROs and assign values to Labels
 - Pass 3: Expand MACROs, generate output and listing file.
 
@@ -14,10 +15,10 @@ assembly restarts on Pass 2 until no unreferenced SUBs are found.
 
 ## Features
 
+- C style '#' pre-processor directives
 - Support for 1802, 1804/5/6 and 1804/5/6A microprocessors
 - Subroutines with local labels
 - Parameterised Macros
-- C style '#' pre-processor directives
 - Intel HEX compatible output
 - Idiot/4 monitor compatible output
 - Raw Binary output
@@ -45,7 +46,7 @@ All Options are processed first, before assembling any files.
 | -D name{=value} | --define name{=value} | Define pre-processor variable |
 | -U name | --undefine name | Remove pre-processor variable |
 | -L | --list | Create listing file (.lst) |
-| -S | --symbols | Append Symbol Table to listing |
+| -S | --symbols | Append Symbol Tables to listing |
 | -k | --keep-preprocessor | Do not delete intermediate pre-processor output (saved as file.pp) |
 | -o format | --output format | Binary output format. "intel-hex" (default), "idiot4" or "bin" |
 | | --noregisters | Do not predefine Register equates (R0-RF) |
@@ -81,6 +82,7 @@ Conditional assembly if \<condition\> evaluates to true (non-zero). In addition 
 | HIGH(expression) | Returns the high byte of expression (bits 8-15) |
 | LOW(expression) | Returns the low byte of expression (bits 0-7) |
 | PROCESSOR(designation) | Returns true(1) if designation is the currently selected processor model |
+| CPU(designation) | Pseudonym for PROCESSOR(designation) |
 
 - #ifdef variable
 
@@ -159,12 +161,9 @@ The following labels are pre-defined (see --noregisters/--noports command line o
 
 ## Operands
 
-Operands are expressions that must evaluate to a value that must be in 
-range for the mnemonic's specific parameter, e.g. Registers must be in 
-the range 0-F(15), Ports, 1-7, Bytes 0-FF(255), Words 0-FFFF(65535).
-
-The 'DB' pseudo op also allows a list of bytes to be specified as a string. 
-e.g. "ABC" evaluates to 41,42,43
+All operands are expressions that evaluate to a value that is appropriate
+for the mnemonic's specific parameter, e.g. Registers must be in 
+the range 0-F, Ports, 1-7, Bytes 0-FF (0-255 or -128-127), Words 0-FFFF (0-65535 or -32768-32767).
 
 ### Numerical Constants
 
@@ -173,10 +172,10 @@ Numerical constants can be specified in decimal, octal or hex.
 | Format | Meaning |
 | --- | --- |
 | 1234 | Decimal |
-| 0123 | Octal |
+| 0123 | Octal (0 prefix)|
 | $1234 | Hexadecimal |
 | 0x1234 | Hexadecimal |
-| . / $ | Current Address |
+| . or $ | Current Address |
 
 ### Operator Precedence
 
@@ -217,7 +216,7 @@ For Logical operators, 0 = false, 1 = true.
 | --- | --- |
 | ALIGN arg {, PAD=padbyte} | Increment Program Counter to align with a power of 2 boundary (arg = 2,4,8,16,32,64,128 or 256), Optionally filling space with PadByte |
 | ASSERT expression | Throw an error if expression evaluates to false (0) |
-| DB value list | Define Bytes, each value can be numeric or "string" |
+| DB value list | Define Bytes (see below) |
 | DW value list | Define Word (2 bytes) |
 | DL value list | Define Long (4 bytes) |
 | DQ value list | Define QuadWord (8 bytes) |
@@ -227,11 +226,22 @@ For Logical operators, 0 = false, 1 = true.
 | RQ count | Reserve count QuadWorda (8 bytes) |
 | EQU value | Assign value to label |
 | ORG arg | Set Address |
-| SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO }, STATIC, PAD=padbyte | Define a Subroutine, optionally aligned to boundary, optionally padding with padbyte, and optionally prevent removal if unreferenced |
+| SUBROUTINE {ALIGN = 2\|4\|8\|16\|32\|64\|128\|256\|AUTO}, {PAD=padbyte}, {STATIC} | Define a Subroutine, optionally aligned to boundary, optionally padding with padbyte, and optionally prevent removal if unreferenced |
 | ENDSUB {expression}| End of Subroutine Definition. Optionally set the entypoint to expression |
 | MACRO parameters | Define a Macro |
 | ENDM | End of Macro Definition |
 | END expression | End of source code. Expression sets the start address |
+
+### Notes
+
+- In addition to a list of byte values, the DB pseudo-op also accepts the following alternate operands:
+    - ```DB "ABC"``` is equivalent to ```DB $41, $42, $43```
+    - ```DB @"filename"``` inserts the contents of thespecified file into the output stream
+
+    All formats can be combined as required, e.g. ```DB $41, @"filename", "string", 0```
+
+- The RB,RW,RL,RQ pseudo-ops reserve space for the given number of items, without writing anything
+to the output stream.
 
 ## Subroutines
 
@@ -241,16 +251,16 @@ For Logical operators, 0 = false, 1 = true.
 
 #### Optional arguments
 
-ALIGN=...: Align the subroutine to the specified 
+- ALIGN=...: Align the subroutine to the specified 
 power of 2 boudary. (e.g. ALIGN=32). Specifying ALIGN=AUTO will align to the nearest
-power of 2 boundary greater or equal to the SUBROUTINE size. This allows the creation of library modules 
+power of 2 boundary greater or equal to the SUBROUTINE size (as determined during pass 1). This allows the creation of library modules 
 that can be #included anywhere in code helping to ensure that short branches remain 
 in range wherever the code is included.
 
-PAD=...: When ALIGN is specified, fill any skipped bytes with the given value, instead of leaving an 
+- PAD=...: When ALIGN is specified, fill any skipped bytes with the given value, instead of leaving an 
 unintialised gap.
 
-STATIC: By default, SUBROUTINES that are not referenced, are removed from the assembly.
+- STATIC: By default, SUBROUTINES that are not referenced, are removed from the assembly.
 Flagging a SUBROUTINE as STATIC forces assembly of the SUBROUTINE regardless of whether
 or not it is used.
 
@@ -266,6 +276,7 @@ in the master symbol table.
 
 e.g.
 ```
+                    ; Main Code
 0000 F8 10                  LDI     HIGH(FlashQ)
 0002 B6                     PHI     R6
 0003 F8 01                  LDI     LOW(FlashQ)
@@ -273,7 +284,7 @@ e.g.
 0006 D6                     SEP     R6  
 
                             ...
-                            
+                    ; Subroutine        
                     FlashQ  SUBROUTINE
 1000 D3                     SEP     R3
 1001 7B             START   SEQ
@@ -292,7 +303,10 @@ Within the subroutine, FlashQ retains it's initial address 1000.
 ```
 ; Definition
 MAC     MACRO    Param1, Param2... , ParamN
-        Assembly code
+        LDI      Param1
+        DB       Param2
+        ...
+        ADCI     ParamN
         ENDMACRO
 ; usage        
         MAC      1, "Hello", 'C'
@@ -324,6 +338,9 @@ Generates a sequence of commands suitable for pasting into the idiot4 monitor. F
 Generates one or more files containing a raw memory image for the assembled code. Files: filename.address.bin, 
 where address is the memory address the image should be loaded into.
 
+When using 'bin' format, consider using the "PAD" option with any ALIGN statements, to minimize the 
+number of files generated.
+
 # Syntax Highlighting
 
 Linux users using editors based on KatePart can benefit from syntax highlighting using
@@ -337,6 +354,16 @@ on the right had side of kate's status bar, and selecting "CDP1802 Assembler (as
 If your editor supports the Language Server Protocol, a rudimentry server is installed
 as /usr/local/bin/cdp1802-languageserver.py. Configure your editor to use this server 
 using JSON/RCP over STDIO
+
+With the Language Server in use, hovering over opcode mnemonics will display the instructions
+operation, (e.g. ```LDI n, Load Immediate, M(R(P)) -> D, R(P)+1 -> R(P)``` )
+
+For SUBROUTINEs and MACROs the location of the definition is shown along with any supporting 
+documentation comment.
+
+Documentation commets are "double commented" comments immediately preceeding the definition. (e.g. ```;; Comment```)
+
+Right-Click-GoTo-Definition is also supported on Labels, MACROs and SUBROUTINEs.
 
 ## Kate
 

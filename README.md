@@ -236,7 +236,7 @@ For Logical operators, 0 = false, 1 = true.
 
 - In addition to a list of byte values, the DB pseudo-op also accepts the following alternate operands:
     - ```DB "ABC"``` is equivalent to ```DB $41, $42, $43```
-    - ```DB @"filename"``` inserts the contents of thespecified file into the output stream
+    - ```DB @"filename"``` inserts the contents of the specified file into the output stream
 
     All formats can be combined as required, e.g. ```DB $41, @"filename", "string", 0```
 
@@ -335,11 +335,10 @@ Generates a sequence of commands suitable for pasting into the idiot4 monitor. F
 
 ## -o bin
 
-Generates one or more files containing a raw memory image for the assembled code. Files: filename.address.bin, 
-where address is the memory address the image should be loaded into.
+Generates a raw memory image for the assembled code. File: filename.bin, 
 
-When using 'bin' format, consider using the "PAD" option with any ALIGN statements, to minimize the 
-number of files generated.
+Output starts with the lowest addressed assembled byte, and is padded with zeros where gaps
+would result from non PADded ALIGNs and ORGs
 
 # Syntax Highlighting
 

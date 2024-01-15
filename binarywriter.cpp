@@ -9,7 +9,7 @@ BinaryWriter::BinaryWriter(const std::string& FileName, const std::string& Exten
     auto p = fs::path(FileName);
     p.replace_extension(Extension);
     this->FileName = p;
-    Output.open(this->FileName, std::ofstream::out | std::ofstream::trunc);
+    Output.open(this->FileName, std::ofstream::out | std::ofstream::trunc | std::ofstream::binary);
     fmt::print("Writing binary file: {FileName}... ", fmt::arg("FileName", this->FileName));
 }
 

@@ -842,7 +842,10 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                         long Align;
                                                                         if(SubOptions[1] == "AUTO")
                                                                         {
-                                                                            Align = AlignFromSize(CurrentTable->CodeSize);
+                                                                            if(((ProgramCounter + CurrentTable->CodeSize) & 0xFF00) == (ProgramCounter & 0xFF00))
+                                                                                Align = 0;
+                                                                            else
+                                                                                Align = AlignFromSize(CurrentTable->CodeSize);
                                                                             InAutoAlignedSub = true;
                                                                         }
                                                                         else if(!SetAlignFromKeyword(SubOptions[1], Align))
@@ -1223,7 +1226,12 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 {
                                                                     case SubroutineOptionsEnum::SUBOPT_ALIGN:
                                                                         if(SubOptions[1] == "AUTO")
-                                                                            Align = AlignFromSize(CurrentTable->CodeSize);
+                                                                        {
+                                                                            if(((ProgramCounter + CurrentTable->CodeSize) & 0xFF00) == (ProgramCounter & 0xFF00))
+                                                                                Align = 0;
+                                                                            else
+                                                                                Align = AlignFromSize(CurrentTable->CodeSize);
+                                                                        }
                                                                         else if(!SetAlignFromKeyword(SubOptions[1], Align))
                                                                         {
                                                                             AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
@@ -1240,8 +1248,8 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                             E.AddLocalSymbols(CurrentTable);
                                                                         PadByte = E.Evaluate(SubOptions[1]);
                                                                         Pad = true;
+                                                                        break;
                                                                     }
-                                                                    break;
                                                                 }
                                                             }
                                                             catch(ExpressionException Ex)
@@ -1249,15 +1257,13 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                 throw AssemblyException(Ex.what(), AssemblyErrorSeverity::SEVERITY_Error);
                                                             }
                                                         }
-                                                        if(Pad && Align == 0)
-                                                            throw AssemblyException("PAD cannot be used without ALIGN=...", AssemblyErrorSeverity::SEVERITY_Error);
                                                         if(Align > 0)
                                                         {
                                                             if(Pad)
                                                                 for(int i = 0; i < GetAlignExtraBytes(ProgramCounter, Align); i++)
                                                                     CurrentCode->second.push_back(PadByte);
                                                             else
-                                                                CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter, {})).first;
+                                                                CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + GetAlignExtraBytes(ProgramCounter, Align), {})).first;
                                                             ProgramCounter = ProgramCounter + GetAlignExtraBytes(ProgramCounter, Align);
                                                         }
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
@@ -1853,7 +1859,16 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                 }
 
                                 // Clear Sub Symbol Tables
-                                SubTables.clear();
+                                for(auto T = SubTables.begin(); T != SubTables.end(); )
+                                    if(MainTable.Symbols[T->first].RefCount ==0 && ! T->second.Static)
+                                        T = SubTables.erase(T);
+                                    else
+                                        T++;
+
+                                for(auto& Table : SubTables)
+                                    Table.second.Symbols.clear();
+
+                                //SubTables.clear();
 
                                 // Reset Listing File
                                 ListingFile.Reset();
@@ -2315,7 +2330,10 @@ bool SetAlignFromKeyword(std::string Alignment, long& Align)
 //!
 int GetAlignExtraBytes(int ProgramCounter, int Align)
 {
-    return (Align - ProgramCounter % Align) % Align;
+    if(Align == 0)
+        return 0;
+    else
+        return (Align - ProgramCounter % Align) % Align;
 }
 
 //!

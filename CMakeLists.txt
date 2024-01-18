@@ -29,6 +29,7 @@ add_executable(asm1802 main.cpp
     expressionexception.h expressionexception.cpp
     expressionevaluatorbase.h expressionevaluatorbase.cpp
     binarywriter.h binarywriter.cpp
+    binarywriter_none.h binarywriter_none.cpp
     binarywriter_intelhex.h binarywriter_intelhex.cpp
     binarywriter_idiot4.h binarywriter_idiot4.cpp
     binarywriter_binary.h binarywriter_binary.cpp

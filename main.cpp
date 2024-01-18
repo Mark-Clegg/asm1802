@@ -12,6 +12,7 @@
 #include "binarywriter_idiot4.h"
 #include "binarywriter_intelhex.h"
 #include "binarywriter_binary.h"
+#include "binarywriter_none.h"
 #include "errortable.h"
 #include "assemblyexception.h"
 #include "assemblyexpressionevaluator.h"
@@ -61,14 +62,16 @@ enum class OutputFormatEnum
 {
     INTEL_HEX,
     IDIOT4,
-    BIN
+    BIN,
+    NONE
 };
 
 std::map<std::string, OutputFormatEnum> OutputFormatLookup =
 {
     { "INTEL_HEX", OutputFormatEnum::INTEL_HEX },
     { "IDIOT4",    OutputFormatEnum::IDIOT4    },
-    { "BIN",       OutputFormatEnum::BIN    }
+    { "BIN",       OutputFormatEnum::BIN       },
+    { "NONE",      OutputFormatEnum::NONE      }
 };
 
 bool assemble(const std::string&, CPUTypeEnum InitialProcessor, bool ListingEnabled, bool DumpSymbols, OutputFormatEnum BinMode);
@@ -121,7 +124,7 @@ int main(int argc, char **argv)
     PreProcessor AssemblerPreProcessor;
     bool KeepPreprocessor = false;
     bool Symbols = false;
-    OutputFormatEnum OutputFormat = OutputFormatEnum::INTEL_HEX;
+    OutputFormatEnum OutputFormat = OutputFormatEnum::NONE;
 
     while (1)
     {
@@ -1945,6 +1948,11 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
             case OutputFormatEnum::BIN:
             {
                 Output = new BinaryWriter_Binary(FileName, "bin");
+                break;
+            }
+            case OutputFormatEnum::NONE:
+            {
+                Output = new BinaryWriter_None(FileName, "");
                 break;
             }
         }

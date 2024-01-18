@@ -14,9 +14,6 @@ void BinaryWriter_Binary::Write(std::map<uint16_t, std::vector<uint8_t>>& Code, 
         const std::vector<uint8_t>& DataIn = Blob.second;
         if(DataIn.size() > 0)
         {
-            int a_pos = Output.tellp();
-            int a_first = Blob.first;
-
             if(!FirstBlock.has_value())   // First Blob will have the lowest address, so should be used as the offset for all following blocks
                 FirstBlock = Blob.first;
             else

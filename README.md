@@ -48,7 +48,7 @@ All Options are processed first, before assembling any files.
 | -L | --list | Create listing file (.lst) |
 | -S | --symbols | Append Symbol Tables to listing |
 | -k | --keep-preprocessor | Do not delete intermediate pre-processor output (saved as file.pp) |
-| -o format | --output format | Binary output format. "intel-hex" (default), "idiot4" or "bin" |
+| -o format | --output format | Binary output format. "none" (default), "intel-hex", "idiot4" or "bin" |
 | | --noregisters | Do not predefine Register equates (R0-RF) |
 | | --noports | Do not predefine Port equates (P1-P7) |
 | -v | --version | Display version number |
@@ -324,6 +324,10 @@ During assembly, the name is replaced by its content, and Param1..N are substitu
 # Output Formats
 
 The "-o format" command line option sets the desired assembly output format:
+
+## -o none
+
+Do not generate an output file. (This is the default).
 
 ## -o intel_hex
 

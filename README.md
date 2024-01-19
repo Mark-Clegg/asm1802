@@ -253,13 +253,14 @@ to the output stream.
 
 - ALIGN=...: Align the subroutine to the specified 
 power of 2 boudary. (e.g. ALIGN=32). 
+
 - ALIGN=AUTO: If the entire SUBROUTINE will not fit in the current page, then align to the
 nearest power of 2 boundary greater or equal to the SUBROUTINE size (as determined during 
 pass 1). This allows the inclusion of library modules ensuring that short branches remain 
 in range wherever the code is included.
 
-- PAD=...: When ALIGN is specified, fill any skipped bytes with the given value, instead of leaving an 
-unintialised gap.
+- PAD { = byte}: When ALIGN is specified, fill any skipped bytes with the optionally given value, instead of leaving an 
+unintialised gap (default: 0).
 
 - STATIC: By default, SUBROUTINES that are not referenced, are removed from the assembly.
 Flagging a SUBROUTINE as STATIC forces assembly of the SUBROUTINE regardless of whether

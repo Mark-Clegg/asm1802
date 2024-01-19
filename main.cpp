@@ -1249,11 +1249,25 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                                         break;
                                                                     case SubroutineOptionsEnum::SUBOPT_PAD:
                                                                     {
-                                                                        AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
-                                                                        if(CurrentTable != &MainTable)
-                                                                            E.AddLocalSymbols(CurrentTable);
-                                                                        PadByte = E.Evaluate(SubOptions[1]);
-                                                                        Pad = true;
+                                                                        switch(SubOptions.size())
+                                                                        {
+                                                                            case 1:
+                                                                                PadByte = 0;
+                                                                                Pad = true;
+                                                                                break;
+                                                                            case 2:
+                                                                            {
+                                                                                AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
+                                                                                if(CurrentTable != &MainTable)
+                                                                                    E.AddLocalSymbols(CurrentTable);
+                                                                                PadByte = E.Evaluate(SubOptions[1]);
+                                                                                Pad = true;
+                                                                                break;
+                                                                            }
+                                                                            default:
+                                                                                throw AssemblyException("Incorrect number of arguments to PAD option", AssemblyErrorSeverity::SEVERITY_Error);
+                                                                                break;
+                                                                        }
                                                                         break;
                                                                     }
                                                                 }

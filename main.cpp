@@ -241,7 +241,7 @@ int main(int argc, char **argv)
                 fmt::println("\tDo not predefine P1-P7 port symbols");
                 fmt::println("");
                 fmt::println("-o|--output format");
-                fmt::println("\tCreate output file in \"intelhex\" or \"idiiot4\" format");
+                fmt::println("\tCreate output file in \"intelhex\", \"idiiot4\" format, or \"none\"");
                 fmt::println("");
                 fmt::println("-v|--version");
                 fmt::println("\tPrint version number and exit");
@@ -325,6 +325,8 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
 
     ErrorTable Errors;
     ListingFileWriter ListingFile(FileName, Errors, ListingEnabled);
+    int TotalPadBytes = 0;
+    int TotelOptimisedBytes = 0;
 
     for(int Pass = 1; Pass <= 3 && Errors.count(AssemblyErrorSeverity::SEVERITY_Error) == 0; Pass++)
     {
@@ -337,6 +339,7 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
         int LineNumber = 0;
         bool InSub = false;
         bool InAutoAlignedSub = false;
+        TotalPadBytes = 0;
 
         Code.clear();
         Code = {{ 0, {}}};
@@ -1262,12 +1265,14 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
                                                         }
                                                         if(Align > 0)
                                                         {
+                                                            int BytesToAdd = GetAlignExtraBytes(ProgramCounter, Align);
                                                             if(Pad)
-                                                                for(int i = 0; i < GetAlignExtraBytes(ProgramCounter, Align); i++)
+                                                                for(int i = 0; i < BytesToAdd; i++)
                                                                     CurrentCode->second.push_back(PadByte);
                                                             else
                                                                 CurrentCode = Code.insert(std::pair<uint16_t, std::vector<uint8_t>>(ProgramCounter + GetAlignExtraBytes(ProgramCounter, Align), {})).first;
-                                                            ProgramCounter = ProgramCounter + GetAlignExtraBytes(ProgramCounter, Align);
+                                                            ProgramCounter = ProgramCounter + BytesToAdd;
+                                                            TotalPadBytes += BytesToAdd;
                                                         }
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                     }
@@ -1863,8 +1868,11 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
 
                                 // Clear Sub Symbol Tables
                                 for(auto T = SubTables.begin(); T != SubTables.end(); )
-                                    if(MainTable.Symbols[T->first].RefCount ==0 && ! T->second.Static)
+                                    if(MainTable.Symbols[T->first].RefCount == 0 && ! T->second.Static)
+                                    {
+                                        TotelOptimisedBytes += T->second.CodeSize;
                                         T = SubTables.erase(T);
+                                    }
                                     else
                                         T++;
 
@@ -1924,6 +1932,9 @@ bool assemble(const std::string& FileName, CPUTypeEnum InitialProcessor, bool Li
     int TotalWarnings = Errors.count(AssemblyErrorSeverity::SEVERITY_Warning);
     int TotalErrors = Errors.count(AssemblyErrorSeverity::SEVERITY_Error);
 
+    fmt::println("");
+    fmt::println("{count:4} Padding Bytes Added (for ALIGNed SUBROUTINES)", fmt::arg("count", TotalPadBytes));
+    fmt::println("{count:4} Bytes Optimised Out (unreferenced SUBROUTINES)", fmt::arg("count", TotelOptimisedBytes));
     fmt::println("");
     fmt::println("{count:4} Warnings",     fmt::arg("count", TotalWarnings));
     fmt::println("{count:4} Errors",       fmt::arg("count", TotalErrors));

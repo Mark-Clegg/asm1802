@@ -100,7 +100,7 @@ const std::map<std::string, OpCodeSpec> OpCodeTable::OpCode =
     { "SCM1", { SCM1, OpCodeTypeEnum::EXTENDED,                      CPUTypeEnum::CPU_1806  }},
     { "LDC",  { LDC,  OpCodeTypeEnum::EXTENDED,                      CPUTypeEnum::CPU_1806  }},
     { "STM",  { STM,  OpCodeTypeEnum::EXTENDED,                      CPUTypeEnum::CPU_1806  }},
-    { "GEX",  { GEC,  OpCodeTypeEnum::EXTENDED,                      CPUTypeEnum::CPU_1806  }},
+    { "GEC",  { GEC,  OpCodeTypeEnum::EXTENDED,                      CPUTypeEnum::CPU_1806  }},
     { "ETQ",  { ETQ,  OpCodeTypeEnum::EXTENDED,                      CPUTypeEnum::CPU_1806  }},
     { "XIE",  { XIE,  OpCodeTypeEnum::EXTENDED,                      CPUTypeEnum::CPU_1806  }},
     { "XID",  { XID,  OpCodeTypeEnum::EXTENDED,                      CPUTypeEnum::CPU_1806  }},

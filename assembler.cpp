@@ -1402,6 +1402,8 @@ bool Assembler::Run()
                                                 {
                                                     case OpCodeTypeEnum::BASIC:
                                                     {
+                                                        if(Operands.size() != 0)
+                                                            throw AssemblyException("Unexpected operand", AssemblyErrorSeverity::SEVERITY_Error);
                                                         Data.push_back(OpCode->OpCode);
                                                         break;
                                                     }

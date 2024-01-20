@@ -13,6 +13,10 @@ add_executable(asm1802 main.cpp
     README.md
     LICENSE
 
+    assembler.h assembler.cpp
+    assembler_pass_1.cpp
+    assembler_pass_2.cpp
+    assembler_pass_3.cpp
     sourcecodereader.h sourcecodereader.cpp
     assemblyexception.h assemblyexception.cpp
     utils.h utils.cpp

@@ -34,15 +34,15 @@ const std::map<std::string, Assembler::OutputFormatEnum> Assembler::OutputFormat
     { "NONE",      Assembler::OutputFormatEnum::NONE      }
 };
 
-Assembler::Assembler(const std::string& FileName, CPUTypeEnum InitialProcessor, bool ListingEnabled, bool DumpSymbols, bool NoRegisters, bool NoPorts, OutputFormatEnum BinMode)
+Assembler::Assembler(const std::string& FileName, CPUTypeEnum& InitialProcessor, bool ListingEnabled, bool DumpSymbols, bool& NoRegisters, bool& NoPorts, OutputFormatEnum& BinMode) :
+    FileName(FileName),
+    InitialProcessor(InitialProcessor),
+    NoRegisters(NoRegisters),
+    NoPorts(NoPorts),
+    BinMode(BinMode)
 {
-    this->FileName = FileName;
-    this->InitialProcessor = InitialProcessor;
     this->ListingEnabled = ListingEnabled;
     this->DumpSymbols = DumpSymbols;
-    this->NoRegisters = NoRegisters;
-    this->NoPorts = NoPorts;
-    this->BinMode = BinMode;
 }
 
 //!
@@ -186,7 +186,7 @@ bool Assembler::Run()
                                     LineNumber++;
                                 break;
                         }
-                        continue; // Go back to start of getLine loop - control statements have no further processing and are not included in the listing file.
+                        continue; // Go back to start of getLine loop - control statements have no further processing.
                     }
                     if(Pass == 3)
                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());

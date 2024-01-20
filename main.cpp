@@ -131,7 +131,7 @@ int main(int argc, char **argv)
                 std::string Mode = optarg;
                 ToUpper(Mode);
                 if(Assembler::OutputFormatLookup.find(Mode) == Assembler::OutputFormatLookup.end())
-                    fmt::println("** Unrecognised binary output mode. Defaulting to Intel Hex");
+                    fmt::println("** Unrecognised binary output mode. Defaulting to NONE");
                 else
                     OutputFormat = Assembler::OutputFormatLookup.at(Mode);
                 break;

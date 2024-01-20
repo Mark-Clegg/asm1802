@@ -40,28 +40,27 @@ public:
     };
     const static std::map<std::string, OutputFormatEnum> OutputFormatLookup;
 
-    Assembler(const std::string& FileName, CPUTypeEnum InitialProcessor, bool ListingEnabled, bool DumpSymbols, bool NoRegisters, bool NoPorts, OutputFormatEnum BinMode);
+    Assembler(const std::string& FileName, CPUTypeEnum& InitialProcessor, bool ListingEnabled, bool DumpSymbols, bool& NoRegisters, bool& NoPorts, OutputFormatEnum& BinMode);
     bool Run();
 private:
-    std::string FileName;
-    CPUTypeEnum InitialProcessor;
+    const std::string& FileName;
+    const CPUTypeEnum& InitialProcessor;
     bool ListingEnabled;
     bool DumpSymbols;
-    bool NoRegisters;
-    bool NoPorts;
-    OutputFormatEnum BinMode = BinMode;
+    const bool& NoRegisters;
+    const bool& NoPorts;
+    const OutputFormatEnum& BinMode;
 
     const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCode, std::vector<std::string>& Operands);
     void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operands, std::string& Output);
     std::string GetFileName(std::string Operand);
     void StringToByteVector(const std::string& Operand, std::vector<uint8_t>& Data);
     void StringListToVector(std::string& Input, std::vector<std::string>& Output, char Delimiter);
-    int AlignFromSize(int Size);
+    int  AlignFromSize(int Size);
     bool SetAlignFromKeyword(std::string Alignment, long& Align);
-    int GetAlignExtraBytes(int ProgramCounter, int Align);
+    int  GetAlignExtraBytes(int ProgramCounter, int Align);
     void PrintError(const std::string& FileName, const int LineNumber, const std::string& MacroName, const int MacroLineNumber, const std::string& Line, const std::string& Message, const AssemblyErrorSeverity Severity, const bool InMacro);
     void PrintError(const std::string& Message, AssemblyErrorSeverity Severity);
-
 };
 
 #endif // ASSEMBLER_H

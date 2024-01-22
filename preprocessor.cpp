@@ -103,7 +103,6 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
             try
             {
                 Defines["__LINE__"] = fmt::format("{LineNumber}", fmt::arg("LineNumber", SourceStreams.top().LineNumber));
-                ExpandDefines(Line);
 
                 // remove last character if blank (<cr>/<lf>/<space>/<tab>
                 while(Line.size() > 0 && (Line[Line.size()-1] == '\r' || Line[Line.size()-1] == '\n' || Line[Line.size()-1] == ' ' || Line[Line.size()-1] == '\t'))
@@ -112,9 +111,9 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                 DirectiveEnum Directive;
                 std::string Expression;
 
-                fmt::println(OutputStream, "{Line}", fmt::arg("Line", Line));
                 if(IsDirective(Line, Directive, Expression))
                 {
+                    fmt::println(OutputStream, "{Line}", fmt::arg("Line", Line));
                     switch(Directive)
                     {
                         case DirectiveEnum::PP_define:
@@ -153,6 +152,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         }
                         case  DirectiveEnum::PP_if:
                         {
+                            ExpandDefines(Line);
                             ElseCounters.push(0);
                             IfNestingLevel.top()++;
                             if(Expression.empty())
@@ -282,6 +282,11 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             OnOffCheck(Expression);
                             break;
                     }
+                }
+                else
+                {
+                    ExpandDefines(Line);
+                    fmt::println(OutputStream, "{Line}", fmt::arg("Line", Line));
                 }
             }
             catch (PreProcessorException Ex)
@@ -489,7 +494,10 @@ PreProcessor::DirectiveEnum PreProcessor::SkipTo(const std::set<DirectiveEnum>& 
                         ElseCounters.pop();
                     }
                     else
+                    {
                         Level--;
+                        continue;
+                    }
                     break;
                 case DirectiveEnum::PP_elif:
                     if (Level == 0)
@@ -521,7 +529,7 @@ PreProcessor::DirectiveEnum PreProcessor::SkipTo(const std::set<DirectiveEnum>& 
                 default:
                     break;
             }
-            if(Directives.find(Directive) != Directives.cend())
+            if((Directives.find(Directive) != Directives.cend()) && Level == 0)
                 return Directive;
         }
     }

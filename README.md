@@ -96,9 +96,17 @@ Conditional assembly if variable is nto defined
 
 Alternative IF clause as part of an #if sequence
 
+- #elifdef variable
+
+Alternative IF clause as part of an #if sequence
+
+- #elifndef variable
+
+Alternative IF clause as part of an #if sequence
+
 - #else
 
-Alternate branch for #if... directives
+Final alternate branch for #if... directives
 
 - #endif
 

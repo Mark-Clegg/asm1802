@@ -23,6 +23,8 @@ const std::map<std::string, PreProcessor::DirectiveEnum> PreProcessor::Directive
     { "IFNDEF",      DirectiveEnum::PP_ifndef    },
     { "ELSE",        DirectiveEnum::PP_else      },
     { "ELIF",        DirectiveEnum::PP_elif      },
+    { "ELIFDEF",     DirectiveEnum::PP_elifdef   },
+    { "ELIFNDEF",    DirectiveEnum::PP_elifndef  },
     { "ENDIF",       DirectiveEnum::PP_endif     },
     { "INCLUDE",     DirectiveEnum::PP_include   },
     { "ERROR",       DirectiveEnum::PP_error     },
@@ -92,13 +94,14 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
     std::stack<int> IfNestingLevel;
     IfNestingLevel.push(0);
 
-    std::string Line;
+    std::string RawLine;
     while(SourceStreams.size() > 0)
     {
         WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber + 1);
         Defines["__FILE__"] = fmt::format("\"{FileName}\"", fmt::arg("FileName", SourceStreams.top().Name));
-        while(std::getline(*SourceStreams.top().Stream, Line))
+        while(std::getline(*SourceStreams.top().Stream, RawLine))
         {
+            std::string Line = RawLine;
             SourceStreams.top().LineNumber++;
             try
             {
@@ -113,7 +116,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
 
                 if(IsDirective(Line, Directive, Expression))
                 {
-                    fmt::println(OutputStream, "{Line}", fmt::arg("Line", Line));
+                    fmt::println(OutputStream, "{Line}", fmt::arg("Line", RawLine));
                     switch(Directive)
                     {
                         case DirectiveEnum::PP_define:
@@ -152,7 +155,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                         }
                         case  DirectiveEnum::PP_if:
                         {
-                            ExpandDefines(Line);
+                            ExpandDefines(Expression);
                             ElseCounters.push(0);
                             IfNestingLevel.top()++;
                             if(Expression.empty())
@@ -171,7 +174,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
 
                             if(Result == 0)
                             {
-                                if(SkipTo({ DirectiveEnum::PP_else, DirectiveEnum::PP_elif, DirectiveEnum::PP_endif }) == DirectiveEnum::PP_endif)
+                                if(SkipTo({ DirectiveEnum::PP_else, DirectiveEnum::PP_elif, DirectiveEnum::PP_elifdef, DirectiveEnum::PP_elifndef, DirectiveEnum::PP_endif }) == DirectiveEnum::PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
@@ -187,7 +190,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             ToUpper(Expression);
                             if(Defines.find(Expression) == Defines.end())
                             {
-                                if(SkipTo({ DirectiveEnum::PP_else, DirectiveEnum::PP_elif, DirectiveEnum::PP_endif }) == DirectiveEnum::PP_endif)
+                                if(SkipTo({ DirectiveEnum::PP_else, DirectiveEnum::PP_elif, DirectiveEnum::PP_elifdef, DirectiveEnum::PP_elifndef, DirectiveEnum::PP_endif }) == DirectiveEnum::PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
@@ -203,7 +206,7 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             ToUpper(Expression);
                             if(Defines.find(Expression) != Defines.end())
                             {
-                                if(SkipTo({ DirectiveEnum::PP_else, DirectiveEnum::PP_elif, DirectiveEnum::PP_endif }) == DirectiveEnum::PP_endif)
+                                if(SkipTo({ DirectiveEnum::PP_else, DirectiveEnum::PP_elif, DirectiveEnum::PP_elifdef, DirectiveEnum::PP_elifndef, DirectiveEnum::PP_endif }) == DirectiveEnum::PP_endif)
                                 {
                                     IfNestingLevel.top()--;
                                 }
@@ -224,11 +227,13 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             }
                             break;
                         case DirectiveEnum::PP_elif:
+                        case DirectiveEnum::PP_elifdef:
+                        case DirectiveEnum::PP_elifndef:
                         {
                             if(IfNestingLevel.top() <= 0)
-                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#elif without preceeding #if");
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#elif/#elifdef/#elifndef without preceeding #if");
                             if(ElseCounters.top() != 0)
-                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#elif must come before #else");
+                                throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#elif/#elifdef/#elifndef must come before #else");
                             if(SkipTo({ DirectiveEnum::PP_endif }) == DirectiveEnum::PP_endif)
                             {
                                 IfNestingLevel.top()--;
@@ -510,6 +515,7 @@ PreProcessor::DirectiveEnum PreProcessor::SkipTo(const std::set<DirectiveEnum>& 
                         if(Expression.empty())
                             throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected Espression");
                         ToUpper(Expression);
+                        ExpandDefines(Expression);
                         PreProcessorExpressionEvaluator E(Processor);
                         int Result;
                         try
@@ -522,6 +528,36 @@ PreProcessor::DirectiveEnum PreProcessor::SkipTo(const std::set<DirectiveEnum>& 
                         }
 
                         if(Result == 0)
+                            return SkipTo({ DirectiveEnum::PP_else, DirectiveEnum::PP_elif, DirectiveEnum::PP_endif });
+                        break;
+                    }
+                case DirectiveEnum::PP_elifdef:
+                    if (Level == 0)
+                    {
+                        if(ElseCounters.top() != 0)
+                            throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#elif must come before #else");
+                        WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
+                        fmt::println(OutputStream, "{Line}", fmt::arg("Line", RawLine));
+
+                        if(Expression.empty())
+                            throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected Espression");
+                        ToUpper(Expression);
+                        if(Defines.find(Expression) == Defines.end())
+                            return SkipTo({ DirectiveEnum::PP_else, DirectiveEnum::PP_elif, DirectiveEnum::PP_endif });
+                        break;
+                    }
+                case DirectiveEnum::PP_elifndef:
+                    if (Level == 0)
+                    {
+                        if(ElseCounters.top() != 0)
+                            throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "#elif must come before #else");
+                        WriteLineMarker(OutputStream, SourceStreams.top().Name, SourceStreams.top().LineNumber);
+                        fmt::println(OutputStream, "{Line}", fmt::arg("Line", RawLine));
+
+                        if(Expression.empty())
+                            throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Expected Espression");
+                        ToUpper(Expression);
+                        if(Defines.find(Expression) != Defines.end())
                             return SkipTo({ DirectiveEnum::PP_else, DirectiveEnum::PP_elif, DirectiveEnum::PP_endif });
                         break;
                     }

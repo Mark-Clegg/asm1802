@@ -263,7 +263,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
                 <RegExpr      attribute="Preprocessor"          context="Preprocessor" String="#if(?:def|ndef)?(?=\s+\S)" insensitive="true" beginRegion="PP" firstNonSpace="true" />
                 <RegExpr      attribute="Preprocessor"          context="Preprocessor" String="#else" insensitive="true" endRegion="PP" beginRegion="PP" firstNonSpace="true" />
-                <RegExpr      attribute="Preprocessor"          context="Preprocessor" String="#elif" insensitive="true" endRegion="PP" beginRegion="PP" firstNonSpace="true" />
+                <RegExpr      attribute="Preprocessor"          context="Preprocessor" String="#elif(?:def|ndef)?(?=\s+\S)" insensitive="true" endRegion="PP" beginRegion="PP" firstNonSpace="true" />
                 <RegExpr      attribute="Preprocessor"          context="Preprocessor" String="#endif" insensitive="true" endRegion="PP" firstNonSpace="true" />
                 <keyword      attribute="Preprocessor"          context="Preprocessor" String="preprocessor" />
 

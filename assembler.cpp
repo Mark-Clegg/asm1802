@@ -1354,8 +1354,8 @@ bool Assembler::Run()
                                                     }
                                                 case OpCodeEnum::ASSERT:
                                                 {
-                                                    if(Operands.size() != 1)
-                                                        throw AssemblyException("ASSERT Requires a single argument <expression>", AssemblyErrorSeverity::SEVERITY_Error);
+                                                    if(Operands.size() ==0 || Operands.size() > 2)
+                                                        throw AssemblyException("ASSERT Requires a single argument <expression>, and optionam <message>", AssemblyErrorSeverity::SEVERITY_Error);
                                                     try
                                                     {
                                                         AssemblyExpressionEvaluator E(MainTable, ProgramCounter, Processor);
@@ -1363,7 +1363,12 @@ bool Assembler::Run()
                                                             E.AddLocalSymbols(CurrentTable);
                                                         long Result = E.Evaluate(Operands[0]);
                                                         if (Result == 0)
-                                                            throw AssemblyException("ASSERT Failed", AssemblyErrorSeverity::SEVERITY_Error);
+                                                        {
+                                                            if(Operands.size() == 2)
+                                                                throw AssemblyException(fmt::format("ASSERT Failed: {Message}", fmt::arg("Message", Operands[1])), AssemblyErrorSeverity::SEVERITY_Error);
+                                                            else
+                                                                throw AssemblyException("ASSERT Failed", AssemblyErrorSeverity::SEVERITY_Error);
+                                                        }
                                                         ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
                                                     }
                                                     catch(ExpressionException Ex)

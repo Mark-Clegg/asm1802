@@ -223,7 +223,7 @@ For Logical operators, 0 = false, 1 = true.
 | Menmonic | Meaning |
 | --- | --- |
 | ALIGN arg {, PAD=padbyte} | Increment Program Counter to align with a power of 2 boundary (arg = 2,4,8,16,32,64,128 or 256), Optionally filling space with PadByte |
-| ASSERT expression | Throw an error if expression evaluates to false (0) |
+| ASSERT expression {, message} | Throw an error if expression evaluates to false (0) |
 | DB value list | Define Bytes (see below) |
 | DW value list | Define Word (2 bytes) |
 | DL value list | Define Long (4 bytes) |

@@ -323,8 +323,6 @@ bool Assembler::Run()
                                                         if(MacroDefinition != MainTable.Macros.end())
                                                             ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                     }
-                                                    if(!Source.InMacro())
-                                                        LineNumber++;
                                                     if(!MacroExpansion.empty())
                                                         Source.InsertMacro(Mnemonic, MacroExpansion);
                                                     else
@@ -705,8 +703,6 @@ bool Assembler::Run()
                                                         if(MacroDefinition != MainTable.Macros.end())
                                                             ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                     }
-                                                    if(!Source.InMacro())
-                                                        LineNumber++;
                                                     if(!MacroExpansion.empty())
                                                         Source.InsertMacro(Mnemonic, MacroExpansion);
                                                     else
@@ -1087,8 +1083,6 @@ bool Assembler::Run()
                                                             ExpandMacro(MacroDefinition->second, Operands, MacroExpansion);
                                                     }
                                                     ListingFile.Append(CurrentFile, LineNumber, Source.StreamName(), Source.LineNumber(), OriginalLine, Source.InMacro());
-                                                    if(!Source.InMacro())
-                                                        LineNumber++;
                                                     if(!MacroExpansion.empty())
                                                         Source.InsertMacro(Mnemonic, MacroExpansion);
                                                     else

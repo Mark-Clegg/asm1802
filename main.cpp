@@ -173,7 +173,7 @@ int main(int argc, char **argv)
                 fmt::println("\tDo not predefine P1-P7 port symbols");
                 fmt::println("");
                 fmt::println("-o|--output format");
-                fmt::println("\tCreate output file in \"intelhex\", \"idiiot4\" format, or \"none\"");
+                fmt::println("\tCreate output file in \"intel_hex\", \"idiot4\", \"bin\" format, or \"none\"");
                 fmt::println("");
                 fmt::println("-v|--version");
                 fmt::println("\tPrint version number and exit");

@@ -87,7 +87,15 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
                 Result = TokenEnum::TOKEN_DIVIDE;
                 break;
             case '%':
-                Result = TokenEnum::TOKEN_REMAINDER;
+                IntegerValue = 0;
+                if(InputStream.peek() == '0' || InputStream.peek() == '1')
+                {
+                    while(!InputStream.eof() && !InputStream.fail() && (InputStream.peek() == '0' || InputStream.peek() == '1'))
+                        IntegerValue = (IntegerValue << 1) + InputStream.get() - '0';
+                    Result = TokenEnum::TOKEN_NUMBER;
+                }
+                else
+                    Result = TokenEnum::TOKEN_REMAINDER;
                 break;
             case '&':
                 if(!InputStream.eof() && !InputStream.fail() && InputStream.peek() == '&')

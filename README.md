@@ -179,8 +179,9 @@ Numerical constants can be specified in decimal, octal or hex.
 
 | Format | Meaning |
 | --- | --- |
-| 1234 | Decimal |
+| %1010 | Binary |
 | 0123 | Octal (0 prefix)|
+| 1234 | Decimal |
 | $1234 | Hexadecimal |
 | 0x1234 | Hexadecimal |
 | . or $ | Current Address |

@@ -284,13 +284,11 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
                     {
                         char c = tolower(InputStream.get());
                         ConstStr.push_back(c);
-                        // if(c == 'h' || c == 'o')
-                        // break;
                     }
 
                     if(std::regex_match(ConstStr, std::regex("^[01]+b$")))
                     {
-                        // Binary
+                        // Binary (....b)
                         ConstStr.pop_back();
                         for(int i = 0; i < ConstStr.size(); i++)
                             IntegerValue = (IntegerValue << 1) + ConstStr[i] - '0';
@@ -308,9 +306,9 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
                         }
                         Result = TokenEnum::TOKEN_NUMBER;
                     }
-                    else if(std::regex_match(ConstStr, std::regex("^[0-7]*o$")))
+                    else if(std::regex_match(ConstStr, std::regex("^[0-7]+o$")))
                     {
-                        // Octal
+                        // Octal (....o)
                         ConstStr.pop_back();
                         for(int i = 0; i < ConstStr.size(); i++)
                             IntegerValue = (IntegerValue << 3) + ConstStr[i] - '0';
@@ -326,7 +324,7 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
                     }
                     else if(std::regex_match(ConstStr, std::regex("^0[0-7]*$")))
                     {
-                        // Octal
+                        // Octal (....)
                         for(int i = 0; i < ConstStr.size(); i++)
                             IntegerValue = (IntegerValue << 3) + ConstStr[i] - '0';
                         Result = TokenEnum::TOKEN_NUMBER;

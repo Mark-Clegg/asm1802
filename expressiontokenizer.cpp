@@ -271,43 +271,86 @@ ExpressionTokenizer::TokenEnum ExpressionTokenizer::Get()
                 else if(isdigit(FirstChar)) // NUMBER
                 {
                     IntegerValue = 0;
-                    if(FirstChar == '0')   // OCTAL OR HEX
+
+                    std::string ConstStr(1,FirstChar);
+                    while(!InputStream.eof()
+                            && !InputStream.fail()
+                            && (isxdigit(InputStream.peek())
+                                || tolower(InputStream.peek()) == 'x'
+                                || tolower(InputStream.peek()) == 'h'
+                                || tolower(InputStream.peek()) == 'd'
+                                || tolower(InputStream.peek()) == 'o'
+                                || tolower(InputStream.peek()) == 'b'))
                     {
-                        if(!InputStream.eof() && !InputStream.fail() && (InputStream.peek() == 'x' || InputStream.peek() == 'X')) // HEX
-                        {
-                            InputStream.ignore();
-                            while(!InputStream.eof() && !InputStream.fail() && isxdigit(InputStream.peek()))
-                            {
-                                char c = InputStream.get();
-                                int v = (c >= 'A') ? (c >= 'a') ? (c - 'a' + 10) : (c - 'A' + 10) : (c - '0');
-                                IntegerValue = (IntegerValue << 4) + v;
-                            }
-                            Result = TokenEnum::TOKEN_NUMBER;
-                        }
-                        else    // OCTAL
-                        {
-                            while(!InputStream.eof() && !InputStream.fail() && isdigit(InputStream.peek()))
-                            {
-                                char c = InputStream.get();
-                                int v = c - '0';
-                                if(v > 7)
-                                    throw ExpressionException("Invalid digit in Octal constant");
-                                IntegerValue = (IntegerValue << 3) + v;
-                            }
-                            Result = TokenEnum::TOKEN_NUMBER;
-                        }
+                        char c = tolower(InputStream.get());
+                        ConstStr.push_back(c);
+                        // if(c == 'h' || c == 'o')
+                        // break;
                     }
-                    else // DECIMAL
+
+                    if(std::regex_match(ConstStr, std::regex("^[01]+b$")))
                     {
-                        IntegerValue = FirstChar - '0';
-                        while(!InputStream.eof() && !InputStream.fail() && isdigit(InputStream.peek()))
+                        // Binary
+                        ConstStr.pop_back();
+                        for(int i = 0; i < ConstStr.size(); i++)
+                            IntegerValue = (IntegerValue << 1) + ConstStr[i] - '0';
+                        Result = TokenEnum::TOKEN_NUMBER;
+                    }
+                    else if(std::regex_match(ConstStr, std::regex("^[0-9a-f]+h$")))
+                    {
+                        // Hexadeciman (....h)
+                        ConstStr.pop_back();
+                        for(int i = 0; i < ConstStr.size(); i++)
                         {
-                            char c = InputStream.get();
-                            int v = c - '0';
-                            IntegerValue = IntegerValue * 10 + v;
+                            char c = ConstStr[i];
+                            int v = (c >= 'A') ? (c >= 'a') ? (c - 'a' + 10) : (c - 'A' + 10) : (c - '0');
+                            IntegerValue = (IntegerValue << 4) + v;
                         }
                         Result = TokenEnum::TOKEN_NUMBER;
                     }
+                    else if(std::regex_match(ConstStr, std::regex("^[0-7]*o$")))
+                    {
+                        // Octal
+                        ConstStr.pop_back();
+                        for(int i = 0; i < ConstStr.size(); i++)
+                            IntegerValue = (IntegerValue << 3) + ConstStr[i] - '0';
+                        Result = TokenEnum::TOKEN_NUMBER;
+                    }
+                    else if(std::regex_match(ConstStr, std::regex("^[0-9]+d$")))
+                    {
+                        // Decimal (....d)
+                        ConstStr.pop_back();
+                        for(int i = 0; i < ConstStr.size(); i++)
+                            IntegerValue = (IntegerValue * 10) + ConstStr[i] - '0';
+                        Result = TokenEnum::TOKEN_NUMBER;
+                    }
+                    else if(std::regex_match(ConstStr, std::regex("^0[0-7]*$")))
+                    {
+                        // Octal
+                        for(int i = 0; i < ConstStr.size(); i++)
+                            IntegerValue = (IntegerValue << 3) + ConstStr[i] - '0';
+                        Result = TokenEnum::TOKEN_NUMBER;
+                    }
+                    else if(std::regex_match(ConstStr, std::regex("^0x[0-9a-f]+$")))
+                    {
+                        // Hexadecimal (0x....)
+                        for(int i = 2; i < ConstStr.size(); i++)
+                        {
+                            char c = ConstStr[i];
+                            int v = (c >= 'A') ? (c >= 'a') ? (c - 'a' + 10) : (c - 'A' + 10) : (c - '0');
+                            IntegerValue = (IntegerValue << 4) + v;
+                        }
+                        Result = TokenEnum::TOKEN_NUMBER;
+                    }
+                    else if(std::regex_match(ConstStr, std::regex("^[1-9][0-9]*$")))
+                    {
+                        // Decimal (....)
+                        for(int i = 0; i < ConstStr.size(); i++)
+                            IntegerValue = (IntegerValue * 10) + ConstStr[i] - '0';
+                        Result = TokenEnum::TOKEN_NUMBER;
+                    }
+                    else
+                        throw ExpressionException("Invalid integer constant");
                 }
                 else if(InputStream.eof() || InputStream.fail())
                     Result = TokenEnum::TOKEN_END;

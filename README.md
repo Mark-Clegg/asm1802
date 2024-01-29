@@ -179,11 +179,15 @@ Numerical constants can be specified in decimal, octal or hex.
 
 | Format | Meaning |
 | --- | --- |
-| %1010 | Binary |
+| %1010 | Binary (% prefix)|
+| 1010b | Binary (b suffix) |
 | 0123 | Octal (0 prefix)|
+| 123o | Octal (o suffix)|
 | 1234 | Decimal |
-| $1234 | Hexadecimal |
-| 0x1234 | Hexadecimal |
+| 1234d | Decimal (d suffix) |
+| $1234 | Hexadecimal ($ prefix) |
+| 0x1234 | Hexadecimal (0x prefix) |
+| 1234h | Hexadecimal (h suffix) |
 | . or $ | Current Address |
 
 ### Operator Precedence

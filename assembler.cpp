@@ -1610,49 +1610,49 @@ bool Assembler::Run()
                     // Check for un-used non-static SUBROUTINEs and reset to Pass 2 if found
 
                     if(Errors.count(AssemblyErrorSeverity::SEVERITY_Error) == 0)
+                    {
                         for(const auto& SubTable : SubTables)
-                        {
                             if(MainTable.Symbols[SubTable.first].RefCount == 0 && ! SubTable.second.Static)
                             {
                                 UnReferencedSubs.insert(SubTable.first);
                                 Pass = 1;
                             }
-                            if(Pass == 1)
-                            {
-                                fmt::println("Unreferenced SUBROUTINES found, Removing...");
-                                for(auto& Name : UnReferencedSubs)
-                                    fmt::println("\t{Name}",fmt::arg("Name", Name));
-                                fmt::println("Restarting from Pass 2");
+                        if(Pass == 1)
+                        {
+                            fmt::println("Unreferenced SUBROUTINES found, Removing...");
+                            for(auto& Name : UnReferencedSubs)
+                                fmt::println("\t{Name}",fmt::arg("Name", Name));
+                            fmt::println("Restarting from Pass 2");
 
-                                // Clear Master Symbol Table (Except hidden symbols, i.e. R0-F & P1-7)
-                                for(auto it = MainTable.Symbols.begin(); it != MainTable.Symbols.end(); )
+                            // Clear Sub Symbol Tables
+                            for(auto T = SubTables.begin(); T != SubTables.end(); )
+                                if(MainTable.Symbols[T->first].RefCount == 0 && ! T->second.Static)
                                 {
-                                    if(!it->second.HideFromSymbolTable)
-                                        it = MainTable.Symbols.erase(it);
-                                    else
-                                        ++it;
+                                    TotelOptimisedBytes += T->second.CodeSize;
+                                    T = SubTables.erase(T);
                                 }
+                                else
+                                    T++;
 
-                                // Clear Sub Symbol Tables
-                                for(auto T = SubTables.begin(); T != SubTables.end(); )
-                                    if(MainTable.Symbols[T->first].RefCount == 0 && ! T->second.Static)
-                                    {
-                                        TotelOptimisedBytes += T->second.CodeSize;
-                                        T = SubTables.erase(T);
-                                    }
-                                    else
-                                        T++;
-
-                                for(auto& Table : SubTables)
-                                    Table.second.Symbols.clear();
-
-                                //SubTables.clear();
-
-                                // Reset Listing File
-                                ListingFile.Reset();
-                                break;
+                            // Clear Master Symbol Table (Except hidden symbols, i.e. R0-F & P1-7)
+                            for(auto it = MainTable.Symbols.begin(); it != MainTable.Symbols.end(); )
+                            {
+                                if(!it->second.HideFromSymbolTable)
+                                    it = MainTable.Symbols.erase(it);
+                                else
+                                    ++it;
                             }
+
+                            for(auto& Table : SubTables)
+                                Table.second.Symbols.clear();
+
+                            //SubTables.clear();
+
+                            // Reset Listing File
+                            ListingFile.Reset();
+                            break;
                         }
+                    }
 
                     // Check for overlapping code
                     int Overlap = 0;

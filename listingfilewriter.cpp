@@ -193,7 +193,14 @@ void ListingFileWriter::AppendSymbols(const std::string& Name, const SymbolTable
     if(Enabled)
     {
         fmt::println(ListStream, "");
-        fmt::println(ListStream, "{Name:-^116}", fmt::arg("Name", Name));
+
+        if(Blob.Name.empty())
+            fmt::println(ListStream, "{Name:-^116}", fmt::arg("Name", "Global Symbols"));
+        else
+        {
+            std::string NameAndSize = fmt::format("{Name} ({Size} (${Size:04X}) bytes)", fmt::arg("Name", Name), fmt::arg("Size",  Blob.CodeSize));
+            fmt::println(ListStream, "{Name:-^116}", fmt::arg("Name", NameAndSize));
+        }
 
         int c = 0;
         for(auto& Symbol : Blob.Symbols)

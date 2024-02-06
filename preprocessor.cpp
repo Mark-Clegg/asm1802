@@ -43,6 +43,9 @@ PreProcessor::SourceEntry::SourceEntry(const std::string& Name) :
     LineNumber(0)
 {
     Stream = new std::ifstream(Name);
+
+    if(!Stream->good())
+        throw PreProcessorException(Name, 0, fmt::format("File not found: {Name}", fmt::arg("Name", Name)));
 }
 
 //!
@@ -261,10 +264,19 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
                             {
                                 if(SourceStreams.size() > 100)
                                     throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Source File Nesting limit exceeded");
-                                SourceEntry Entry(MatchResult[1]);
-                                SourceStreams.push(Entry);
-                                WriteLineMarker(OutputStream, SourceStreams.top().Name, 1);
-                                IfNestingLevel.push(0);
+
+                                try
+                                {
+                                    SourceEntry Entry(MatchResult[1]);
+                                    SourceStreams.push(Entry);
+                                    WriteLineMarker(OutputStream, SourceStreams.top().Name, 1);
+                                    IfNestingLevel.push(0);
+                                }
+                                catch(PreProcessorException Ex)
+                                {
+                                    throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, Ex.what());
+                                }
+
                             }
                             else
                                 throw PreProcessorException(SourceStreams.top().Name, SourceStreams.top().LineNumber, "Unable to interpret filename expected <filename> or \"filename\"");

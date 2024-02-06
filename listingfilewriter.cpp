@@ -30,11 +30,12 @@ void ListingFileWriter::Reset()
         std::filesystem::remove(File);
 }
 
-void ListingFileWriter::Append(const std::string& FileName, int LineNumber, const std::string& MacroName, int MacroLineNumber, const std::string& Line, const bool InMacro)
+void ListingFileWriter::Append(const std::string& FullFileName, int LineNumber, const std::string& MacroName, int MacroLineNumber, const std::string& Line, const bool InMacro)
 {
+    std::string FileName = std::filesystem::path(FullFileName).filename();
     std::string FileRef;
     if(InMacro)
-        FileRef = FileName+"::"+MacroName;
+        FileRef = FileName + "::" + MacroName;
     else
         FileRef = FileName;
 
@@ -45,14 +46,14 @@ void ListingFileWriter::Append(const std::string& FileName, int LineNumber, cons
             ListStream.open(ListFileName, std::ofstream::out | std::ofstream::trunc);
         }
         if(InMacro)
-            fmt::println(ListStream, "[{filename:21.21} :{linenumber:05}.{macrolinenumber:02}]                       {line}",
+            fmt::println(ListStream, "[{filename:22.22} {linenumber:05}:{macrolinenumber:02}]                       {line}",
                          fmt::arg("filename", FileRef),
                          fmt::arg("linenumber", LineNumber - 1),
                          fmt::arg("macrolinenumber", MacroLineNumber),
                          fmt::arg("line", Line)
                         );
         else
-            fmt::println(ListStream, "[{filename:21.21} :{linenumber:05}   ]                       {line}",
+            fmt::println(ListStream, "[{filename:22.22} {linenumber:05}   ]                       {line}",
                          fmt::arg("filename", FileName),
                          fmt::arg("linenumber", LineNumber),
                          fmt::arg("line", Line)
@@ -62,8 +63,9 @@ void ListingFileWriter::Append(const std::string& FileName, int LineNumber, cons
     }
 }
 
-void ListingFileWriter::Append(const std::string& FileName, int LineNumber, const std::string& MacroName, int MacroLineNumber, const std::string& Line, const bool InMacro, const std::uint16_t Address, const std::vector<std::uint8_t>& Data)
+void ListingFileWriter::Append(const std::string& FullFileName, int LineNumber, const std::string& MacroName, int MacroLineNumber, const std::string& Line, const bool InMacro, const std::uint16_t Address, const std::vector<std::uint8_t>& Data)
 {
+    std::string FileName = std::filesystem::path(FullFileName).filename();
     std::string FileRef;
     if(InMacro)
         FileRef = FileName+"::"+MacroName;
@@ -79,7 +81,7 @@ void ListingFileWriter::Append(const std::string& FileName, int LineNumber, cons
         if(Data.size() == 0)
         {
             if(InMacro)
-                fmt::println(ListStream, "[{filename:21.21} :{linenumber:05}.{macrolinenumber:02}]  {address:04X}                 {line}",
+                fmt::println(ListStream, "[{filename:22.22} {linenumber:05}:{macrolinenumber:02}]  {address:04X}                 {line}",
                              fmt::arg("filename", FileRef),
                              fmt::arg("linenumber", LineNumber - 1),
                              fmt::arg("macrolinenumber", MacroLineNumber),
@@ -87,7 +89,7 @@ void ListingFileWriter::Append(const std::string& FileName, int LineNumber, cons
                              fmt::arg("line", Line)
                             );
             else
-                fmt::println(ListStream, "[{filename:21.21} :{linenumber:05}   ]  {address:04X}                 {line}",
+                fmt::println(ListStream, "[{filename:22.22} {linenumber:05}   ]  {address:04X}                 {line}",
                              fmt::arg("filename", FileName),
                              fmt::arg("linenumber", LineNumber),
                              fmt::arg("address", Address),
@@ -101,14 +103,14 @@ void ListingFileWriter::Append(const std::string& FileName, int LineNumber, cons
             {
                 if(i == 0)
                     if(InMacro)
-                        fmt::print(ListStream, "[{filename:21.21} :{linenumber:05}.{macrolinenumber:02}]  {address:04X}   ",
+                        fmt::print(ListStream, "[{filename:22.22} {linenumber:05}:{macrolinenumber:02}]  {address:04X}   ",
                                    fmt::arg("filename", FileRef),
                                    fmt::arg("linenumber", LineNumber - 1),
                                    fmt::arg("macrolinenumber", MacroLineNumber),
                                    fmt::arg("address", Address)
                                   );
                     else
-                        fmt::print(ListStream, "[{filename:21.21} :{linenumber:05}   ]  {address:04X}   ",
+                        fmt::print(ListStream, "[{filename:22.22} {linenumber:05}   ]  {address:04X}   ",
                                    fmt::arg("filename", FileName),
                                    fmt::arg("linenumber", LineNumber),
                                    fmt::arg("address", Address)
@@ -198,7 +200,10 @@ void ListingFileWriter::AppendSymbols(const std::string& Name, const SymbolTable
             fmt::println(ListStream, "{Name:-^116}", fmt::arg("Name", "Global Symbols"));
         else
         {
-            std::string NameAndSize = fmt::format("{Name} ({Size} (${Size:04X}) bytes)", fmt::arg("Name", Name), fmt::arg("Size",  Blob.CodeSize));
+            std::string NameAndSize = fmt::format("{Name} @ ${Address:04X} ({Size} (${Size:04X}) bytes)",
+                                                  fmt::arg("Name", Name),
+                                                  fmt::arg("Size",  Blob.CodeSize),
+                                                  fmt::arg("Address", Blob.Symbols.at(Name).Value.value()));
             fmt::println(ListStream, "{Name:-^116}", fmt::arg("Name", NameAndSize));
         }
 

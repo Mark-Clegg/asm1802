@@ -81,8 +81,16 @@ bool PreProcessor::Run(const std::string& InputFile, std::string& OutputFile)
     p.replace_extension("pp");
     OutputFile = p;
 
-    SourceEntry Entry(InputFile);
-    SourceStreams.push(Entry);
+    try
+    {
+        SourceEntry Entry(InputFile);
+        SourceStreams.push(Entry);
+    }
+    catch (PreProcessorException Ex)
+    {
+        fmt::println(Ex.what());
+        return false;
+    }
 
     if(!SourceStreams.top().Stream->good())
         return false;

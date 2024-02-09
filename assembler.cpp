@@ -4,7 +4,6 @@
 #include "binarywriter_idiot4.h"
 #include "binarywriter_intelhex.h"
 #include "binarywriter_binary.h"
-#include "binarywriter_none.h"
 #include "expressionexception.h"
 #include "listingfilewriter.h"
 #include "sourcecodereader.h"
@@ -30,11 +29,10 @@ const std::map<std::string, Assembler::OutputFormatEnum> Assembler::OutputFormat
 {
     { "INTEL_HEX", Assembler::OutputFormatEnum::INTEL_HEX },
     { "IDIOT4",    Assembler::OutputFormatEnum::IDIOT4    },
-    { "BIN",       Assembler::OutputFormatEnum::BIN       },
-    { "NONE",      Assembler::OutputFormatEnum::NONE      }
+    { "BIN",       Assembler::OutputFormatEnum::BIN       }
 };
 
-Assembler::Assembler(const std::string& FileName, CPUTypeEnum& InitialProcessor, bool ListingEnabled, bool DumpSymbols, bool& NoRegisters, bool& NoPorts, OutputFormatEnum& BinMode) :
+Assembler::Assembler(const std::string& FileName, CPUTypeEnum& InitialProcessor, bool ListingEnabled, bool DumpSymbols, bool& NoRegisters, bool& NoPorts, const std::vector<OutputFormatEnum>& BinMode) :
     FileName(FileName),
     InitialProcessor(InitialProcessor),
     NoRegisters(NoRegisters),
@@ -1711,31 +1709,29 @@ bool Assembler::Run()
     if(TotalErrors == 0)
     {
         BinaryWriter *Output;
-        switch(BinMode)
+        for(auto& Format : BinMode)
         {
-            case OutputFormatEnum::INTEL_HEX:
+            switch(Format)
             {
-                Output = new BinaryWriter_IntelHex(FileName, "hex");
-                break;
+                case OutputFormatEnum::INTEL_HEX:
+                {
+                    Output = new BinaryWriter_IntelHex(FileName, "hex");
+                    break;
+                }
+                case OutputFormatEnum::IDIOT4:
+                {
+                    Output = new BinaryWriter_Idiot4(FileName, "idiot");
+                    break;
+                }
+                case OutputFormatEnum::BIN:
+                {
+                    Output = new BinaryWriter_Binary(FileName, "bin");
+                    break;
+                }
             }
-            case OutputFormatEnum::IDIOT4:
-            {
-                Output = new BinaryWriter_Idiot4(FileName, "idiot");
-                break;
-            }
-            case OutputFormatEnum::BIN:
-            {
-                Output = new BinaryWriter_Binary(FileName, "bin");
-                break;
-            }
-            case OutputFormatEnum::NONE:
-            {
-                Output = new BinaryWriter_None(FileName, "");
-                break;
-            }
+            Output->Write(Code, EntryPoint);
+            delete Output;
         }
-        Output->Write(Code, EntryPoint);
-        delete Output;
     }
 
     return TotalErrors == 0 && TotalWarnings == 0;

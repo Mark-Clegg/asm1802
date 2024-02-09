@@ -54,7 +54,7 @@ int main(int argc, char **argv)
     PreProcessor AssemblerPreProcessor;
     bool KeepPreprocessor = false;
     bool Symbols = false;
-    Assembler::OutputFormatEnum OutputFormat = Assembler::OutputFormatEnum::NONE;
+    std::vector<Assembler::OutputFormatEnum> OutputFormat;
     bool NoRegisters = false;   // Suppress pre-defined Register equates
     bool NoPorts     = false;   // Suppress pre-defined Port equates
 
@@ -131,9 +131,9 @@ int main(int argc, char **argv)
                 std::string Mode = optarg;
                 ToUpper(Mode);
                 if(Assembler::OutputFormatLookup.find(Mode) == Assembler::OutputFormatLookup.end())
-                    fmt::println("** Unrecognised binary output mode. Defaulting to NONE");
+                    fmt::println("** Ignoring nrecognised binary output mode: {Mode}", fmt::arg("Mode", Mode));
                 else
-                    OutputFormat = Assembler::OutputFormatLookup.at(Mode);
+                    OutputFormat.push_back(Assembler::OutputFormatLookup.at(Mode));
                 break;
             }
             case 'v': // Display Version number

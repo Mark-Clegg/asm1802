@@ -35,12 +35,11 @@ public:
     {
         INTEL_HEX,
         IDIOT4,
-        BIN,
-        NONE
+        BIN
     };
     const static std::map<std::string, OutputFormatEnum> OutputFormatLookup;
 
-    Assembler(const std::string& FileName, CPUTypeEnum& InitialProcessor, bool ListingEnabled, bool DumpSymbols, bool& NoRegisters, bool& NoPorts, OutputFormatEnum& BinMode);
+    Assembler(const std::string& FileName, CPUTypeEnum& InitialProcessor, bool ListingEnabled, bool DumpSymbols, bool& NoRegisters, bool& NoPorts, const std::vector<OutputFormatEnum>& BinMode);
     bool Run();
 private:
     const std::string& FileName;
@@ -49,7 +48,7 @@ private:
     bool DumpSymbols;
     const bool& NoRegisters;
     const bool& NoPorts;
-    const OutputFormatEnum& BinMode;
+    const std::vector<OutputFormatEnum>& BinMode;
 
     const std::optional<OpCodeSpec> ExpandTokens(const std::string& Line, std::string& Label, std::string& OpCode, std::vector<std::string>& Operands);
     void ExpandMacro(const Macro& Definition, const std::vector<std::string>& Operands, std::string& Output);

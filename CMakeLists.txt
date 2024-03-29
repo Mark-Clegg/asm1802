@@ -14,29 +14,29 @@ add_executable(asm1802 main.cpp
     LICENSE
 
     assembler.h assembler.cpp
-
-
-
     sourcecodereader.h sourcecodereader.cpp
-    assemblyexception.h assemblyexception.cpp
     utils.h utils.cpp
     listingfilewriter.h listingfilewriter.cpp
     opcodetable.h opcodetable.cpp
     symboltable.h symboltable.cpp
     errortable.h errortable.cpp
-    assemblyexpressionevaluator.h assemblyexpressionevaluator.cpp
     macro.h macro.cpp
     preprocessor.h preprocessor.cpp
-    preprocessorexception.h preprocessorexception.cpp
     expressiontokenizer.h expressiontokenizer.cpp
-    preprocessorexpressionevaluator.h preprocessorexpressionevaluator.cpp
-    expressionexception.h expressionexception.cpp
-    expressionevaluatorbase.h expressionevaluatorbase.cpp
-    binarywriter.h binarywriter.cpp
 
+    assemblyexception.h assemblyexception.cpp
+    preprocessorexception.h preprocessorexception.cpp
+    expressionexception.h expressionexception.cpp
+
+    expressionevaluatorbase.h expressionevaluatorbase.cpp
+    preprocessorexpressionevaluator.h preprocessorexpressionevaluator.cpp
+    assemblyexpressionevaluator.h assemblyexpressionevaluator.cpp
+
+    binarywriter.h binarywriter.cpp
     binarywriter_intelhex.h binarywriter_intelhex.cpp
     binarywriter_idiot4.h binarywriter_idiot4.cpp
     binarywriter_binary.h binarywriter_binary.cpp
+    binarywriter_elfos.h binarywriter_elfos.cpp
 
     lsp/cdp1802-languageserver.py
     syntax/asm1802.xml

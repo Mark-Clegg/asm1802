@@ -3,6 +3,7 @@
 #include "assemblyexpressionevaluator.h"
 #include "binarywriter_idiot4.h"
 #include "binarywriter_intelhex.h"
+#include "binarywriter_elfos.h"
 #include "binarywriter_binary.h"
 #include "expressionexception.h"
 #include "listingfilewriter.h"
@@ -29,6 +30,7 @@ const std::map<std::string, Assembler::OutputFormatEnum> Assembler::OutputFormat
 {
     { "INTEL_HEX", Assembler::OutputFormatEnum::INTEL_HEX },
     { "IDIOT4",    Assembler::OutputFormatEnum::IDIOT4    },
+    { "ELFOS",     Assembler::OutputFormatEnum::ELFOS     },
     { "BIN",       Assembler::OutputFormatEnum::BIN       }
 };
 
@@ -1721,6 +1723,11 @@ bool Assembler::Run()
                 case OutputFormatEnum::IDIOT4:
                 {
                     Output = new BinaryWriter_Idiot4(FileName, "idiot");
+                    break;
+                }
+                case OutputFormatEnum::ELFOS:
+                {
+                    Output = new BinaryWriter_ElfOS(FileName, "elfos");
                     break;
                 }
                 case OutputFormatEnum::BIN:

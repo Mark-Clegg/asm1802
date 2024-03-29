@@ -35,6 +35,7 @@ public:
     {
         INTEL_HEX,
         IDIOT4,
+        ELFOS,
         BIN
     };
     const static std::map<std::string, OutputFormatEnum> OutputFormatLookup;

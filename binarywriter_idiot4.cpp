@@ -1,4 +1,5 @@
 #include "binarywriter_idiot4.h"
+#include <fmt/ranges.h>
 
 BinaryWriter_Idiot4::BinaryWriter_Idiot4(const std::string& FileName, const std::string& Extension) : BinaryWriter(FileName, Extension)
 {
